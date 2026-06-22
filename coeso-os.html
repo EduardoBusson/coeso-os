@@ -5813,6 +5813,17 @@ function migrarDados() {
     clientes.push({ id:maxId+1, nome:'Mendes e Brito', segmento:'', contato:'', whatsapp:'', email:'', valor:0, diaVenc:null, status:'Permuta', servicos:'Social media', cor:'#6a2a8e', ig:{user:'',seguidores:0,eng:0,posts:0,alcance:0,delta_seg:0,delta_eng:0,historico:[]} });
     alterou = true;
   }
+  // Adiciona Academias de Sucesso (Permuta, Tráfego) se não existir
+  if (!clientes.find(c=>c.nome==='Academias de Sucesso')) {
+    const maxId = Math.max(...clientes.map(c=>c.id), 0);
+    clientes.push({ id:maxId+1, nome:'Academias de Sucesso', segmento:'Fitness', contato:'', whatsapp:'', email:'', valor:0, diaVenc:null, status:'Permuta', servicos:'Tráfego', cor:'#1a6e3a', trafego:true, ig:{user:'',seguidores:0,eng:0,posts:0,alcance:0,delta_seg:0,delta_eng:0,historico:[]} });
+    alterou = true;
+  }
+  // Marca flag trafego:true para Sportif e Complexo Spot
+  ['Sportif','Complexo Spot'].forEach(nome => {
+    const c = clientes.find(x=>x.nome===nome);
+    if (c && !c.trafego) { c.trafego = true; alterou = true; }
+  });
   if (alterou) {
     saveData('clientes', clientes);
   }
