@@ -737,40 +737,38 @@
   <div class="page" id="page-instagram">
     <div class="page-header">
       <div>
-        <div class="page-title">Dashboard Instagram</div>
-        <div class="page-subtitle">Resultados dos clientes · Junho 2026</div>
+        <div class="page-title">📱 Instagram</div>
+        <div class="page-subtitle" id="ig-subtitle">Seguidores por cliente</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <input type="date" id="ig-data-filtro" class="form-input" style="width:auto;font-size:12px;padding:6px 10px" title="Ver métricas desta data">
-        <button class="btn btn-ghost btn-sm" onclick="renderInstagram()">🔄 Atualizar</button>
+        <select id="ig-mes-sel" class="form-input" style="width:auto;font-size:12px;padding:6px 10px" onchange="renderInstagram()"></select>
+        <button class="btn btn-ghost btn-sm" onclick="exportarRelatorioIG()">📊 Relatório anual</button>
       </div>
     </div>
     <div class="page-content">
       <div class="grid-4" style="margin-bottom:24px">
         <div class="card">
-          <div class="card-title">Total seguidores gerenciados</div>
-          <div class="card-value">284k</div>
-          <div class="card-delta delta-up">↑ 4.2k este mês</div>
+          <div class="card-title">Total seguidores</div>
+          <div class="card-value" id="ig-kpi-seg">—</div>
+          <div class="card-delta" id="ig-kpi-seg-delta" style="color:var(--text2)">Soma dos clientes</div>
         </div>
         <div class="card">
-          <div class="card-title">Engajamento médio</div>
-          <div class="card-value">4.7%</div>
-          <div class="card-delta delta-up">↑ 0.3pp</div>
+          <div class="card-title">Crescimento no mês</div>
+          <div class="card-value" id="ig-kpi-cresc">—</div>
+          <div class="card-delta" id="ig-kpi-cresc-delta" style="color:var(--text2)">vs. mês anterior</div>
         </div>
         <div class="card">
-          <div class="card-title">Posts publicados</div>
-          <div class="card-value">142</div>
-          <div class="card-delta" style="color:var(--text2)">Este mês</div>
+          <div class="card-title">Clientes atualizados</div>
+          <div class="card-value" id="ig-kpi-upd">—</div>
+          <div class="card-delta" id="ig-kpi-upd-delta" style="color:var(--text2)">este mês</div>
         </div>
         <div class="card">
-          <div class="card-title">Alcance total</div>
-          <div class="card-value">1.2M</div>
-          <div class="card-delta delta-up">↑ 18%</div>
+          <div class="card-title">Maior crescimento</div>
+          <div class="card-value" id="ig-kpi-top" style="font-size:16px">—</div>
+          <div class="card-delta" id="ig-kpi-top-delta" style="color:var(--text2)">no período</div>
         </div>
       </div>
-      <div id="ig-aviso" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);display:none">
-        💡 <strong>Dados manuais:</strong> Clique em ✏️ em cada cliente para inserir seguidores, engajamento e posts do dia. Para integração automática com o Instagram seria necessária a <strong>Instagram Graph API</strong> (Meta) — posso configurar isso em uma versão futura.
-      </div>
+      <div id="ig-aviso" style="border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;border:1px solid;display:none"></div>
       <div class="ig-grid" id="ig-grid"></div>
     </div>
   </div>
