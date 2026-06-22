@@ -4247,7 +4247,8 @@ function salvarQuickIG(clienteId) {
   if (!c.ig.historico) c.ig.historico = [];
   const seg = parseInt(document.getElementById('ig-quick-seg-'+clienteId)?.value)||0;
   const hoje = localDateStr();
-  const novaEntrada = { data: hoje, seguidores: seg, eng: c.ig.eng||0, alcance: c.ig.alcance||0, posts: 0 };
+  const agora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'});
+  const novaEntrada = { data: hoje, hora: agora, seguidores: seg, eng: c.ig.eng||0, alcance: c.ig.alcance||0, posts: 0 };
   c.ig.seguidores = seg;
   const idx = c.ig.historico.findIndex(h=>h.data===hoje);
   if (idx>=0) c.ig.historico[idx] = novaEntrada;
