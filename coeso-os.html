@@ -4606,61 +4606,157 @@ const TRAFEGO_CAMPOS = [
   { key:'google_obs',         label:'Observações Google',      tipo:'text' },
 ];
 
+// trafegoData[clienteId] = [ {data, meta_inv, meta_leads, meta_cliques, meta_obs, google_inv, google_leads, google_cliques, google_obs}, ... ]
+let _trafegoAberto = null; // ID do cliente expandido
+
 function renderTrafego() {
-  const mes = mesAtualKey();
   const lista = clientes.filter(c => c.trafego === true);
+  const hoje = localDateStr();
 
   document.getElementById('trafego-grid').innerHTML = lista.map(c => {
-    const key = c.id + '_' + mes;
-    const d = trafegoData[key] || {};
-    const metaInv = Number(d.meta_investimento||0);
-    const googleInv = Number(d.google_investimento||0);
-    const totalInv = metaInv + googleInv;
+    const entradas = (trafegoData[c.id] || []).sort((a,b)=>b.data.localeCompare(a.data));
+    const totalMetaInv   = entradas.reduce((s,e)=>s+Number(e.meta_inv||0),0);
+    const totalGoogleInv = entradas.reduce((s,e)=>s+Number(e.google_inv||0),0);
+    const totalInv = totalMetaInv + totalGoogleInv;
+    const totalLeads = entradas.reduce((s,e)=>s+Number(e.meta_leads||0)+Number(e.google_leads||0),0);
+    const aberto = _trafegoAberto === c.id;
+
     return `
-    <div class="card" style="border-left:3px solid var(--accent)">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <div class="avatar" style="background:${c.cor||'#2a7a8e'}">${c.nome.charAt(0)}</div>
-        <div>
-          <div style="font-weight:600">${c.nome}</div>
-          <div style="font-size:11px;color:var(--text2)">${nomeMes(mes)} · Total investido: <b style="color:var(--green)">R$ ${totalInv.toLocaleString('pt-BR')}</b></div>
+    <div class="card" style="padding:0;overflow:hidden;border:1px solid var(--border)">
+      <!-- Cabeçalho clicável -->
+      <div onclick="toggleTrafego(${c.id})" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;background:var(--surface);transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
+        <div class="avatar" style="background:${c.cor||'#2a7a8e'};flex-shrink:0">${c.nome.charAt(0)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px">${c.nome}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">
+            ${entradas.length} dia(s) registrado(s) &nbsp;·&nbsp;
+            💰 R$ ${totalInv.toLocaleString('pt-BR')} investido &nbsp;·&nbsp;
+            🎯 ${totalLeads} leads
+          </div>
         </div>
+        <span style="font-size:18px;color:var(--text3);transition:transform .2s;transform:rotate(${aberto?'90':'0'}deg)">›</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div>
-          <div style="font-size:12px;font-weight:600;color:#1877f2;margin-bottom:8px">📘 Meta Ads</div>
-          ${['meta_investimento','meta_alcance','meta_impressoes','meta_cliques','meta_cpc','meta_leads','meta_obs'].map(fk=>{
-            const f = TRAFEGO_CAMPOS.find(x=>x.key===fk);
-            return `<div class="form-group" style="margin:0 0 8px">
-              <label class="form-label" style="font-size:11px">${f.label}</label>
-              ${f.tipo==='text'
-                ? `<input class="form-input" style="font-size:12px;padding:5px 8px" type="text" data-key="${fk}" data-cliente="${c.id}" value="${d[fk]||''}" onchange="updateTrafego('${c.id}','${mes}','${fk}',this.value)">`
-                : `<input class="form-input" style="font-size:12px;padding:5px 8px" type="number" min="0" step="0.01" data-key="${fk}" data-cliente="${c.id}" value="${d[fk]||''}" onchange="updateTrafego('${c.id}','${mes}','${fk}',this.value)">`
-              }
-            </div>`;
-          }).join('')}
+
+      <!-- Painel expandido -->
+      <div id="trafego-panel-${c.id}" style="display:${aberto?'block':'none'};border-top:1px solid var(--border);padding:16px">
+
+        <!-- Formulário novo dia -->
+        <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:12px">+ Registrar dia</div>
+          <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:10px;align-items:end;margin-bottom:10px">
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">Data</label>
+              <input id="tf-data-${c.id}" class="form-input" type="date" value="${hoje}" style="font-size:12px;padding:5px 8px">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">📘 Invest. Meta (R$)</label>
+              <input id="tf-meta-inv-${c.id}" class="form-input" type="number" min="0" step="0.01" placeholder="0,00" style="font-size:12px;padding:5px 8px">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">🔍 Invest. Google (R$)</label>
+              <input id="tf-google-inv-${c.id}" class="form-input" type="number" min="0" step="0.01" placeholder="0,00" style="font-size:12px;padding:5px 8px">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">Leads Meta</label>
+              <input id="tf-meta-leads-${c.id}" class="form-input" type="number" min="0" placeholder="0" style="font-size:12px;padding:5px 8px">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">Cliques Meta</label>
+              <input id="tf-meta-cliques-${c.id}" class="form-input" type="number" min="0" placeholder="0" style="font-size:12px;padding:5px 8px">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">Leads Google</label>
+              <input id="tf-google-leads-${c.id}" class="form-input" type="number" min="0" placeholder="0" style="font-size:12px;padding:5px 8px">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">Cliques Google</label>
+              <input id="tf-google-cliques-${c.id}" class="form-input" type="number" min="0" placeholder="0" style="font-size:12px;padding:5px 8px">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">Obs. Meta</label>
+              <input id="tf-meta-obs-${c.id}" class="form-input" type="text" placeholder="Campanha, público..." style="font-size:12px;padding:5px 8px">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:11px">Obs. Google</label>
+              <input id="tf-google-obs-${c.id}" class="form-input" type="text" placeholder="Campanha, palavras-chave..." style="font-size:12px;padding:5px 8px">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="salvarDiaTrafego(${c.id})">💾 Salvar este dia</button>
         </div>
-        <div>
-          <div style="font-size:12px;font-weight:600;color:#34a853;margin-bottom:8px">🔍 Google Ads</div>
-          ${['google_investimento','google_cliques','google_impressoes','google_cpc','google_conversoes','google_obs'].map(fk=>{
-            const f = TRAFEGO_CAMPOS.find(x=>x.key===fk);
-            return `<div class="form-group" style="margin:0 0 8px">
-              <label class="form-label" style="font-size:11px">${f.label}</label>
-              ${f.tipo==='text'
-                ? `<input class="form-input" style="font-size:12px;padding:5px 8px" type="text" data-key="${fk}" data-cliente="${c.id}" value="${d[fk]||''}" onchange="updateTrafego('${c.id}','${mes}','${fk}',this.value)">`
-                : `<input class="form-input" style="font-size:12px;padding:5px 8px" type="number" min="0" step="0.01" data-key="${fk}" data-cliente="${c.id}" value="${d[fk]||''}" onchange="updateTrafego('${c.id}','${mes}','${fk}',this.value)">`
-              }
-            </div>`;
-          }).join('')}
-        </div>
+
+        <!-- Histórico de dias -->
+        ${entradas.length ? `
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Histórico</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <thead>
+              <tr style="color:var(--text3);border-bottom:1px solid var(--border)">
+                <th style="padding:6px 8px;text-align:left">Data</th>
+                <th style="padding:6px 8px;text-align:right">💰 Meta</th>
+                <th style="padding:6px 8px;text-align:right">Leads M</th>
+                <th style="padding:6px 8px;text-align:right">💰 Google</th>
+                <th style="padding:6px 8px;text-align:right">Leads G</th>
+                <th style="padding:6px 8px;text-align:right">Total</th>
+                <th style="padding:6px 4px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entradas.map(e=>`
+              <tr style="border-bottom:1px solid var(--border)22">
+                <td style="padding:7px 8px;color:var(--text2)">${formatDate(e.data)}</td>
+                <td style="padding:7px 8px;text-align:right">R$ ${Number(e.meta_inv||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                <td style="padding:7px 8px;text-align:right;color:var(--green)">${e.meta_leads||0}</td>
+                <td style="padding:7px 8px;text-align:right">R$ ${Number(e.google_inv||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                <td style="padding:7px 8px;text-align:right;color:var(--green)">${e.google_leads||0}</td>
+                <td style="padding:7px 8px;text-align:right;font-weight:600">R$ ${(Number(e.meta_inv||0)+Number(e.google_inv||0)).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                <td style="padding:7px 4px"><button class="btn btn-ghost btn-sm" style="padding:2px 6px;color:var(--red)" onclick="excluirDiaTrafego(${c.id},'${e.data}')">🗑</button></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">Nenhum dia registrado ainda.</div>'}
       </div>
     </div>`;
-  }).join('') || '<div style="text-align:center;padding:40px;color:var(--text3)">Nenhum cliente ativo encontrado.</div>';
+  }).join('') || '<div style="text-align:center;padding:40px;color:var(--text3)">Nenhum cliente com tráfego cadastrado.</div>';
 }
 
-function updateTrafego(clienteId, mes, campo, valor) {
-  const key = clienteId + '_' + mes;
-  if (!trafegoData[key]) trafegoData[key] = {};
-  trafegoData[key][campo] = valor;
+function toggleTrafego(clienteId) {
+  _trafegoAberto = _trafegoAberto === clienteId ? null : clienteId;
+  renderTrafego();
+}
+
+function salvarDiaTrafego(clienteId) {
+  const data   = document.getElementById(`tf-data-${clienteId}`)?.value || localDateStr();
+  const metaInv    = parseFloat(document.getElementById(`tf-meta-inv-${clienteId}`)?.value)||0;
+  const googleInv  = parseFloat(document.getElementById(`tf-google-inv-${clienteId}`)?.value)||0;
+  const metaLeads  = parseInt(document.getElementById(`tf-meta-leads-${clienteId}`)?.value)||0;
+  const metaCliques= parseInt(document.getElementById(`tf-meta-cliques-${clienteId}`)?.value)||0;
+  const googleLeads= parseInt(document.getElementById(`tf-google-leads-${clienteId}`)?.value)||0;
+  const googleCli  = parseInt(document.getElementById(`tf-google-cliques-${clienteId}`)?.value)||0;
+  const metaObs    = document.getElementById(`tf-meta-obs-${clienteId}`)?.value||'';
+  const googleObs  = document.getElementById(`tf-google-obs-${clienteId}`)?.value||'';
+
+  if (!trafegoData[clienteId]) trafegoData[clienteId] = [];
+  // Substitui entrada do mesmo dia se existir
+  const idx = trafegoData[clienteId].findIndex(e=>e.data===data);
+  const entrada = { data, meta_inv:metaInv, meta_leads:metaLeads, meta_cliques:metaCliques, meta_obs:metaObs,
+                    google_inv:googleInv, google_leads:googleLeads, google_cliques:googleCli, google_obs:googleObs };
+  if (idx>=0) trafegoData[clienteId][idx] = entrada;
+  else trafegoData[clienteId].push(entrada);
+
+  saveData('trafego_data', trafegoData);
+  showToast('✓ Dia ' + formatDate(data) + ' salvo!');
+  renderTrafego();
+}
+
+function excluirDiaTrafego(clienteId, data) {
+  if (!confirm('Excluir registro de ' + formatDate(data) + '?')) return;
+  trafegoData[clienteId] = (trafegoData[clienteId]||[]).filter(e=>e.data!==data);
+  saveData('trafego_data', trafegoData);
+  renderTrafego();
 }
 
 function salvarTrafego() {
