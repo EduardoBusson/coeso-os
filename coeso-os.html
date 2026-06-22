@@ -225,14 +225,36 @@
 </style>
 </head>
 <body>
-<!-- Loading screen Firebase -->
-<div id="fb-loading" style="display:none;position:fixed;inset:0;background:#0a1520;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-  <div style="font-size:32px">☁️</div>
-  <div style="font-size:15px;color:#aee8f5;font-weight:600">Carregando dados...</div>
-  <div style="width:180px;height:4px;background:#1e3448;border-radius:99px;overflow:hidden">
-    <div id="fb-bar" style="height:100%;background:#aee8f5;border-radius:99px;animation:fbbar 1.5s ease-in-out infinite"></div>
+<!-- Splash / Loading screen -->
+<div id="fb-loading" style="display:none;position:fixed;inset:0;background:#060e18;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:0">
+  <style>
+    @keyframes splashArrow { 0%{opacity:0;transform:translateX(-20px)} 60%{opacity:1;transform:translateX(4px)} 100%{opacity:1;transform:translateX(0)} }
+    @keyframes splashFade  { 0%{opacity:0;transform:translateY(10px)} 100%{opacity:1;transform:translateY(0)} }
+    @keyframes splashBar   { 0%{width:0%} 100%{width:100%} }
+    @keyframes splashPulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+    .splash-arrow { animation: splashArrow 0.7s cubic-bezier(.22,1,.36,1) forwards; opacity:0; }
+    .splash-text  { animation: splashFade 0.5s 0.6s ease forwards; opacity:0; }
+    .splash-sub   { animation: splashFade 0.5s 0.9s ease forwards; opacity:0; }
+    .splash-status{ animation: splashPulse 1.5s 1.2s ease infinite; }
+  </style>
+  <!-- Logo SVG: seta Coeso -->
+  <div class="splash-arrow" style="margin-bottom:24px">
+    <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="48" cy="48" r="44" fill="#0d2035" stroke="#aee8f5" stroke-width="1.5" stroke-opacity=".3"/>
+      <!-- Seta apontando para cima-direita (símbolo de crescimento/comunicação) -->
+      <polyline points="26,66 26,32 62,32" stroke="#aee8f5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <polyline points="26,32 70,70" stroke="#aee8f5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <polyline points="50,70 70,70 70,50" stroke="#aee8f5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
   </div>
-  <style>@keyframes fbbar{0%{width:0%}60%{width:80%}100%{width:100%}}</style>
+  <div class="splash-text" style="font-size:28px;font-weight:700;color:#aee8f5;letter-spacing:3px;text-transform:uppercase">COESO</div>
+  <div class="splash-sub" style="font-size:11px;color:#5a8a9a;letter-spacing:4px;text-transform:uppercase;margin-top:4px;margin-bottom:32px">COMUNICAÇÃO</div>
+  <div style="width:160px;height:2px;background:#1e3448;border-radius:99px;overflow:hidden;margin-bottom:12px">
+    <div id="fb-bar" style="height:100%;background:linear-gradient(90deg,#aee8f5,#3dd68c);border-radius:99px;animation:splashBar 2s ease-in-out forwards"></div>
+  </div>
+  <div class="splash-status" style="font-size:11px;color:#5a8a9a">Sincronizando dados...</div>
+  <!-- padding fake bottom -->
+  <div style="height:40px"></div>
 </div>
 
 <!-- SIDEBAR -->
@@ -281,6 +303,9 @@
   <div class="nav-section">Resultados</div>
   <div class="nav-item" onclick="goTo('instagram')">
     <span class="icon">📱</span><span>Instagram</span>
+  </div>
+  <div class="nav-item" onclick="goTo('trafego')">
+    <span class="icon">📡</span><span>Tráfego</span>
   </div>
   <div class="nav-item" onclick="goTo('benchmarking')">
     <span class="icon">🔍</span><span>Benchmarking</span>
@@ -332,11 +357,6 @@
     <div class="page-content">
       <div class="grid-4" style="margin-bottom:24px">
         <div class="card">
-          <div class="card-title">Receita mensal</div>
-          <div class="card-value" id="dash-receita">—</div>
-          <div class="card-delta" style="color:var(--text2)">Soma das mensalidades ativas</div>
-        </div>
-        <div class="card">
           <div class="card-title">Clientes ativos</div>
           <div class="card-value" id="dash-clientes">—</div>
           <div class="card-delta delta-up" id="dash-clientes-sub"></div>
@@ -350,6 +370,11 @@
           <div class="card-title">Leads no pipeline</div>
           <div class="card-value" id="dash-leads">—</div>
           <div class="card-delta delta-up" id="dash-leads-sub"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Jobs em aberto</div>
+          <div class="card-value" id="dash-jobs">—</div>
+          <div class="card-delta" id="dash-jobs-sub"></div>
         </div>
       </div>
 
@@ -638,6 +663,17 @@
             <textarea id="vm-obs" class="form-input" rows="3" placeholder="Ex: 15/06 - Belo Horizonte (ida e volta) R$380, 22/06 - Uberlândia R$410..."></textarea>
           </div>
           <div id="vm-breakdown" style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:14px"></div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span style="font-size:13px;color:var(--text2)">Status do pagamento:</span>
+            <button id="vm-status-btn" class="btn btn-ghost btn-sm" onclick="toggleVmStatusLocal()" style="font-size:13px">
+              ○ Pendente
+            </button>
+          </div>
+          <div class="form-group" style="margin:0 0 12px">
+            <label class="form-label">📎 Relatório de rotas (PDF)</label>
+            <input id="vm-pdf-input" class="form-input" type="file" accept=".pdf" onchange="handleVmPdf(this)" style="padding:6px">
+            <div id="vm-pdf-info" style="margin-top:6px;font-size:12px;color:var(--text2)"></div>
+          </div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-primary" onclick="salvarVideomaker()">💾 Salvar registro do mês</button>
             <button class="btn btn-ghost" onclick="verHistoricoVm()">📋 Ver histórico</button>
@@ -737,6 +773,18 @@
       </div>
       <div class="ig-grid" id="ig-grid"></div>
     </div>
+  </div>
+
+  <!-- ===== TRÁFEGO ===== -->
+  <div class="page" id="page-trafego">
+    <div class="page-header">
+      <div>
+        <div class="page-title">📡 Gestão de Tráfego</div>
+        <div class="page-sub">Meta Ads · Google Ads por cliente</div>
+      </div>
+      <button class="btn btn-primary" onclick="salvarTrafego()">💾 Salvar tudo</button>
+    </div>
+    <div id="trafego-grid" style="display:grid;gap:16px"></div>
   </div>
 
   <!-- ===== BENCHMARKING ===== -->
@@ -1753,6 +1801,9 @@ let videomakerData = loadData('videomaker', DEMO_VIDEOMAKER);
 // Lançamentos avulsos (outras despesas)
 let lancAvulsos = loadData('lanc_avulsos', []);
 
+// Tráfego (Meta Ads + Google Ads por cliente)
+let trafegoData = loadData('trafego_data', {});
+
 // Jobs extras
 let jobsExtras = loadData('jobs_extras', []);
 let healthObs  = loadData('health_obs', {});
@@ -1858,13 +1909,13 @@ let eventos = loadData('eventos', DEMO_EVENTOS);
 
 // Categorias e cores da agenda
 const EVENTO_CORES = {
-  'Gravação':               { bg:'#7dd8f0', txt:'#0a1520' },
-  'Evento':                 { bg:'#f7c948', txt:'#1a1a00' },
-  'Reunião de Estratégia':  { bg:'#aee8f5', txt:'#0a1520' },
-  'Reunião de Prospecção':  { bg:'#3dd68c', txt:'#001a0d' },
-  'Entrega':                { bg:'#ff9f43', txt:'#1a0800' },
-  'Prazo':                  { bg:'#ff5a72', txt:'#fff'    },
-  'Outros':                 { bg:'#8b8fa8', txt:'#fff'    },
+  'Gravação':               { bg:'#7dd8f0', txt:'#0a2030', icon:'🎬' },
+  'Evento':                 { bg:'#f7c948', txt:'#1a1a00', icon:'🎉' },
+  'Reunião de Estratégia':  { bg:'#6c8cff', txt:'#fff',    icon:'📋' },
+  'Reunião de Prospecção':  { bg:'#3dd68c', txt:'#001a0d', icon:'🤝' },
+  'Entrega':                { bg:'#ff9f43', txt:'#1a0800', icon:'📦' },
+  'Prazo':                  { bg:'#ff5a72', txt:'#fff',    icon:'⏰' },
+  'Outros':                 { bg:'#8b8fa8', txt:'#fff',    icon:'📌' },
 };
 
 const processos = {
@@ -1905,6 +1956,7 @@ function renderPage(page) {
   if (page === 'comercial') renderComercial();
   if (page === 'leads') renderLeads();
   if (page === 'instagram')    renderInstagram();
+  if (page === 'trafego')      renderTrafego();
   if (page === 'processos')    renderProcessos();
   if (page === 'benchmarking') renderBenchmarking();
   if (page === 'intel-exec')   renderIntelExec();
@@ -1926,13 +1978,15 @@ function renderDashboard() {
   const clientesAtivos = clientes.filter(c=>c.status==='Ativo').length;
   const demandasAbertas = demandas.filter(d=>d.status!=='Concluído').length;
   const potencialLeads = leads.reduce((s,l)=>s+Number(l.valor||0),0);
-  document.getElementById('dash-receita').textContent = 'R$ ' + receitaTotal.toLocaleString('pt-BR');
+  const jobsAbertos = jobsAtivos.filter(j=>j.status!=='Pago'&&j.status!=='Cancelado');
   document.getElementById('dash-clientes').textContent = clientesAtivos;
   document.getElementById('dash-clientes-sub').textContent = clientes.length + ' total cadastrado(s)';
   document.getElementById('dash-demandas').textContent = demandasAbertas;
   document.getElementById('dash-demandas-sub').textContent = demandas.filter(d=>d.status==='Concluído').length + ' concluídas';
   document.getElementById('dash-leads').textContent = leads.length;
   document.getElementById('dash-leads-sub').textContent = potencialLeads ? '↑ R$ '+formatNum(potencialLeads)+' potencial' : 'Nenhum lead cadastrado';
+  document.getElementById('dash-jobs').textContent = jobsAbertos.length;
+  document.getElementById('dash-jobs-sub').textContent = jobsAbertos.length ? 'R$ '+jobsAbertos.reduce((s,j)=>s+Number(j.valor||0),0).toLocaleString('pt-BR')+' a receber' : 'Todos em dia ✓';
 
   // Clientes subtitle
   const subEl = document.querySelector('#page-clientes .page-subtitle');
@@ -2093,28 +2147,25 @@ function renderAgenda() {
       .filter(e => e.data === dateStr)
       .sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
 
-    // Prazos de demandas
-    const demDia = demandas.filter(dm => dm.prazo === dateStr);
-
     const chips = dayEvents.map(e => {
       const cor = EVENTO_CORES[e.tipo] || EVENTO_CORES['Outros'];
       return `<div class="event-chip"
-        style="background:${cor.bg};color:${cor.txt};cursor:pointer;position:relative;padding-right:22px"
+        style="background:${cor.bg};color:${cor.txt};cursor:pointer;border-left:3px solid ${cor.txt}22;padding:5px 8px 5px 6px;border-radius:6px;margin-bottom:3px"
         onclick="editarEvento(${e.id})"
         title="${e.tipo}${e.cliente?' — '+e.cliente:''}${e.obs?'\n'+e.obs:''}">
-        <span style="font-size:10px;opacity:.8">${e.hora||''}</span>
-        <span style="margin-left:2px">${e.titulo}</span>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;opacity:.75;margin-bottom:1px">
+          <span>${cor.icon||''} ${e.tipo}</span>
+          ${e.hora?`<span style="margin-left:auto">${e.hora}</span>`:''}
+        </div>
+        <div style="font-weight:600;font-size:12px;line-height:1.2">${e.titulo}</div>
+        ${e.cliente?`<div style="font-size:11px;opacity:.85;margin-top:2px">👤 ${e.cliente}</div>`:''}
       </div>`;
     }).join('');
-
-    const demChips = demDia.map(dm =>
-      `<div class="event-chip" style="background:#f7c948;color:#1a1a00;font-size:10px">⏰ ${dm.titulo}</div>`
-    ).join('');
 
     return `<div class="day-col" ondblclick="openNovoEventoNoDia('${dateStr}')" title="Duplo clique para criar evento">
       <div class="day-header">${dayNames[i]}</div>
       <div class="day-number ${isToday?'today':''}">${d.getDate()}</div>
-      ${chips}${demChips}
+      ${chips}
     </div>`;
   }).join('');
 }
@@ -2927,15 +2978,22 @@ function renderFinanceiro() {
   const jobsPagos       = jobsMes.filter(j=>j.status==='Pago').reduce((s,j)=>s+Number(j.valor||0),0);
   const jobsAReceber    = jobsMes.filter(j=>j.status!=='Pago').reduce((s,j)=>s+Number(j.valor||0),0);
 
+  // Lançamentos avulsos (despesas) do mês
+  const lancMes = lancAvulsos.filter(l=>l.mes===finMesSel || (!l.mes && finMesSel===mesAtualKey()));
+  const lancTotal = lancMes.reduce((s,l)=>s+Number(l.valor||0),0);
+  const lancPagos = lancMes.filter(l=>l.status==='Pago').reduce((s,l)=>s+Number(l.valor||0),0);
+
   // Videomaker deste mês
   const vm = videomakerData[finMesSel] || {};
   const vmTotal = calcVmTotal(vm.diarias||10, vm.deslocamento||0);
+  const vmPago  = vm.status === 'Pago';
 
   // KPI cards dinâmicos
   const totalReceber    = recMes.reduce((s,r)=>s+Number(r.valor),0) + jobsAReceber + jobsPagos;
-  const totalPagar      = pagMes.reduce((s,r)=>s+Number(r.valor),0) + vmTotal;
+  const totalPagar      = pagMes.reduce((s,r)=>s+Number(r.valor),0) + vmTotal + lancTotal;
   const receitaClientes = recMes.filter(r=>r.status==='Pago').reduce((s,r)=>s+Number(r.valor),0) + jobsPagos;
-  const lucro           = receitaClientes - totalPagar;
+  const despesasPagas   = pagMes.filter(r=>r.status==='Pago').reduce((s,r)=>s+Number(r.valor),0) + (vmPago?vmTotal:0) + lancPagos;
+  const lucro           = receitaClientes - despesasPagas;
   const aReceber        = recMes.filter(r=>r.status!=='Pago').reduce((s,r)=>s+Number(r.valor),0) + jobsAReceber;
 
   document.querySelector('#page-financeiro .fin-summary').innerHTML = `
@@ -2943,29 +3001,48 @@ function renderFinanceiro() {
       <div class="card-title">Receita mensal</div>
       <div class="card-value" style="color:var(--green)">R$ ${receitaClientes.toLocaleString('pt-BR')}</div>
       <div class="progress-bar-wrap"><div class="progress-bar" style="width:${Math.min(100,receitaClientes/600)}%;background:var(--green)"></div></div>
-      <div class="card-delta" style="color:var(--text2);margin-top:6px">Soma mensalidades ativas</div>
+      <div class="card-delta" style="color:var(--text2);margin-top:6px">Mensalidades${jobsPagos?` + Jobs R$ ${jobsPagos.toLocaleString('pt-BR')}`:''} recebidos</div>
     </div>
     <div class="card">
       <div class="card-title">Despesas</div>
       <div class="card-value" style="color:var(--red)">R$ ${totalPagar.toLocaleString('pt-BR')}</div>
       <div class="progress-bar-wrap"><div class="progress-bar" style="width:${Math.min(100,totalPagar/600)}%;background:var(--red)"></div></div>
-      <div class="card-delta" style="color:var(--text2);margin-top:6px">${contasPagar.length} lançamento(s)</div>
+      <div class="card-delta" style="color:var(--text2);margin-top:6px">Fixas + VM${lancTotal?` + R$ ${lancTotal.toLocaleString('pt-BR')} avulso`:''}${vmPago?' · VM pago':' · VM pendente'}</div>
     </div>
     <div class="card">
-      <div class="card-title">Lucro estimado</div>
+      <div class="card-title">Lucro (caixa)</div>
       <div class="card-value" style="color:var(--accent)">R$ ${lucro.toLocaleString('pt-BR')}</div>
       <div class="card-delta ${lucro>=0?'delta-up':'delta-down'}">Margem: ${receitaClientes?Math.round(lucro/receitaClientes*100):0}%</div>
     </div>
     <div class="card">
       <div class="card-title">A receber</div>
       <div class="card-value" style="color:var(--yellow)">R$ ${aReceber.toLocaleString('pt-BR')}</div>
-      <div class="card-delta" style="color:var(--text2)">${contasReceber.filter(r=>r.status!=='Pago').length} mensalidades + ${jobsMes.filter(j=>j.status!=='Pago').length} jobs em aberto</div>
+      <div class="card-delta" style="color:var(--text2)">${recMes.filter(r=>r.status!=='Pago').length} mensalidades + ${jobsMes.filter(j=>j.status!=='Pago').length} jobs em aberto</div>
     </div>
   `;
 
   // Videomaker card
   const vmEl = document.getElementById('vm-diarias');
-  if (vmEl) { vmEl.value = vm.diarias||10; document.getElementById('vm-deslocamento').value = vm.deslocamento||''; document.getElementById('vm-mes').value = finMesSel; document.getElementById('vm-obs').value = vm.obs||''; calcVideomaker(); }
+  if (vmEl) {
+    vmEl.value = vm.diarias||10;
+    document.getElementById('vm-deslocamento').value = vm.deslocamento||'';
+    document.getElementById('vm-mes').value = finMesSel;
+    document.getElementById('vm-obs').value = vm.obs||'';
+    calcVideomaker();
+    // status button
+    const vmStatusBtn = document.getElementById('vm-status-btn');
+    if (vmStatusBtn) {
+      vmStatusBtn.textContent = vmPago ? '✓ Pago' : '○ Pendente';
+      vmStatusBtn.style.color = vmPago ? 'var(--green)' : 'var(--yellow)';
+    }
+    // PDF info
+    const vmPdfInfo = document.getElementById('vm-pdf-info');
+    if (vmPdfInfo && vm.pdfNome) {
+      vmPdfInfo.innerHTML = `📄 <a href="${vm.pdfData}" download="${vm.pdfNome}" style="color:var(--accent)">${vm.pdfNome}</a>`;
+    } else if (vmPdfInfo) {
+      vmPdfInfo.innerHTML = '';
+    }
+  }
 
   // A receber
   const tbRec = document.getElementById('tb-receber');
@@ -2989,18 +3066,28 @@ function renderFinanceiro() {
 
   // A pagar
   const tbPag = document.getElementById('tb-pagar');
-  const pagComVm = [...pagMes, {id:'vm', fornecedor:'Videomaker', desc:`${vm.diarias||10} diárias${(vm.diarias||10)>10?' (+'+((vm.diarias||10)-10)+' extras)':''}`, venc:'—', valor:vmTotal, status:'Calculado', fixo:true}];
+  const vmRow = {id:'vm', fornecedor:'Videomaker', desc:`${vm.diarias||10} diárias${(vm.diarias||10)>10?' (+'+((vm.diarias||10)-10)+' extras)':''}`, venc:'—', valor:vmTotal, status: vmPago ? 'Pago' : 'Pendente', fixo:true, isVm:true};
+  const lancRows = lancMes.map(l=>({...l, isLanc:true}));
+  const pagComVm = [...pagMes, ...lancRows, vmRow];
   tbPag.innerHTML = pagComVm.length ? pagComVm.map(r=>`
     <tr>
-      <td>${r.fornecedor}</td>
-      <td>${r.desc}</td>
+      <td>${r.isVm ? '🎬 Videomaker' : (r.isLanc ? (r.fornecedor||'Avulso') : r.fornecedor)}</td>
+      <td>${r.isLanc ? '📌 '+r.desc : r.desc}</td>
       <td>${r.venc==='—'?'—':formatDate(r.venc)}</td>
       <td style="font-weight:600;color:var(--red)">R$ ${Number(r.valor).toLocaleString('pt-BR')}</td>
       <td>${badgeStatus(r.status)}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
-        ${r.id!=='vm'?`<button class="btn btn-ghost btn-sm" onclick="editarLancamento('pagar',${r.id})">✏️</button>`:''}
-        ${r.status!=='Pago'&&r.id!=='vm'?`<button class="btn btn-ghost btn-sm" onclick="marcarPago('pagar',${r.id})">✓ Pago</button>`:''}
-        ${r.id!=='vm'?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="excluirLancamento('pagar',${r.id})">🗑</button>`:'<button class="btn btn-ghost btn-sm" onclick="goTo(\'financeiro\');document.getElementById(\'vm-diarias\').focus()">⚙️ Ajustar</button>'}
+        ${r.isVm
+          ? `<button class="btn btn-ghost btn-sm" onclick="toggleVmStatus('${finMesSel}')" style="color:${vmPago?'var(--green)':'var(--yellow)'}">
+              ${vmPago?'✓ Pago':'○ Marcar Pago'}
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="goTo('financeiro');document.getElementById('vm-diarias')?.focus()">⚙️ Ajustar</button>`
+          : r.isLanc
+          ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="excluirLancAvulso(${r.id})">🗑</button>`
+          : `<button class="btn btn-ghost btn-sm" onclick="editarLancamento('pagar',${r.id})">✏️</button>
+             ${r.status!=='Pago'?`<button class="btn btn-ghost btn-sm" onclick="marcarPago('pagar',${r.id})">✓ Pago</button>`:''}
+             <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="excluirLancamento('pagar',${r.id})">🗑</button>`
+        }
       </td>
     </tr>
   `).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3)">Nenhum lançamento.</td></tr>';
@@ -3010,6 +3097,8 @@ function renderFinanceiro() {
     ...recMes.map(r=>({id:r.id,tipo:'receber',data:r.venc,desc:r.desc+' — '+r.cliente,label:'Receita',valor:Number(r.valor),pago:r.status==='Pago'})),
     ...pagMes.map(r=>({id:r.id,tipo:'pagar',data:r.venc,desc:r.desc+' — '+r.fornecedor,label:'Despesa',valor:-Number(r.valor),pago:r.status==='Pago'})),
     ...jobsMes.map(j=>({id:'job_'+j.id,tipo:'job',data:j.entrega||localDateStr(),desc:'⚡ '+j.desc+' — '+j.cliente,label:'Job Extra',valor:Number(j.valor||0),pago:j.status==='Pago'})),
+    ...lancMes.map(l=>({id:'lanc_'+l.id,tipo:'lanc',data:l.venc||localDateStr(),desc:'📌 '+l.desc+(l.fornecedor?' — '+l.fornecedor:''),label:'Despesa Avulsa',valor:-Number(l.valor||0),pago:l.status==='Pago'})),
+    {id:'vm_'+finMesSel,tipo:'vm',data:localDateStr(),desc:'🎬 Videomaker — '+finMesSel,label:'Videomaker',valor:-vmTotal,pago:vmPago},
   ].sort((a,b)=>a.data.localeCompare(b.data));
   let saldo = 0;
   document.getElementById('tb-extrato').innerHTML = todasEntradas.length ? todasEntradas.map(r=>{
@@ -3055,10 +3144,60 @@ function salvarVideomaker() {
   const diarias = parseInt(document.getElementById('vm-diarias').value)||10;
   const deslocamento = parseFloat(document.getElementById('vm-deslocamento').value)||0;
   const obs = document.getElementById('vm-obs').value;
-  videomakerData[mes] = { diarias, deslocamento, obs, total: calcVmTotal(diarias,deslocamento) };
+  const prevStatus = (videomakerData[mes]||{}).status || 'Pendente';
+  videomakerData[mes] = { diarias, deslocamento, obs, total: calcVmTotal(diarias,deslocamento), status: prevStatus };
   saveData('videomaker', videomakerData);
   renderFinanceiro();
   showToast('Videomaker salvo para ' + nomeMes(mes) + '!');
+}
+
+function toggleVmStatus(mes) {
+  const vm = videomakerData[mes] || {};
+  vm.status = vm.status === 'Pago' ? 'Pendente' : 'Pago';
+  videomakerData[mes] = vm;
+  saveData('videomaker', videomakerData);
+  renderFinanceiro();
+  showToast('Videomaker marcado como ' + vm.status);
+}
+
+// Botão de status na própria aba Videomaker (sem renderFinanceiro completo)
+function toggleVmStatusLocal() {
+  const mes = document.getElementById('vm-mes')?.value || finMesSel;
+  const vm = videomakerData[mes] || {};
+  vm.status = vm.status === 'Pago' ? 'Pendente' : 'Pago';
+  videomakerData[mes] = vm;
+  saveData('videomaker', videomakerData);
+  const btn = document.getElementById('vm-status-btn');
+  if (btn) {
+    btn.textContent = vm.status === 'Pago' ? '✓ Pago' : '○ Pendente';
+    btn.style.color = vm.status === 'Pago' ? 'var(--green)' : 'var(--yellow)';
+  }
+  showToast('Videomaker: ' + vm.status);
+}
+
+function handleVmPdf(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const mes = document.getElementById('vm-mes')?.value || finMesSel;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const vm = videomakerData[mes] || {};
+    vm.pdfNome = file.name;
+    vm.pdfData = e.target.result; // base64 data URL
+    videomakerData[mes] = vm;
+    saveData('videomaker', videomakerData);
+    document.getElementById('vm-pdf-info').innerHTML =
+      `📄 <a href="${e.target.result}" download="${file.name}" style="color:var(--accent)">${file.name}</a> salvo`;
+    showToast('PDF salvo!');
+  };
+  reader.readAsDataURL(file);
+}
+
+function excluirLancAvulso(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  lancAvulsos = lancAvulsos.filter(l=>l.id!==id);
+  saveData('lanc_avulsos', lancAvulsos);
+  renderFinanceiro();
 }
 
 function verHistoricoVm() {
@@ -4308,6 +4447,89 @@ function populateConcSelect(selectId, filtroCliente) {
     ? concorrentes.filter(c => c.clienteNome === filtroCliente)
     : concorrentes;
   sel.innerHTML = lista.map(c => `<option value="${c.id}">${c.nome} (${c.clienteNome})</option>`).join('');
+}
+
+// ============================================================
+// TRÁFEGO (Meta Ads + Google Ads)
+// ============================================================
+const TRAFEGO_CAMPOS = [
+  { key:'meta_investimento',  label:'Investimento Meta (R$)',  tipo:'money' },
+  { key:'meta_alcance',       label:'Alcance',                 tipo:'number' },
+  { key:'meta_impressoes',    label:'Impressões',              tipo:'number' },
+  { key:'meta_cliques',       label:'Cliques no link',         tipo:'number' },
+  { key:'meta_cpc',           label:'CPC médio (R$)',          tipo:'money' },
+  { key:'meta_leads',         label:'Leads gerados',           tipo:'number' },
+  { key:'meta_obs',           label:'Observações Meta',        tipo:'text' },
+  { key:'google_investimento',label:'Investimento Google (R$)',tipo:'money' },
+  { key:'google_cliques',     label:'Cliques Google',          tipo:'number' },
+  { key:'google_impressoes',  label:'Impressões Google',       tipo:'number' },
+  { key:'google_cpc',         label:'CPC Google (R$)',         tipo:'money' },
+  { key:'google_conversoes',  label:'Conversões',              tipo:'number' },
+  { key:'google_obs',         label:'Observações Google',      tipo:'text' },
+];
+
+function renderTrafego() {
+  const mes = mesAtualKey();
+  const ativosComTrafego = clientes.filter(c => c.status === 'Ativo' && (c.trafego || c.pacote === 'Tráfego'));
+  // Inclui todos os ativos se nenhum tem flag de tráfego (mostrar todos)
+  const lista = ativosComTrafego.length ? ativosComTrafego : clientes.filter(c=>c.status==='Ativo');
+
+  document.getElementById('trafego-grid').innerHTML = lista.map(c => {
+    const key = c.id + '_' + mes;
+    const d = trafegoData[key] || {};
+    const metaInv = Number(d.meta_investimento||0);
+    const googleInv = Number(d.google_investimento||0);
+    const totalInv = metaInv + googleInv;
+    return `
+    <div class="card" style="border-left:3px solid var(--accent)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div class="avatar" style="background:${c.cor||'#2a7a8e'}">${c.nome.charAt(0)}</div>
+        <div>
+          <div style="font-weight:600">${c.nome}</div>
+          <div style="font-size:11px;color:var(--text2)">${nomeMes(mes)} · Total investido: <b style="color:var(--green)">R$ ${totalInv.toLocaleString('pt-BR')}</b></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#1877f2;margin-bottom:8px">📘 Meta Ads</div>
+          ${['meta_investimento','meta_alcance','meta_impressoes','meta_cliques','meta_cpc','meta_leads','meta_obs'].map(fk=>{
+            const f = TRAFEGO_CAMPOS.find(x=>x.key===fk);
+            return `<div class="form-group" style="margin:0 0 8px">
+              <label class="form-label" style="font-size:11px">${f.label}</label>
+              ${f.tipo==='text'
+                ? `<input class="form-input" style="font-size:12px;padding:5px 8px" type="text" data-key="${fk}" data-cliente="${c.id}" value="${d[fk]||''}" onchange="updateTrafego('${c.id}','${mes}','${fk}',this.value)">`
+                : `<input class="form-input" style="font-size:12px;padding:5px 8px" type="number" min="0" step="0.01" data-key="${fk}" data-cliente="${c.id}" value="${d[fk]||''}" onchange="updateTrafego('${c.id}','${mes}','${fk}',this.value)">`
+              }
+            </div>`;
+          }).join('')}
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#34a853;margin-bottom:8px">🔍 Google Ads</div>
+          ${['google_investimento','google_cliques','google_impressoes','google_cpc','google_conversoes','google_obs'].map(fk=>{
+            const f = TRAFEGO_CAMPOS.find(x=>x.key===fk);
+            return `<div class="form-group" style="margin:0 0 8px">
+              <label class="form-label" style="font-size:11px">${f.label}</label>
+              ${f.tipo==='text'
+                ? `<input class="form-input" style="font-size:12px;padding:5px 8px" type="text" data-key="${fk}" data-cliente="${c.id}" value="${d[fk]||''}" onchange="updateTrafego('${c.id}','${mes}','${fk}',this.value)">`
+                : `<input class="form-input" style="font-size:12px;padding:5px 8px" type="number" min="0" step="0.01" data-key="${fk}" data-cliente="${c.id}" value="${d[fk]||''}" onchange="updateTrafego('${c.id}','${mes}','${fk}',this.value)">`
+              }
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:40px;color:var(--text3)">Nenhum cliente ativo encontrado.</div>';
+}
+
+function updateTrafego(clienteId, mes, campo, valor) {
+  const key = clienteId + '_' + mes;
+  if (!trafegoData[key]) trafegoData[key] = {};
+  trafegoData[key][campo] = valor;
+}
+
+function salvarTrafego() {
+  saveData('trafego_data', trafegoData);
+  showToast('Dados de tráfego salvos!');
 }
 
 function renderBenchmarking() {
@@ -5573,6 +5795,7 @@ function reinitData() {
   configAgencia  = loadData('config_agencia', DEFAULT_CONFIG);
   pacotesConfig  = loadData('pacotes_config', DEFAULT_PACOTES_CONFIG);
   pacoteEntregas = loadData('pacote_entregas',{});
+  trafegoData    = loadData('trafego_data',   {});
 }
 
 function _runInit() {
@@ -5584,7 +5807,29 @@ function _runInit() {
   gerarCustosFixosMes(mesAtualKey());
   clientes.filter(c=>(c.status||'Ativo')==='Ativo' && c.diaVenc)
           .forEach(c => sincronizarClienteFinanceiro(c, mesAtualKey()));
-  renderDashboard();
+
+  // Modo especial via URL param ?modo=videomaker
+  const urlParams = new URLSearchParams(window.location.search);
+  const modo = urlParams.get('modo');
+  if (modo === 'videomaker') {
+    // Esconde sidebar, mostra só financeiro aba videomaker
+    document.querySelector('.sidebar').style.display = 'none';
+    document.querySelector('.main-content').style.marginLeft = '0';
+    document.querySelector('.main-content').style.padding = '0';
+    goTo('financeiro');
+    setTimeout(() => {
+      const tabVm = document.querySelector('[onclick*="tab-videomaker"]');
+      if (tabVm) tabVm.click();
+      // Banner de modo
+      const banner = document.createElement('div');
+      banner.innerHTML = `<div style="background:#0d2035;border-bottom:1px solid #1e3448;padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:13px;color:#aee8f5">
+        🎬 <b>Modo Videomaker</b> — <span style="color:var(--text2)">Registre suas diárias e marque quando receber.</span>
+      </div>`;
+      document.querySelector('#page-financeiro').prepend(banner.firstElementChild);
+    }, 200);
+  } else {
+    renderDashboard();
+  }
 }
 
 // Carrega dados do Realtime Database, depois inicia o app
