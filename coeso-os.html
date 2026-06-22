@@ -4305,6 +4305,35 @@ function renderInstagram() {
   }, 50);
 }
 
+// Relatório anual de seguidores por mês
+function exportarRelatorioIG() {
+  const ativos = clientes.filter(c=>['Ativo','Permuta'].includes(c.status||'Ativo'));
+  const anoAtual = new Date().getFullYear();
+  const meses = Array.from({length:12},(_,i)=>`${anoAtual}-${String(i+1).padStart(2,'0')}`);
+
+  let txt = `RELATÓRIO ANUAL INSTAGRAM — ${anoAtual}\nCoeso Comunicação\n\n`;
+  txt += 'Mês'.padEnd(12) + ativos.map(c=>c.nome.slice(0,12).padEnd(13)).join('') + 'TOTAL\n';
+  txt += '-'.repeat(12 + ativos.length*13 + 8) + '\n';
+
+  meses.forEach(mes => {
+    const vals = ativos.map(c => igSeguidoresNoMes(c, mes));
+    if (vals.every(v=>v===null)) return; // pula meses sem dados
+    const total = vals.reduce((s,v)=>s+(v??0),0);
+    txt += nomeMes(mes).slice(0,11).padEnd(12);
+    txt += vals.map(v=>(v!==null?formatNum(v):'—').padEnd(13)).join('');
+    txt += formatNum(total) + '\n';
+  });
+
+  txt += '\nGerado em: ' + new Date().toLocaleString('pt-BR');
+
+  const blob = new Blob([txt], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `instagram-relatorio-${anoAtual}.txt`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Relatório exportado!');
+}
+
 // Salva só seguidores direto do card (quick mode)
 function salvarQuickIG(clienteId) {
   const c = clientes.find(x=>x.id===clienteId);
