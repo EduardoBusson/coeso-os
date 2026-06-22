@@ -4201,24 +4201,20 @@ function renderInstagram() {
         <button class="btn btn-primary btn-sm" onclick="salvarQuickIG(${c.id})" style="white-space:nowrap;padding:4px 12px">✓ Salvar</button>
       </div>
 
-      <div class="ig-metrics" style="grid-template-columns:repeat(3,1fr)">
+      <div class="ig-metrics" style="grid-template-columns:repeat(2,1fr)">
         <div class="ig-metric">
-          <div class="ig-metric-label">Engajamento</div>
-          <div class="ig-metric-value">${(ig.eng||0)}%</div>
-        </div>
-        <div class="ig-metric">
-          <div class="ig-metric-label">Alcance</div>
-          <div class="ig-metric-value">${formatNum(ig.alcance||0)}</div>
+          <div class="ig-metric-label">Total seguidores</div>
+          <div class="ig-metric-value">${formatNum(ig.seguidores||0)}</div>
         </div>
         <div class="ig-metric">
           <div class="ig-metric-label">Crescimento</div>
-          <div class="ig-metric-value ${deltaSeg>=0?'':''}">
+          <div class="ig-metric-value">
             <span style="color:${deltaSeg>0?'var(--green)':deltaSeg<0?'var(--red)':'var(--text2)'}">${deltaSeg>0?'+':''}${deltaSeg}</span>
           </div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:4px">
-        ${historico.length ? 'Últ. atualização: '+historico[historico.length-1].data : 'Nenhuma entrada ainda'}
+        ${historico.length ? 'Últ. atualização: '+historico[historico.length-1].data+(historico[historico.length-1].hora?' às '+historico[historico.length-1].hora:'') : 'Nenhuma entrada ainda'}
       </div>
       <div class="chart-container" style="height:55px;margin-top:8px">
         <canvas id="ig-chart-${c.id}"></canvas>
