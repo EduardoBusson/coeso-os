@@ -4181,25 +4181,55 @@ function renderInstagram() {
   const grid = document.getElementById('ig-grid');
   const hoje = localDateStr();
 
-  // Banner: quantos clientes faltam atualizar hoje
+  // KPIs dinâmicos baseados no mês selecionado
+  const totalSeg = ativos.reduce((s,c) => s + (igSeguidoresNoMes(c, mesAtivo) ?? 0), 0);
+  const totalSegAnt = ativos.reduce((s,c) => {
+    const ant = igSeguidoresMesAnterior(c, mesAtivo);
+    return s + (ant ?? igSeguidoresNoMes(c, mesAtivo) ?? 0);
+  }, 0);
+  const crescimento = totalSeg - totalSegAnt;
+  const atualizadosNoMes = ativos.filter(c => igSeguidoresNoMes(c, mesAtivo) !== null).length;
+  // Maior crescimento individual
+  let topCliente = null, topDelta = 0;
+  ativos.forEach(c => {
+    const seg = igSeguidoresNoMes(c, mesAtivo) ?? 0;
+    const ant = igSeguidoresMesAnterior(c, mesAtivo) ?? seg;
+    const d = seg - ant;
+    if (d > topDelta) { topDelta = d; topCliente = c; }
+  });
+
+  document.getElementById('ig-kpi-seg').textContent = formatNum(totalSeg) || '—';
+  document.getElementById('ig-kpi-cresc').textContent = crescimento > 0 ? '+'+formatNum(crescimento) : crescimento < 0 ? formatNum(crescimento) : '—';
+  document.getElementById('ig-kpi-cresc').style.color = crescimento > 0 ? 'var(--green)' : crescimento < 0 ? 'var(--red)' : 'var(--text2)';
+  document.getElementById('ig-kpi-upd').textContent = atualizadosNoMes + '/' + ativos.length;
+  document.getElementById('ig-kpi-upd-delta').textContent = atualizadosNoMes === ativos.length ? '✓ Todos atualizados' : (ativos.length - atualizadosNoMes) + ' pendentes';
+  document.getElementById('ig-kpi-top').textContent = topCliente ? topCliente.nome : '—';
+  document.getElementById('ig-kpi-top-delta').textContent = topCliente ? '+'+formatNum(topDelta)+' seguidores' : 'Nenhum dado ainda';
+  document.getElementById('ig-subtitle').textContent = 'Seguidores por cliente · ' + nomeMes(mesAtivo);
+
+  // Banner: só mostra se for o mês atual e houver pendentes
   const aviso = document.getElementById('ig-aviso');
   if (aviso) {
-    const semUpdate = ativos.filter(c=>{
-      const hist = (c.ig||{}).historico||[];
-      return !hist.length || hist[hist.length-1].data !== hoje;
-    });
-    if (semUpdate.length) {
-      aviso.style.display = 'block';
-      aviso.innerHTML = `📋 <strong>${semUpdate.length} cliente(s) sem atualização hoje:</strong> ${semUpdate.map(c=>c.nome).join(', ')} — insira os seguidores abaixo e clique em ✓`;
-      aviso.style.background = 'var(--surface2)';
-      aviso.style.borderColor = 'var(--yellow)';
-      aviso.style.color = 'var(--yellow)';
+    if (mesAtivo === mesAtualKey()) {
+      const semUpdate = ativos.filter(c => {
+        const hist = (c.ig||{}).historico||[];
+        return !hist.length || hist[hist.length-1].data !== hoje;
+      });
+      if (semUpdate.length) {
+        aviso.style.display = 'block';
+        aviso.innerHTML = `📋 <strong>${semUpdate.length} cliente(s) sem atualização hoje:</strong> ${semUpdate.map(c=>c.nome).join(', ')}`;
+        aviso.style.background = 'var(--surface2)';
+        aviso.style.borderColor = 'var(--yellow)';
+        aviso.style.color = 'var(--yellow)';
+      } else {
+        aviso.style.display = 'block';
+        aviso.innerHTML = `✅ <strong>Todos atualizados hoje!</strong>`;
+        aviso.style.background = 'var(--surface2)';
+        aviso.style.borderColor = 'var(--green)';
+        aviso.style.color = 'var(--green)';
+      }
     } else {
-      aviso.style.display = 'block';
-      aviso.innerHTML = `✅ <strong>Todos os clientes atualizados hoje!</strong>`;
-      aviso.style.background = 'var(--surface2)';
-      aviso.style.borderColor = 'var(--green)';
-      aviso.style.color = 'var(--green)';
+      aviso.style.display = 'none';
     }
   }
 
@@ -4211,9 +4241,10 @@ function renderInstagram() {
   grid.innerHTML = ativos.map(c => {
     const ig = c.ig || {};
     const historico = ig.historico || [];
-    const antSeg = historico.length > 1 ? historico[historico.length-2].seguidores : (historico.length===1 ? 0 : ig.seguidores);
-    const deltaSeg = (ig.seguidores||0) - (antSeg||0);
-    const atualizadoHoje = historico.length && historico[historico.length-1].data === hoje;
+    const segMes = igSeguidoresNoMes(c, mesAtivo) ?? ig.seguidores ?? 0;
+    const segAnt = igSeguidoresMesAnterior(c, mesAtivo);
+    const deltaSeg = segAnt !== null ? segMes - segAnt : 0;
+    const atualizadoHoje = mesAtivo === mesAtualKey() && historico.length && historico[historico.length-1].data === hoje;
     return `<div class="ig-card" style="${atualizadoHoje?'':'border:1px solid var(--yellow)33'}">
       <div class="ig-card-header">
         <div class="avatar" style="background:${c.cor}">${c.nome.charAt(0)}</div>
