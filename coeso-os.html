@@ -4513,9 +4513,7 @@ const TRAFEGO_CAMPOS = [
 
 function renderTrafego() {
   const mes = mesAtualKey();
-  const ativosComTrafego = clientes.filter(c => c.status === 'Ativo' && (c.trafego || c.pacote === 'Tráfego'));
-  // Inclui todos os ativos se nenhum tem flag de tráfego (mostrar todos)
-  const lista = ativosComTrafego.length ? ativosComTrafego : clientes.filter(c=>c.status==='Ativo');
+  const lista = clientes.filter(c => c.trafego === true);
 
   document.getElementById('trafego-grid').innerHTML = lista.map(c => {
     const key = c.id + '_' + mes;
