@@ -4145,55 +4145,82 @@ function excluirLead(id) {
 function renderInstagram() {
   const ativos = clientes.filter(c=>['Ativo','Permuta'].includes(c.status||'Ativo'));
   const grid = document.getElementById('ig-grid');
+  const hoje = localDateStr();
 
-  // Aviso sobre integração real
+  // Banner: quantos clientes faltam atualizar hoje
   const aviso = document.getElementById('ig-aviso');
-  if (aviso) aviso.style.display = ativos.length ? 'block' : 'none';
+  if (aviso) {
+    const semUpdate = ativos.filter(c=>{
+      const hist = (c.ig||{}).historico||[];
+      return !hist.length || hist[hist.length-1].data !== hoje;
+    });
+    if (semUpdate.length) {
+      aviso.style.display = 'block';
+      aviso.innerHTML = `📋 <strong>${semUpdate.length} cliente(s) sem atualização hoje:</strong> ${semUpdate.map(c=>c.nome).join(', ')} — insira os seguidores abaixo e clique em ✓`;
+      aviso.style.background = 'var(--surface2)';
+      aviso.style.borderColor = 'var(--yellow)';
+      aviso.style.color = 'var(--yellow)';
+    } else {
+      aviso.style.display = 'block';
+      aviso.innerHTML = `✅ <strong>Todos os clientes atualizados hoje!</strong>`;
+      aviso.style.background = 'var(--surface2)';
+      aviso.style.borderColor = 'var(--green)';
+      aviso.style.color = 'var(--green)';
+    }
+  }
 
   if (!ativos.length) {
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3)">Nenhum cliente ativo.</div>';
     return;
   }
 
-  const hoje = localDateStr();
-
   grid.innerHTML = ativos.map(c => {
     const ig = c.ig || {};
     const historico = ig.historico || [];
-    const ultimo = historico[historico.length-1] || {};
-    // Crescimento vs entrada anterior
-    const antSeg = historico.length > 1 ? historico[historico.length-2].seguidores : ig.seguidores;
+    const antSeg = historico.length > 1 ? historico[historico.length-2].seguidores : (historico.length===1 ? 0 : ig.seguidores);
     const deltaSeg = (ig.seguidores||0) - (antSeg||0);
-    return `<div class="ig-card">
+    const atualizadoHoje = historico.length && historico[historico.length-1].data === hoje;
+    return `<div class="ig-card" style="${atualizadoHoje?'':'border:1px solid var(--yellow)33'}">
       <div class="ig-card-header">
         <div class="avatar" style="background:${c.cor}">${c.nome.charAt(0)}</div>
-        <div style="flex:1">
+        <div style="flex:1;min-width:0">
           <div class="ig-card-title">${c.nome}</div>
-          <div class="ig-card-sub" style="color:var(--accent)">${ig.user||'@ não cadastrado'}</div>
+          <div class="ig-card-sub" style="color:var(--accent)">${ig.user?'@'+ig.user:'@ não cadastrado'}</div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="openAtualizarIG(${c.id})" title="Atualizar métricas">✏️</button>
+        <span style="font-size:11px;color:${atualizadoHoje?'var(--green)':'var(--yellow)'};white-space:nowrap">${atualizadoHoje?'✓ hoje':'⚠ pendente'}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openAtualizarIG(${c.id})" title="Editar todos os campos" style="margin-left:4px">⚙️</button>
       </div>
-      <div class="ig-metrics">
-        <div class="ig-metric">
-          <div class="ig-metric-label">Seguidores</div>
-          <div class="ig-metric-value">${formatNum(ig.seguidores||0)}</div>
-          <div class="ig-metric-delta ${deltaSeg>=0?'delta-up':'delta-down'}">${deltaSeg>=0?'↑':'↓'} ${Math.abs(deltaSeg)} vs anterior</div>
-        </div>
+
+      <!-- Quick update: seguidores direto no card -->
+      <div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px;background:var(--surface2);border-radius:8px;padding:8px 10px">
+        <span style="font-size:12px;color:var(--text2);white-space:nowrap">Seguidores:</span>
+        <input id="ig-quick-seg-${c.id}" type="number" class="form-input"
+          style="flex:1;padding:4px 8px;font-size:14px;font-weight:600;min-width:0"
+          value="${ig.seguidores||0}"
+          onkeydown="if(event.key==='Enter')salvarQuickIG(${c.id})">
+        <button class="btn btn-primary btn-sm" onclick="salvarQuickIG(${c.id})" style="white-space:nowrap;padding:4px 12px">✓ Salvar</button>
+      </div>
+
+      <div class="ig-metrics" style="grid-template-columns:repeat(3,1fr)">
         <div class="ig-metric">
           <div class="ig-metric-label">Engajamento</div>
           <div class="ig-metric-value">${(ig.eng||0)}%</div>
         </div>
         <div class="ig-metric">
-          <div class="ig-metric-label">Posts hoje</div>
-          <div class="ig-metric-value">${ultimo.data===hoje?(ultimo.posts||0):0}</div>
-        </div>
-        <div class="ig-metric">
           <div class="ig-metric-label">Alcance</div>
           <div class="ig-metric-value">${formatNum(ig.alcance||0)}</div>
         </div>
+        <div class="ig-metric">
+          <div class="ig-metric-label">Crescimento</div>
+          <div class="ig-metric-value ${deltaSeg>=0?'':''}">
+            <span style="color:${deltaSeg>0?'var(--green)':deltaSeg<0?'var(--red)':'var(--text2)'}">${deltaSeg>0?'+':''}${deltaSeg}</span>
+          </div>
+        </div>
       </div>
-      ${historico.length ? `<div style="font-size:11px;color:var(--text3);margin-top:8px">Última atualização: ${historico[historico.length-1].data}</div>` : '<div style="font-size:11px;color:var(--text3);margin-top:8px">Nenhuma métrica cadastrada ainda</div>'}
-      <div class="chart-container" style="height:70px;margin-top:8px">
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">
+        ${historico.length ? 'Últ. atualização: '+historico[historico.length-1].data : 'Nenhuma entrada ainda'}
+      </div>
+      <div class="chart-container" style="height:55px;margin-top:8px">
         <canvas id="ig-chart-${c.id}"></canvas>
       </div>
     </div>`;
@@ -4205,15 +4232,34 @@ function renderInstagram() {
       if (!el) return;
       if (el._chart) el._chart.destroy();
       const hist = (c.ig&&c.ig.historico)||[];
-      const labels = hist.length ? hist.slice(-6).map(h=>h.data.slice(5)) : [''];
-      const data   = hist.length ? hist.slice(-6).map(h=>h.seguidores||0) : [c.ig?.seguidores||0];
+      const labels = hist.length ? hist.slice(-7).map(h=>h.data.slice(5)) : [''];
+      const data   = hist.length ? hist.slice(-7).map(h=>h.seguidores||0) : [c.ig?.seguidores||0];
       el._chart = new Chart(el, {
         type:'line',
-        data:{ labels, datasets:[{ data, borderColor:c.cor, backgroundColor:c.cor+'22', fill:true, tension:0.4, pointRadius:2 }] },
+        data:{ labels, datasets:[{ data, borderColor:c.cor||'#aee8f5', backgroundColor:(c.cor||'#aee8f5')+'22', fill:true, tension:0.4, pointRadius:2 }] },
         options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false},y:{display:false}} }
       });
     });
   }, 50);
+}
+
+// Salva só seguidores direto do card (quick mode)
+function salvarQuickIG(clienteId) {
+  const c = clientes.find(x=>x.id===clienteId);
+  if (!c) return;
+  if (!c.ig) c.ig = {};
+  if (!c.ig.historico) c.ig.historico = [];
+  const seg = parseInt(document.getElementById('ig-quick-seg-'+clienteId)?.value)||0;
+  const hoje = localDateStr();
+  const novaEntrada = { data: hoje, seguidores: seg, eng: c.ig.eng||0, alcance: c.ig.alcance||0, posts: 0 };
+  c.ig.seguidores = seg;
+  const idx = c.ig.historico.findIndex(h=>h.data===hoje);
+  if (idx>=0) c.ig.historico[idx] = novaEntrada;
+  else c.ig.historico.push(novaEntrada);
+  c.ig.historico.sort((a,b)=>a.data.localeCompare(b.data));
+  saveData('clientes', clientes);
+  showToast('✓ ' + c.nome + ' — ' + formatNum(seg) + ' seguidores');
+  renderInstagram();
 }
 
 function openAtualizarIG(clienteId) {
