@@ -4256,30 +4256,31 @@ function renderInstagram() {
         <button class="btn btn-ghost btn-sm" onclick="openAtualizarIG(${c.id})" title="Editar todos os campos" style="margin-left:4px">⚙️</button>
       </div>
 
-      <!-- Quick update: seguidores direto no card -->
+      <!-- Quick update: só aparece no mês atual -->
+      ${mesAtivo === mesAtualKey() ? `
       <div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px;background:var(--surface2);border-radius:8px;padding:8px 10px">
-        <span style="font-size:12px;color:var(--text2);white-space:nowrap">Seguidores:</span>
+        <span style="font-size:12px;color:var(--text2);white-space:nowrap">Seguidores hoje:</span>
         <input id="ig-quick-seg-${c.id}" type="number" class="form-input"
           style="flex:1;padding:4px 8px;font-size:14px;font-weight:600;min-width:0"
-          value="${ig.seguidores||0}"
+          value="${segMes||0}"
           onkeydown="if(event.key==='Enter')salvarQuickIG(${c.id})">
-        <button class="btn btn-primary btn-sm" onclick="salvarQuickIG(${c.id})" style="white-space:nowrap;padding:4px 12px">✓ Salvar</button>
-      </div>
+        <button class="btn btn-primary btn-sm" onclick="salvarQuickIG(${c.id})" style="white-space:nowrap;padding:4px 12px">✓</button>
+      </div>` : ''}
 
       <div class="ig-metrics" style="grid-template-columns:repeat(2,1fr)">
         <div class="ig-metric">
-          <div class="ig-metric-label">Total seguidores</div>
-          <div class="ig-metric-value">${formatNum(ig.seguidores||0)}</div>
+          <div class="ig-metric-label">Seguidores</div>
+          <div class="ig-metric-value">${formatNum(segMes||0)}</div>
         </div>
         <div class="ig-metric">
           <div class="ig-metric-label">Crescimento</div>
           <div class="ig-metric-value">
-            <span style="color:${deltaSeg>0?'var(--green)':deltaSeg<0?'var(--red)':'var(--text2)'}">${deltaSeg>0?'+':''}${deltaSeg}</span>
+            <span style="color:${deltaSeg>0?'var(--green)':deltaSeg<0?'var(--red)':'var(--text2)'}">${deltaSeg>0?'+':''}${deltaSeg || '—'}</span>
           </div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:4px">
-        ${historico.length ? 'Últ. atualização: '+historico[historico.length-1].data+(historico[historico.length-1].hora?' às '+historico[historico.length-1].hora:'') : 'Nenhuma entrada ainda'}
+        ${historico.length ? 'Últ: '+historico[historico.length-1].data+(historico[historico.length-1].hora?' às '+historico[historico.length-1].hora:'') : 'Nenhuma entrada ainda'}
       </div>
       <div class="chart-container" style="height:55px;margin-top:8px">
         <canvas id="ig-chart-${c.id}"></canvas>
