@@ -4140,7 +4140,43 @@ function excluirLead(id) {
 // ============================================================
 // INSTAGRAM — apenas clientes ativos, métricas manuais
 // ============================================================
+function igMesesDisponiveis() {
+  // Coleta todos os meses com dados no histórico de qualquer cliente
+  const meses = new Set();
+  meses.add(mesAtualKey());
+  clientes.forEach(c => {
+    ((c.ig||{}).historico||[]).forEach(h => {
+      if (h.data) meses.add(h.data.slice(0,7));
+    });
+  });
+  return [...meses].sort((a,b)=>b.localeCompare(a));
+}
+
+function igSeguidoresNoMes(c, mesKey) {
+  // Retorna o último registro de seguidores dentro do mês
+  const hist = ((c.ig||{}).historico||[]).filter(h=>h.data && h.data.startsWith(mesKey));
+  if (!hist.length) return null;
+  return hist[hist.length-1].seguidores || 0;
+}
+
+function igSeguidoresMesAnterior(c, mesKey) {
+  const [ano, mes] = mesKey.split('-').map(Number);
+  const anterior = mes === 1
+    ? `${ano-1}-12`
+    : `${ano}-${String(mes-1).padStart(2,'0')}`;
+  return igSeguidoresNoMes(c, anterior);
+}
+
 function renderInstagram() {
+  // Popula select de meses
+  const sel = document.getElementById('ig-mes-sel');
+  const meses = igMesesDisponiveis();
+  const mesSel = sel?.value || mesAtualKey();
+  if (sel) {
+    sel.innerHTML = meses.map(m=>`<option value="${m}" ${m===mesSel?'selected':''}>${nomeMes(m)}</option>`).join('');
+  }
+  const mesAtivo = sel?.value || mesAtualKey();
+
   const ativos = clientes.filter(c=>['Ativo','Permuta'].includes(c.status||'Ativo'));
   const grid = document.getElementById('ig-grid');
   const hoje = localDateStr();
