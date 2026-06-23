@@ -4641,10 +4641,8 @@ function renderTrafego() {
 
   document.getElementById('trafego-grid').innerHTML = lista.map(c => {
     const entradas = (trafegoData[c.id] || []).sort((a,b)=>b.data.localeCompare(a.data));
-    const totalMetaInv   = entradas.reduce((s,e)=>s+Number(e.meta_inv||0),0);
-    const totalGoogleInv = entradas.reduce((s,e)=>s+Number(e.google_inv||0),0);
-    const totalInv = totalMetaInv + totalGoogleInv;
-    const totalLeads = entradas.reduce((s,e)=>s+Number(e.meta_leads||0)+Number(e.google_leads||0),0);
+    const totalInv   = entradas.reduce((s,e)=>s+Number(e.meta_inv||0),0);
+    const totalLeads = entradas.reduce((s,e)=>s+Number(e.meta_leads||0),0);
     const aberto = _trafegoAberto === c.id;
 
     return `
@@ -4696,10 +4694,6 @@ function renderTrafego() {
             <div class="form-group" style="margin:0">
               <label class="form-label" style="font-size:11px">📘 Gasto Meta hoje (R$)</label>
               <input id="tf-meta-inv-${c.id}" class="form-input" type="number" min="0" step="0.01" placeholder="ex: 40,00" style="font-size:13px;font-weight:600;padding:5px 8px">
-            </div>
-            <div class="form-group" style="margin:0">
-              <label class="form-label" style="font-size:11px">🔍 Gasto Google hoje (R$)</label>
-              <input id="tf-google-inv-${c.id}" class="form-input" type="number" min="0" step="0.01" placeholder="ex: 20,00" style="font-size:13px;font-weight:600;padding:5px 8px">
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
