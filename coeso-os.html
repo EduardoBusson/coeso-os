@@ -4729,12 +4729,12 @@ function renderTrafego() {
             </div>
             <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
               <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Total leads</div>
-              <div style="font-size:16px;font-weight:700;color:var(--green)">${entradas.reduce((s,e)=>s+Number(e.meta_leads||0)+Number(e.google_leads||0),0)}</div>
+              <div style="font-size:16px;font-weight:700;color:var(--green)">${entradas.reduce((s,e)=>s+Number(e.meta_leads||0),0)}</div>
             </div>
             <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
               <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Custo por lead</div>
               <div style="font-size:16px;font-weight:700">${(() => {
-                const tl = entradas.reduce((s,e)=>s+Number(e.meta_leads||0)+Number(e.google_leads||0),0);
+                const tl = entradas.reduce((s,e)=>s+Number(e.meta_leads||0),0);
                 return tl ? 'R$ '+(acumulado/tl).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
               })()}</div>
             </div>
@@ -4745,7 +4745,6 @@ function renderTrafego() {
                 <tr style="color:var(--text3);border-bottom:1px solid var(--border);font-size:11px">
                   <th style="padding:6px 8px;text-align:left">Data</th>
                   <th style="padding:6px 8px;text-align:right">📘 Meta</th>
-                  <th style="padding:6px 8px;text-align:right">🔍 Google</th>
                   <th style="padding:6px 8px;text-align:right">Leads</th>
                   <th style="padding:6px 8px;text-align:right">Gasto dia</th>
                   <th style="padding:6px 8px;text-align:right">Acumulado</th>
