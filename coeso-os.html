@@ -1980,7 +1980,16 @@ function renderDashboard() {
   document.getElementById('dash-leads').textContent = leads.length;
   document.getElementById('dash-leads-sub').textContent = potencialLeads ? '↑ R$ '+formatNum(potencialLeads)+' potencial' : 'Nenhum lead cadastrado';
   document.getElementById('dash-jobs').textContent = jobsAbertos.length;
-  document.getElementById('dash-jobs-sub').textContent = jobsAbertos.length ? 'R$ '+jobsAbertos.reduce((s,j)=>s+Number(j.valor||0),0).toLocaleString('pt-BR')+' a receber' : 'Todos em dia ✓';
+  if (jobsAbertos.length) {
+    const emProd = jobsAbertos.filter(j=>j.status==='Em produção').length;
+    const emRev  = jobsAbertos.filter(j=>j.status==='Em revisão').length;
+    const partes = [];
+    if (emProd) partes.push(emProd + ' em produção');
+    if (emRev)  partes.push(emRev + ' em revisão');
+    document.getElementById('dash-jobs-sub').textContent = partes.length ? partes.join(' · ') : jobsAbertos.length + ' em andamento';
+  } else {
+    document.getElementById('dash-jobs-sub').textContent = 'Todos entregues ✓';
+  }
 
   // Clientes subtitle
   const subEl = document.querySelector('#page-clientes .page-subtitle');
