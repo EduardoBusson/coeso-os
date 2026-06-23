@@ -6563,15 +6563,50 @@ function fazerLogin() {
   mostrarSplashBoasVindas(cfg.nome, cfg.modo);
 }
 
+function falarBoasVindas(nome, modo) {
+  try {
+    const feminino = modo === 'colaborador';
+    const texto = feminino
+      ? `Oi ${nome}, seja bem\u002dvinda.`
+      : `Oi ${nome}, seja bem\u002dvindo.`;
+    const utter = new SpeechSynthesisUtterance(texto);
+    utter.lang = 'pt-BR';
+    utter.rate = 0.92;
+    utter.pitch = feminino ? 1.25 : 1.0;
+    // Prefere voz feminina para colaboradora
+    const voices = window.speechSynthesis.getVoices();
+    const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
+    if (ptVoices.length) {
+      const femVoice = ptVoices.find(v => /female|fem|woman|Luciana|francisca/i.test(v.name));
+      utter.voice = (feminino && femVoice) ? femVoice : ptVoices[0];
+    }
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  } catch(e) {}
+}
+
 function mostrarSplashBoasVindas(nome, modo) {
   const el = document.getElementById('splash-boas-vindas');
   el.style.display = 'flex';
-  setTimeout(() => { document.getElementById('splash-bv-logo').style.opacity = '1'; }, 200);
+  el.style.opacity = '1';
+  el.style.transition = '';
+
+  // Voz de boas-vindas (aguarda vozes carregarem)
+  const doFalar = () => falarBoasVindas(nome, modo);
+  if (window.speechSynthesis.getVoices().length > 0) {
+    setTimeout(doFalar, 600);
+  } else {
+    window.speechSynthesis.onvoiceschanged = () => { setTimeout(doFalar, 300); };
+  }
+
+  setTimeout(() => { document.getElementById('splash-bv-logo').style.opacity = '1'; }, 150);
   setTimeout(() => {
-    document.getElementById('splash-bv-txt').style.opacity = '1';
-    document.getElementById('splash-bv-txt').textContent = 'Olá, ' + nome + '! 👋';
+    const txtEl = document.getElementById('splash-bv-txt');
+    const genSuffix = modo === 'colaborador' ? 'bem-vinda' : 'bem-vindo';
+    txtEl.style.opacity = '1';
+    txtEl.innerHTML = `Olá, <b>${nome}</b>! Seja ${genSuffix} 👋`;
     document.getElementById('splash-bv-bar').style.width = '100%';
-  }, 1800);
+  }, 1600);
   setTimeout(() => {
     el.style.transition = 'opacity 0.6s';
     el.style.opacity = '0';
@@ -6579,7 +6614,7 @@ function mostrarSplashBoasVindas(nome, modo) {
       el.style.display = 'none';
       aplicarModo(modo, true);
     }, 600);
-  }, 4200);
+  }, 4000);
 }
 
 
