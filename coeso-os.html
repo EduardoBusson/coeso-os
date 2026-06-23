@@ -6520,7 +6520,7 @@ function mostrarSplashBoasVindas(nome, modo) {
     el.style.opacity = '0';
     setTimeout(() => {
       el.style.display = 'none';
-      aplicarModo(modo);
+      aplicarModo(modo, true);
     }, 600);
   }, 4200);
 }
@@ -6716,7 +6716,7 @@ function renderMiniCal() {
     // Já logado — aplica modo direto
     try {
       const { modo } = JSON.parse(sessao);
-      aplicarModo(modo);
+      aplicarModo(modo, false);
     } catch(e) { _runInit(); }
   } else {
     // Mostra login
