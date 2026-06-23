@@ -4733,36 +4733,60 @@ function renderTrafego() {
           <button class="btn btn-primary btn-sm" onclick="salvarDiaTrafego(${c.id})">💾 Salvar este dia</button>
         </div>
 
-        <!-- Histórico de dias -->
-        ${entradas.length ? `
-        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Histórico</div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;font-size:12px;border-collapse:collapse">
-            <thead>
-              <tr style="color:var(--text3);border-bottom:1px solid var(--border)">
-                <th style="padding:6px 8px;text-align:left">Data</th>
-                <th style="padding:6px 8px;text-align:right">💰 Meta</th>
-                <th style="padding:6px 8px;text-align:right">Leads M</th>
-                <th style="padding:6px 8px;text-align:right">💰 Google</th>
-                <th style="padding:6px 8px;text-align:right">Leads G</th>
-                <th style="padding:6px 8px;text-align:right">Total</th>
-                <th style="padding:6px 4px"></th>
-              </tr>
-            </thead>
-            <tbody>
-              ${entradas.map(e=>`
-              <tr style="border-bottom:1px solid var(--border)22">
-                <td style="padding:7px 8px;color:var(--text2)">${formatDate(e.data)}</td>
-                <td style="padding:7px 8px;text-align:right">R$ ${Number(e.meta_inv||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-                <td style="padding:7px 8px;text-align:right;color:var(--green)">${e.meta_leads||0}</td>
-                <td style="padding:7px 8px;text-align:right">R$ ${Number(e.google_inv||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-                <td style="padding:7px 8px;text-align:right;color:var(--green)">${e.google_leads||0}</td>
-                <td style="padding:7px 8px;text-align:right;font-weight:600">R$ ${(Number(e.meta_inv||0)+Number(e.google_inv||0)).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-                <td style="padding:7px 4px"><button class="btn btn-ghost btn-sm" style="padding:2px 6px;color:var(--red)" onclick="excluirDiaTrafego(${c.id},'${e.data}')">🗑</button></td>
-              </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>` : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">Nenhum dia registrado ainda.</div>'}
+        <!-- Histórico de dias + acumulado -->
+        ${entradas.length ? (() => {
+          let acumulado = 0;
+          const linhas = entradas.map(e => {
+            const diario = Number(e.meta_inv||0) + Number(e.google_inv||0);
+            acumulado += diario;
+            return { e, diario, acumulado };
+          }).reverse(); // mais recente primeiro
+          return `
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Total acumulado</div>
+              <div style="font-size:16px;font-weight:700;color:var(--accent)">R$ ${acumulado.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Total leads</div>
+              <div style="font-size:16px;font-weight:700;color:var(--green)">${entradas.reduce((s,e)=>s+Number(e.meta_leads||0)+Number(e.google_leads||0),0)}</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Custo por lead</div>
+              <div style="font-size:16px;font-weight:700">${(() => {
+                const tl = entradas.reduce((s,e)=>s+Number(e.meta_leads||0)+Number(e.google_leads||0),0);
+                return tl ? 'R$ '+(acumulado/tl).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
+              })()}</div>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;font-size:12px;border-collapse:collapse">
+              <thead>
+                <tr style="color:var(--text3);border-bottom:1px solid var(--border);font-size:11px">
+                  <th style="padding:6px 8px;text-align:left">Data</th>
+                  <th style="padding:6px 8px;text-align:right">📘 Meta</th>
+                  <th style="padding:6px 8px;text-align:right">🔍 Google</th>
+                  <th style="padding:6px 8px;text-align:right">Leads</th>
+                  <th style="padding:6px 8px;text-align:right">Gasto dia</th>
+                  <th style="padding:6px 8px;text-align:right">Acumulado</th>
+                  <th style="padding:6px 4px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${linhas.map(({e,diario,acumulado:ac})=>`
+                <tr style="border-bottom:1px solid var(--border)22">
+                  <td style="padding:7px 8px;color:var(--text2)">${formatDate(e.data)}</td>
+                  <td style="padding:7px 8px;text-align:right">R$ ${Number(e.meta_inv||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                  <td style="padding:7px 8px;text-align:right">R$ ${Number(e.google_inv||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                  <td style="padding:7px 8px;text-align:right;color:var(--green);font-weight:600">${Number(e.meta_leads||0)+Number(e.google_leads||0)}</td>
+                  <td style="padding:7px 8px;text-align:right;font-weight:600">R$ ${diario.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                  <td style="padding:7px 8px;text-align:right;color:var(--accent)">R$ ${ac.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                  <td style="padding:7px 4px"><button class="btn btn-ghost btn-sm" style="padding:2px 6px;color:var(--red)" onclick="excluirDiaTrafego(${c.id},'${e.data}')">🗑</button></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+        })() : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">Nenhum dia registrado ainda — registre o gasto de hoje acima.</div>'}
       </div>
     </div>`;
   }).join('') || '<div style="text-align:center;padding:40px;color:var(--text3)">Nenhum cliente com tráfego cadastrado.</div>';
