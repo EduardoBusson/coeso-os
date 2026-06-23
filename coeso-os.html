@@ -6980,13 +6980,20 @@ async function carregarNoticiasInicio() {
 }
 
 function abrirSiteModal(url, label, cor) {
+  // Garante que o modal existe
+  if (!document.getElementById('modal-site-ref')) carregarNoticiasInicio();
   const m = document.getElementById('modal-site-ref');
+  if (!m) { window.open(url,'_blank'); return; }
   document.getElementById('modal-site-iframe').src = url;
-  document.getElementById('modal-site-label').textContent = url.replace('https://','').replace('www.','');
+  document.getElementById('modal-site-label').textContent = label;
   document.getElementById('modal-site-label').style.color = cor;
   document.getElementById('modal-site-link').href = url;
   m.style.display = 'flex';
-  void(0);
+}
+
+function fecharSiteModal() {
+  const m = document.getElementById('modal-site-ref');
+  if (m) { m.style.display = 'none'; document.getElementById('modal-site-iframe').src = ''; }
 }
 
 function renderDatasSazonaisInicio() {
