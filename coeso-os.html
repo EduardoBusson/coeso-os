@@ -6900,29 +6900,39 @@ function salvarPerfilForm() {
 }
 
 function aplicarModo(modo, viaLogin) {
+  // ── Oculta logo edit para todos (edit btn só para admin) ──
+  if (modo !== 'admin') {
+    document.querySelectorAll('.logo-admin-only').forEach(el => el.style.display = 'none');
+  }
+
   if (modo === 'colaborador') {
+    // Oculta financeiro, comercial, leads
     document.querySelectorAll('.nav-item').forEach(el => {
-      if (el.textContent.includes('Financeiro')) el.style.display = 'none';
+      const t = el.textContent;
+      if (t.includes('Financeiro') || t.includes('Comercial') || t.includes('Leads') ||
+          t.includes('Rentabilidade') || t.includes('Oportunidades')) {
+        el.style.display = 'none';
+      }
     });
+    document.querySelectorAll('.nav-comercial,.nav-leads').forEach(el => el.style.display = 'none');
+
+    // Bloqueia acesso às páginas restritas
     const origGoTo = window.goTo;
     window.goTo = function(page) {
-      if (page === 'financeiro') { origGoTo('dashboard'); return; }
+      const bloqueadas = ['financeiro','comercial','leads','intel-rent','intel-upsell'];
+      if (bloqueadas.includes(page)) { origGoTo('inicio'); return; }
       origGoTo(page);
     };
     document.querySelectorAll('[onclick*="tab-financeiro-cli"]').forEach(el => el.style.display = 'none');
-    setTimeout(() => {
-      if (!document.getElementById('banner-colaborador')) {
-        const banner = document.createElement('div');
-        banner.id = 'banner-colaborador';
-        banner.innerHTML = `<div style="background:#0d2035;border-bottom:1px solid #1e3448;padding:8px 20px;font-size:13px;color:#aee8f5">
-          👥 <b>Modo Colaborador</b> — Bem-vinda, Liz!
-        </div>`;
-        document.querySelector('.main-content')?.prepend(banner.firstElementChild);
-      }
-    }, 100);
   }
-  if (viaLogin) renderDashboard();
-  else { _runInit(); }
+
+  if (viaLogin) {
+    _runInit();
+    setTimeout(() => goTo('inicio'), 200);
+  } else {
+    _runInit();
+    setTimeout(() => goTo('inicio'), 200);
+  }
 }
 
 // ============================================================
