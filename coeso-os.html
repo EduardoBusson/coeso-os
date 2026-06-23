@@ -6383,10 +6383,45 @@ function _runInit() {
   clientes.filter(c=>(c.status||'Ativo')==='Ativo' && c.diaVenc)
           .forEach(c => sincronizarClienteFinanceiro(c, mesAtualKey()));
 
-  // Modo especial via URL param ?modo=videomaker
+  // Modos especiais via URL param
   const urlParams = new URLSearchParams(window.location.search);
   const modo = urlParams.get('modo');
-  if (modo === 'videomaker') {
+
+  // ── Modo colaborador: todas as abas exceto financeiro ─────────
+  if (modo === 'colaborador') {
+    // Esconde nav items financeiros
+    document.querySelectorAll('.nav-item').forEach(el => {
+      if (el.textContent.includes('Financeiro')) el.style.display = 'none';
+    });
+    // Bloqueia acesso direto à página financeiro
+    const origGoTo = window.goTo;
+    window.goTo = function(page) {
+      if (page === 'financeiro') { origGoTo('dashboard'); return; }
+      origGoTo(page);
+    };
+    // Esconde aba Financeiro dentro de ficha de cliente
+    document.querySelectorAll('[onclick*="tab-financeiro-cli"]').forEach(el => el.style.display = 'none');
+    // Esconde KPIs financeiros do Dashboard após render
+    const origRender = window.renderDashboard;
+    window.renderDashboard = function() {
+      origRender();
+      // Oculta card Jobs (valor) — já sem financeiro, mas garante
+      const jobSub = document.getElementById('dash-jobs-sub');
+      if (jobSub) jobSub.textContent = '';
+      // Oculta leads potencial
+      const leadSub = document.getElementById('dash-leads-sub');
+      if (leadSub && leadSub.textContent.includes('R$')) leadSub.textContent = '';
+    };
+    // Banner topo
+    setTimeout(() => {
+      const banner = document.createElement('div');
+      banner.innerHTML = `<div style="background:#0d2035;border-bottom:1px solid #1e3448;padding:8px 20px;display:flex;align-items:center;gap:8px;font-size:13px;color:#aee8f5">
+        👥 <b>Modo Colaborador</b> — <span style="color:var(--text2)">Bem-vinda! Acesso operacional da Coeso.</span>
+      </div>`;
+      document.querySelector('.main-content')?.prepend(banner.firstElementChild);
+    }, 100);
+    renderDashboard();
+  } else if (modo === 'videomaker') {
     // Esconde sidebar, mostra só financeiro aba videomaker
     document.querySelector('.sidebar').style.display = 'none';
     document.querySelector('.main-content').style.marginLeft = '0';
