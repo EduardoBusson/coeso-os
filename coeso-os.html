@@ -7082,11 +7082,12 @@ function aplicarModo(modo, viaLogin) {
       }
     });
     document.querySelectorAll('.nav-comercial,.nav-leads').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.nav-intel-section').forEach(el => el.style.display = 'none');
 
     // Bloqueia acesso às páginas restritas
     const origGoTo = window.goTo;
     window.goTo = function(page) {
-      const bloqueadas = ['financeiro','comercial','leads','intel-rent','intel-upsell'];
+      const bloqueadas = ['financeiro','comercial','leads','intel-rent','intel-upsell','intel-exec','intel-health','intel-ia'];
       if (bloqueadas.includes(page)) { origGoTo('inicio'); return; }
       origGoTo(page);
     };
