@@ -4672,21 +4672,40 @@ function renderTrafego() {
       <!-- Painel expandido -->
       <div id="trafego-panel-${c.id}" style="display:${aberto?'block':'none'};border-top:1px solid var(--border);padding:16px">
 
-        <!-- Formulário novo dia -->
+        <!-- Info de campanha -->
+        ${(() => {
+          const cfg = trafegoConfig[c.id] || {};
+          const camps = cfg.campanhas || [];
+          return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <span style="font-weight:600;color:var(--text2)">📋 Campanhas ativas</span>
+              <button class="btn btn-ghost btn-sm" onclick="editarCampanhasTrafego(${c.id})" style="font-size:11px;padding:2px 8px">✏️ Editar</button>
+            </div>
+            ${camps.length ? camps.map(cp=>`
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px">
+                <span style="color:${cp.plataforma==='meta'?'#1877f2':'#34a853'}">${cp.plataforma==='meta'?'📘':'🔍'}</span>
+                <span style="font-weight:500">${cp.nome}</span>
+                ${cp.inicio?`<span style="color:var(--text3)">desde ${formatDate(cp.inicio)}</span>`:'<span style="color:var(--yellow)">⚠ data início não informada</span>'}
+                ${cp.orcamento_diario?`<span style="margin-left:auto;color:var(--text2)">R$${Number(cp.orcamento_diario).toLocaleString('pt-BR')}/dia</span>`:''}
+              </div>`).join('') : '<span style="color:var(--text3)">Nenhuma campanha cadastrada</span>'}
+          </div>`;
+        })()}
+
+        <!-- Formulário: gasto do dia -->
         <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px">
-          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:12px">+ Registrar dia</div>
+          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:12px">+ Registrar gasto do dia</div>
           <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:10px;align-items:end;margin-bottom:10px">
             <div class="form-group" style="margin:0">
               <label class="form-label" style="font-size:11px">Data</label>
               <input id="tf-data-${c.id}" class="form-input" type="date" value="${hoje}" style="font-size:12px;padding:5px 8px">
             </div>
             <div class="form-group" style="margin:0">
-              <label class="form-label" style="font-size:11px">📘 Invest. Meta (R$)</label>
-              <input id="tf-meta-inv-${c.id}" class="form-input" type="number" min="0" step="0.01" placeholder="0,00" style="font-size:12px;padding:5px 8px">
+              <label class="form-label" style="font-size:11px">📘 Gasto Meta hoje (R$)</label>
+              <input id="tf-meta-inv-${c.id}" class="form-input" type="number" min="0" step="0.01" placeholder="ex: 40,00" style="font-size:13px;font-weight:600;padding:5px 8px">
             </div>
             <div class="form-group" style="margin:0">
-              <label class="form-label" style="font-size:11px">🔍 Invest. Google (R$)</label>
-              <input id="tf-google-inv-${c.id}" class="form-input" type="number" min="0" step="0.01" placeholder="0,00" style="font-size:12px;padding:5px 8px">
+              <label class="form-label" style="font-size:11px">🔍 Gasto Google hoje (R$)</label>
+              <input id="tf-google-inv-${c.id}" class="form-input" type="number" min="0" step="0.01" placeholder="ex: 20,00" style="font-size:13px;font-weight:600;padding:5px 8px">
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
@@ -4707,15 +4726,9 @@ function renderTrafego() {
               <input id="tf-google-cliques-${c.id}" class="form-input" type="number" min="0" placeholder="0" style="font-size:12px;padding:5px 8px">
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-            <div class="form-group" style="margin:0">
-              <label class="form-label" style="font-size:11px">Obs. Meta</label>
-              <input id="tf-meta-obs-${c.id}" class="form-input" type="text" placeholder="Campanha, público..." style="font-size:12px;padding:5px 8px">
-            </div>
-            <div class="form-group" style="margin:0">
-              <label class="form-label" style="font-size:11px">Obs. Google</label>
-              <input id="tf-google-obs-${c.id}" class="form-input" type="text" placeholder="Campanha, palavras-chave..." style="font-size:12px;padding:5px 8px">
-            </div>
+          <div class="form-group" style="margin:0 0 12px">
+            <label class="form-label" style="font-size:11px">Observação do dia</label>
+            <input id="tf-meta-obs-${c.id}" class="form-input" type="text" placeholder="ex: campanha X teve bom desempenho..." style="font-size:12px;padding:5px 8px">
           </div>
           <button class="btn btn-primary btn-sm" onclick="salvarDiaTrafego(${c.id})">💾 Salvar este dia</button>
         </div>
