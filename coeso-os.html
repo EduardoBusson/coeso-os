@@ -6047,6 +6047,24 @@ function migrarDados() {
   if (alterou) {
     saveData('clientes', clientes);
   }
+
+  // Pré-popula dado de tráfego Sportif dia 22/06/2026 (Meta Ads)
+  const sportifId = (clientes.find(c=>c.nome==='Sportif')||{}).id;
+  if (sportifId) {
+    if (!trafegoData[sportifId]) trafegoData[sportifId] = [];
+    const jaTemHoje = trafegoData[sportifId].find(e=>e.data==='2026-06-22');
+    if (!jaTemHoje) {
+      trafegoData[sportifId].push({
+        data: '2026-06-22',
+        meta_inv: 101.87,
+        meta_leads: 7,
+        meta_cliques: 0,
+        meta_obs: 'SPORTIF_CRIATIVOS · R$14,55/resultado · Orçamento diário R$30 · Impressões 3.379 · Alcance 2.405',
+        google_inv: 0, google_leads: 0, google_cliques: 0, google_obs: ''
+      });
+      saveData('trafego_data', trafegoData);
+    }
+  }
 }
 
 // ============================================================
