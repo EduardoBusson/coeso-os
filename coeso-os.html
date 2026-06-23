@@ -2501,7 +2501,8 @@ function openNovoEvento() {
   document.getElementById('ev-data').value  = localDateStr();
   document.getElementById('ev-hora').value  = '09:00';
   document.getElementById('ev-tipo').value  = 'Reunião de Estratégia';
-  document.getElementById('ev-obs').value   = '';
+  document.getElementById('ev-obs').value       = '';
+  document.getElementById('ev-quem-vai').value  = '';
   document.getElementById('ev-delete-btn').style.display = 'none';
   // Populate cliente select
   const sel = document.getElementById('ev-cliente');
@@ -2526,7 +2527,8 @@ function editarEvento(id) {
   document.getElementById('ev-data').value   = e.data   || '';
   document.getElementById('ev-hora').value   = e.hora   || '';
   document.getElementById('ev-tipo').value   = e.tipo   || 'Reunião de Estratégia';
-  document.getElementById('ev-obs').value    = e.obs    || '';
+  document.getElementById('ev-obs').value       = e.obs      || '';
+  document.getElementById('ev-quem-vai').value  = e.quem_vai || '';
   document.getElementById('ev-delete-btn').style.display = 'inline-flex';
   const sel = document.getElementById('ev-cliente');
   sel.innerHTML = '<option value="">— Nenhum —</option>' +
@@ -2556,10 +2558,11 @@ function salvarEvento() {
     id:      editandoEventoId || nextId(eventos),
     titulo,
     data,
-    hora:    document.getElementById('ev-hora').value,
-    tipo:    document.getElementById('ev-tipo').value,
-    cliente: document.getElementById('ev-cliente').value,
-    obs:     document.getElementById('ev-obs').value.trim(),
+    hora:     document.getElementById('ev-hora').value,
+    tipo:     document.getElementById('ev-tipo').value,
+    cliente:  document.getElementById('ev-cliente').value,
+    obs:      document.getElementById('ev-obs').value.trim(),
+    quem_vai: document.getElementById('ev-quem-vai').value.trim(),
   };
 
   if (editandoEventoId) {
