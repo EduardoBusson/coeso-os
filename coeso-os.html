@@ -4668,18 +4668,23 @@ function renderTrafego() {
         ${(() => {
           const cfg = trafegoConfig[c.id] || {};
           const camps = cfg.campanhas || [];
+          const campsAtivas = camps.filter(cp=>cp.ativo!==false);
+          const campsInativas = camps.filter(cp=>cp.ativo===false);
           return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
               <span style="font-weight:600;color:var(--text2)">📋 Campanhas ativas</span>
               <button class="btn btn-ghost btn-sm" onclick="editarCampanhasTrafego(${c.id})" style="font-size:11px;padding:2px 8px">✏️ Editar</button>
             </div>
-            ${camps.length ? camps.map(cp=>`
+            ${campsAtivas.length ? campsAtivas.map(cp=>`
               <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px">
-                <span style="color:${cp.plataforma==='meta'?'#1877f2':'#34a853'}">${cp.plataforma==='meta'?'📘':'🔍'}</span>
+                <span style="color:#1877f2">📘</span>
                 <span style="font-weight:500">${cp.nome}</span>
                 ${cp.inicio?`<span style="color:var(--text3)">desde ${formatDate(cp.inicio)}</span>`:'<span style="color:var(--yellow)">⚠ data início não informada</span>'}
                 ${cp.orcamento_diario?`<span style="margin-left:auto;color:var(--text2)">R$${Number(cp.orcamento_diario).toLocaleString('pt-BR')}/dia</span>`:''}
-              </div>`).join('') : '<span style="color:var(--text3)">Nenhuma campanha cadastrada</span>'}
+              </div>`).join('') : '<span style="color:var(--text3)">Nenhuma campanha ativa</span>'}
+            ${campsInativas.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+              <span style="color:var(--text3);font-size:11px">Desativadas: ${campsInativas.map(cp=>cp.nome).join(' · ')}</span>
+            </div>` : ''}
           </div>`;
         })()}
 
