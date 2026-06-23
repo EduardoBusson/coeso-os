@@ -5978,6 +5978,30 @@ function exportarBackup() {
   showToast('Backup exportado com sucesso!');
 }
 
+async function sincronizarFirebase() {
+  if (!confirm('Enviar todos os dados do Safari para o Firebase?\nIsso vai atualizar todos os outros dispositivos.')) return;
+  showToast('⏳ Sincronizando...');
+  let count = 0;
+  const promises = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('coeso_')) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key));
+        const fbKey = key.replace('coeso_', '');
+        promises.push(_db.ref('dados/' + fbKey).set(JSON.stringify(data)));
+        count++;
+      } catch(e) {}
+    }
+  }
+  try {
+    await Promise.all(promises);
+    showToast('✅ ' + count + ' registros enviados ao Firebase!');
+  } catch(e) {
+    showToast('❌ Erro na sincronização: ' + e.message);
+  }
+}
+
 function importarBackup(event) {
   const file = event.target.files[0];
   if (!file) return;
