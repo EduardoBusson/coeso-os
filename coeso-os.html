@@ -7077,13 +7077,12 @@ function aplicarModo(modo, viaLogin) {
     if (el2) el2.textContent = _sessS.modo==='admin'?'Administrador':'Colaboradora';
     if (el3) el3.textContent = _sessS.nome[0].toUpperCase();
   }
-  if (viaLogin) {
-    _runInit();
-    setTimeout(() => goTo('inicio'), 200);
-  } else {
-    _runInit();
-    setTimeout(() => goTo('inicio'), 200);
-  }
+  _runInit();
+  setTimeout(() => {
+    goTo('inicio');
+    // Garante renderização mesmo se goTo já estava no início
+    setTimeout(() => renderInicio(), 50);
+  }, 250);
 }
 
 // ============================================================
