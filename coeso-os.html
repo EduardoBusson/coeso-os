@@ -6157,6 +6157,36 @@ function migrarDados() {
       };
       saveData('trafego_config', trafegoConfig);
     }
+    // Histórico JANGU (valor real por dia — coluna "Valor usado")
+    if (!trafegoData[spotId]) trafegoData[spotId] = [];
+    const spotJanguDias = [
+      { data:'2026-06-08', meta_inv:4.00,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$4,00' },
+      { data:'2026-06-09', meta_inv:10.04, meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$10,04' },
+      { data:'2026-06-10', meta_inv:8.39,  meta_leads:1, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$8,39 · 1 lead R$8,39/result' },
+      { data:'2026-06-11', meta_inv:7.69,  meta_leads:1, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$7,69 · 1 lead R$7,69/result' },
+      { data:'2026-06-12', meta_inv:5.68,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$5,68' },
+      { data:'2026-06-13', meta_inv:6.05,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$6,05' },
+      { data:'2026-06-14', meta_inv:6.38,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$6,38' },
+      { data:'2026-06-15', meta_inv:0.95,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$0,95' },
+      { data:'2026-06-16', meta_inv:15.74, meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$15,74' },
+      { data:'2026-06-17', meta_inv:2.81,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$2,81' },
+      { data:'2026-06-20', meta_inv:1.50,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$1,50' },
+      { data:'2026-06-21', meta_inv:7.51,  meta_leads:1, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$7,51 · 1 lead R$7,51/result' },
+      { data:'2026-06-22', meta_inv:46.16, meta_leads:5, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$46,16 · 5 leads R$9,23/result' },
+    ];
+    spotJanguDias.forEach(dia => {
+      const idx = trafegoData[spotId].findIndex(e=>e.data===dia.data);
+      if (idx >= 0) {
+        // Soma ao existente (GUJ já pode estar lá)
+        trafegoData[spotId][idx].meta_inv   = (trafegoData[spotId][idx].meta_inv||0) + dia.meta_inv;
+        trafegoData[spotId][idx].meta_leads = (trafegoData[spotId][idx].meta_leads||0) + dia.meta_leads;
+        trafegoData[spotId][idx].meta_obs   = (trafegoData[spotId][idx].meta_obs ? trafegoData[spotId][idx].meta_obs + ' | ' : '') + dia.meta_obs;
+      } else {
+        trafegoData[spotId].push(dia);
+      }
+    });
+    trafegoData[spotId].sort((a,b)=>a.data.localeCompare(b.data));
+    saveData('trafego_data', trafegoData);
   }
 }
 
