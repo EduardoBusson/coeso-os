@@ -453,6 +453,13 @@
   </div>
 
   <div class="sidebar-bottom">
+    <div id="sidebar-user-card" onclick="goTo('inicio')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:6px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--surface2)">
+      <div id="sidebar-user-avatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">E</div>
+      <div style="min-width:0;flex:1">
+        <div id="sidebar-user-name" style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Eduardo</div>
+        <div id="sidebar-user-role" style="font-size:10px;color:var(--text2)">Administrador</div>
+      </div>
+    </div>
     <div class="nav-item" onclick="goTo('processos')">
       <span class="icon">⚙️</span><span>Processos</span>
     </div>
@@ -7039,6 +7046,16 @@ function aplicarModo(modo, viaLogin) {
     document.querySelectorAll('[onclick*="tab-financeiro-cli"]').forEach(el => el.style.display = 'none');
   }
 
+  // Atualiza mini card da sidebar
+  const _sessS = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  if (_sessS.nome) {
+    const el1 = document.getElementById('sidebar-user-name');
+    const el2 = document.getElementById('sidebar-user-role');
+    const el3 = document.getElementById('sidebar-user-avatar');
+    if (el1) el1.textContent = _sessS.nome.split(' ')[0];
+    if (el2) el2.textContent = _sessS.modo==='admin'?'Administrador':'Colaboradora';
+    if (el3) el3.textContent = _sessS.nome[0].toUpperCase();
+  }
   if (viaLogin) {
     _runInit();
     setTimeout(() => goTo('inicio'), 200);
