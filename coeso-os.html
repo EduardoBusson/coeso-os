@@ -4668,8 +4668,9 @@ function renderTrafego() {
         ${(() => {
           const cfg = trafegoConfig[c.id] || {};
           const camps = cfg.campanhas || [];
-          const campsAtivas = camps.filter(cp=>cp.ativo!==false);
-          const campsInativas = camps.filter(cp=>cp.ativo===false);
+          const _nomesForcadosInativos = ['JANGU_JUN26_COPA','SPOT_GUJ_JUN26_PROMO'];
+          const campsAtivas = camps.filter(cp=>cp.ativo!==false && !_nomesForcadosInativos.includes(cp.nome));
+          const campsInativas = camps.filter(cp=>cp.ativo===false || _nomesForcadosInativos.includes(cp.nome));
           return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
               <span style="font-weight:600;color:var(--text2)">📋 Campanhas ativas</span>
