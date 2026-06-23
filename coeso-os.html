@@ -4240,49 +4240,80 @@ function renderInstagram() {
 
   grid.innerHTML = ativos.map(c => {
     const ig = c.ig || {};
-    const historico = ig.historico || [];
-    const segMes = igSeguidoresNoMes(c, mesAtivo) ?? ig.seguidores ?? 0;
-    const segAnt = igSeguidoresMesAnterior(c, mesAtivo);
-    const deltaSeg = segAnt !== null ? segMes - segAnt : 0;
-    const atualizadoHoje = mesAtivo === mesAtualKey() && historico.length && historico[historico.length-1].data === hoje;
-    return `<div class="ig-card" style="${atualizadoHoje?'':'border:1px solid var(--yellow)33'}">
-      <div class="ig-card-header">
-        <div class="avatar" style="background:${c.cor}">${c.nome.charAt(0)}</div>
+    const historico = [...(ig.historico || [])].sort((a,b)=>a.data.localeCompare(b.data));
+    const atualizadoHoje = historico.length && historico[historico.length-1].data === hoje;
+
+    // Hoje e ontem
+    const entHoje   = historico.find(h=>h.data===hoje);
+    const entOntem  = historico.length > 1 ? historico[historico.length - (atualizadoHoje ? 2 : 1)] : null;
+    const segHoje   = entHoje ? entHoje.seguidores : null;
+    const segOntem  = entOntem ? entOntem.seguidores : null;
+    const delta     = (segHoje !== null && segOntem !== null) ? segHoje - segOntem : null;
+    const deltaCorh = delta === null ? 'var(--text2)' : delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text2)';
+    const deltaTexto = delta === null ? '—' : delta > 0 ? `+${delta.toLocaleString('pt-BR')}` : delta === 0 ? '= igual ao dia anterior' : delta.toLocaleString('pt-BR');
+
+    // Últimos 7 dias para o log
+    const ultimos7 = historico.slice(-7).reverse();
+
+    return `<div class="ig-card" style="border:1px solid ${atualizadoHoje?'var(--border)':'var(--yellow)44'}">
+      <!-- Cabeçalho -->
+      <div class="ig-card-header" style="margin-bottom:12px">
+        <div class="avatar" style="background:${c.cor||'#2a7a8e'}">${c.nome.charAt(0)}</div>
         <div style="flex:1;min-width:0">
           <div class="ig-card-title">${c.nome}</div>
-          <div class="ig-card-sub" style="color:var(--accent)">${ig.user?'@'+ig.user:'@ não cadastrado'}</div>
+          <div style="font-size:11px;color:var(--accent)">${ig.user?'@'+ig.user:'@ não configurado'}</div>
         </div>
-        <span style="font-size:11px;color:${atualizadoHoje?'var(--green)':'var(--yellow)'};white-space:nowrap">${atualizadoHoje?'✓ hoje':'⚠ pendente'}</span>
-        <button class="btn btn-ghost btn-sm" onclick="openAtualizarIG(${c.id})" title="Editar todos os campos" style="margin-left:4px">⚙️</button>
+        <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${atualizadoHoje?'var(--green)22':'var(--yellow)22'};color:${atualizadoHoje?'var(--green)':'var(--yellow)'}">
+          ${atualizadoHoje?'✓ atualizado hoje':'⚠ pendente hoje'}
+        </span>
       </div>
 
-      <!-- Quick update: só aparece no mês atual -->
+      <!-- Número de hoje + campo de atualização rápida -->
       ${mesAtivo === mesAtualKey() ? `
-      <div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px;background:var(--surface2);border-radius:8px;padding:8px 10px">
-        <span style="font-size:12px;color:var(--text2);white-space:nowrap">Seguidores hoje:</span>
-        <input id="ig-quick-seg-${c.id}" type="number" class="form-input"
-          style="flex:1;padding:4px 8px;font-size:14px;font-weight:600;min-width:0"
-          value="${segMes||0}"
-          onkeydown="if(event.key==='Enter')salvarQuickIG(${c.id})">
-        <button class="btn btn-primary btn-sm" onclick="salvarQuickIG(${c.id})" style="white-space:nowrap;padding:4px 12px">✓</button>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px">📅 ${hoje} — quantos seguidores agora?</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="ig-quick-seg-${c.id}" type="number" class="form-input"
+            style="flex:1;padding:6px 10px;font-size:20px;font-weight:700;min-width:0;letter-spacing:.5px"
+            value="${segHoje ?? ''}" placeholder="${segOntem ? segOntem.toLocaleString('pt-BR') : '0'}"
+            onkeydown="if(event.key==='Enter')salvarQuickIG(${c.id})">
+          <button class="btn btn-primary" onclick="salvarQuickIG(${c.id})" style="padding:8px 18px;font-size:14px;font-weight:600">✓ Salvar</button>
+        </div>
+        ${segOntem !== null ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">Dia anterior (${entOntem.data}): <b>${segOntem.toLocaleString('pt-BR')}</b></div>` : ''}
       </div>` : ''}
 
-      <div class="ig-metrics" style="grid-template-columns:repeat(2,1fr)">
-        <div class="ig-metric">
-          <div class="ig-metric-label">Seguidores</div>
-          <div class="ig-metric-value">${formatNum(segMes||0)}</div>
+      <!-- Delta do dia -->
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;padding:0 2px">
+        <div>
+          <div style="font-size:11px;color:var(--text3)">Total atual</div>
+          <div style="font-size:22px;font-weight:700">${segHoje !== null ? segHoje.toLocaleString('pt-BR') : (ig.seguidores ? ig.seguidores.toLocaleString('pt-BR') : '—')}</div>
         </div>
-        <div class="ig-metric">
-          <div class="ig-metric-label">Crescimento</div>
-          <div class="ig-metric-value">
-            <span style="color:${deltaSeg>0?'var(--green)':deltaSeg<0?'var(--red)':'var(--text2)'}">${deltaSeg>0?'+':''}${deltaSeg || '—'}</span>
-          </div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div>
+          <div style="font-size:11px;color:var(--text3)">vs. dia anterior</div>
+          <div style="font-size:20px;font-weight:700;color:${deltaCorh}">${deltaTexto}</div>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">
-        ${historico.length ? 'Últ: '+historico[historico.length-1].data+(historico[historico.length-1].hora?' às '+historico[historico.length-1].hora:'') : 'Nenhuma entrada ainda'}
-      </div>
-      <div class="chart-container" style="height:55px;margin-top:8px">
+
+      <!-- Log dos últimos 7 dias -->
+      ${ultimos7.length ? `
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Últimos dias</div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        ${ultimos7.map((h, i) => {
+          const prev = ultimos7[i+1];
+          const d = prev ? h.seguidores - prev.seguidores : null;
+          const cor = d === null ? 'var(--text3)' : d > 0 ? 'var(--green)' : d < 0 ? 'var(--red)' : 'var(--text2)';
+          const sinal = d === null ? '' : d > 0 ? `+${d.toLocaleString('pt-BR')}` : d === 0 ? '=' : d.toLocaleString('pt-BR');
+          return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 6px;border-radius:6px;background:${i===0&&h.data===hoje?'var(--surface2)':'transparent'}">
+            <span style="color:var(--text3);min-width:52px">${h.data.slice(5).replace('-','/')}</span>
+            <span style="font-weight:600;flex:1">${h.seguidores.toLocaleString('pt-BR')}</span>
+            <span style="color:${cor};font-size:11px;min-width:40px;text-align:right">${sinal}</span>
+          </div>`;
+        }).join('')}
+      </div>` : `<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px">Nenhuma entrada ainda — insira o número acima e salve</div>`}
+
+      <!-- Mini gráfico -->
+      <div class="chart-container" style="height:50px;margin-top:10px">
         <canvas id="ig-chart-${c.id}"></canvas>
       </div>
     </div>`;
