@@ -2081,6 +2081,16 @@ const EVENTO_CORES = {
   'Reunião de Prospecção':  { bg:'#3dd68c', txt:'#001a0d', icon:'🤝' },
   'Entrega':                { bg:'#ff9f43', txt:'#1a0800', icon:'📦' },
   'Prazo':                  { bg:'#ff5a72', txt:'#fff',    icon:'⏰' },
+  'Reunião':                { bg:'#6c8cff', txt:'#fff',    icon:'🤝' },
+  'Apresentação':           { bg:'#a78bfa', txt:'#fff',    icon:'📊' },
+  'Call':                   { bg:'#34d399', txt:'#001a0d', icon:'📞' },
+  'Shooting':               { bg:'#f472b6', txt:'#fff',    icon:'📸' },
+  'Edição':                 { bg:'#fb923c', txt:'#fff',    icon:'✂️' },
+  'Publicação':             { bg:'#22d3ee', txt:'#0a2030', icon:'📤' },
+  'Briefing':               { bg:'#a3e635', txt:'#0a2010', icon:'📝' },
+  'Revisão':                { bg:'#fbbf24', txt:'#1a0800', icon:'🔍' },
+  'Aprovação':              { bg:'#4ade80', txt:'#001a0d', icon:'✅' },
+  'Capacitação':            { bg:'#818cf8', txt:'#fff',    icon:'🎓' },
   'Outros':                 { bg:'#8b8fa8', txt:'#fff',    icon:'📌' },
 };
 
@@ -6505,14 +6515,19 @@ function _runInit() {
 
   // ── Modo colaborador: todas as abas exceto financeiro ─────────
   if (modo === 'colaborador') {
-    // Esconde nav items financeiros
+    // Esconde nav items restritos
     document.querySelectorAll('.nav-item').forEach(el => {
-      if (el.textContent.includes('Financeiro')) el.style.display = 'none';
+      const t = el.textContent;
+      if (t.includes('Financeiro')||t.includes('Comercial')||t.includes('Leads')||
+          t.includes('Rentabilidade')||t.includes('Oportunidades')) el.style.display = 'none';
     });
-    // Bloqueia acesso direto à página financeiro
+    document.querySelectorAll('.logo-admin-only').forEach(el => el.style.display='none');
+    document.querySelectorAll('.nav-comercial,.nav-leads').forEach(el => el.style.display='none');
+    // Bloqueia acesso direto às páginas restritas
     const origGoTo = window.goTo;
     window.goTo = function(page) {
-      if (page === 'financeiro') { origGoTo('dashboard'); return; }
+      const bloq = ['financeiro','comercial','leads','intel-rent','intel-upsell'];
+      if (bloq.includes(page)) { origGoTo('inicio'); return; }
       origGoTo(page);
     };
     // Esconde aba Financeiro dentro de ficha de cliente
