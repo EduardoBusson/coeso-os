@@ -443,6 +443,60 @@
 <!-- PAGES -->
 <div class="main">
 
+
+  <!-- ===== INÍCIO (HOME PESSOAL) ===== -->
+  <div class="page" id="page-inicio">
+    <div class="page-content" style="max-width:900px;margin:0 auto">
+
+      <!-- Greeting -->
+      <div id="inicio-greeting" style="margin-bottom:28px"></div>
+
+      <!-- Profile + Stats row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px" id="inicio-stats-row"></div>
+
+      <!-- Main grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px" id="inicio-main-grid">
+        <!-- left: jobs + demandas -->
+        <div>
+          <div id="inicio-jobs-card" class="card" style="margin-bottom:16px;min-height:120px"></div>
+          <div id="inicio-demandas-card" class="card" style="min-height:120px"></div>
+        </div>
+        <!-- right: eventos + noticias -->
+        <div>
+          <div id="inicio-eventos-card" class="card" style="margin-bottom:16px"></div>
+          <div id="inicio-noticias-card" class="card" style="min-height:120px"></div>
+        </div>
+      </div>
+
+      <!-- YouTube storytelling video -->
+      <div class="card" style="margin-bottom:28px;overflow:hidden;padding:0">
+        <div style="padding:16px 20px 0">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:4px">📺 Conteúdo da Semana</div>
+          <div style="font-size:14px;color:var(--text2);margin-bottom:14px">Storytelling para marcas — aprenda enquanto trabalha</div>
+        </div>
+        <div style="position:relative;padding-bottom:42%;height:0;overflow:hidden">
+          <iframe id="inicio-yt-iframe"
+            style="position:absolute;top:0;left:0;width:100%;height:100%;border:0"
+            src="https://www.youtube.com/embed/videoseries?list=PLtFP5pPBkLQ5PtQRdDH1bECRBl4b9CdMN&autoplay=0&mute=1&controls=1&rel=0&modestbranding=1"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen loading="lazy"></iframe>
+        </div>
+        <div style="padding:10px 20px;font-size:11px;color:var(--text2);display:flex;gap:16px;flex-wrap:wrap" id="inicio-yt-links">
+          <a href="https://www.youtube.com/watch?v=Nj-hdQflKJE" target="_blank" style="color:var(--accent2);text-decoration:none">▶ Storytelling que vende</a>
+          <a href="https://www.youtube.com/watch?v=OqmdLcyES_Q" target="_blank" style="color:var(--accent2);text-decoration:none">▶ Como contar histórias de marca</a>
+          <a href="https://www.youtube.com/watch?v=5MgBikgcWnY" target="_blank" style="color:var(--accent2);text-decoration:none">▶ Storytelling no Instagram</a>
+          <a href="https://www.youtube.com/watch?v=T4-R3JvMxUk" target="_blank" style="color:var(--accent2);text-decoration:none">▶ Técnica do Story Brand</a>
+        </div>
+      </div>
+
+      <!-- Calendário sazonal compacto -->
+      <div class="card">
+        <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:14px">📅 Próximas datas comemorativas</div>
+        <div id="inicio-datas-sazonais"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== DASHBOARD ===== -->
   <div class="page active" id="page-dashboard">
     <div class="page-header">
