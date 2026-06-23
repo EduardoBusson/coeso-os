@@ -6962,17 +6962,19 @@ async function carregarNoticiasInicio() {
     m.id = 'modal-site-ref';
     m.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);flex-direction:column';
     m.innerHTML = `
-      <div style="background:#0a1929;padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e3448">
+      <div style="background:#0a1929;padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e3448;flex-shrink:0">
         <span style="width:10px;height:10px;border-radius:50%;background:#ff5a72;display:inline-block"></span>
         <span style="width:10px;height:10px;border-radius:50%;background:#f7c948;display:inline-block"></span>
         <span style="width:10px;height:10px;border-radius:50%;background:#3dd68c;display:inline-block"></span>
-        <span id="modal-site-label" style="font-size:13px;color:var(--text2);flex:1;text-align:center"></span>
-        <a id="modal-site-link" href="#" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;margin-right:8px">↗ abrir no navegador</a>
-        <button onclick="document.getElementById('modal-site-ref').style.display='none';document.getElementById('modal-site-iframe').src=''"
-          style="background:none;border:none;color:#ff5a72;font-size:18px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
+        <span id="modal-site-label" style="font-size:13px;font-weight:600;flex:1;text-align:center"></span>
+        <a id="modal-site-link" href="#" target="_blank"
+          style="font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--border);padding:4px 10px;border-radius:6px">↗ abrir no navegador</a>
+        <button onclick="fecharSiteModal()"
+          style="background:none;border:none;color:#ff5a72;font-size:22px;cursor:pointer;padding:0 4px;line-height:1;margin-left:4px">✕</button>
       </div>
-      <iframe id="modal-site-iframe" src="" style="flex:1;width:100%;border:0"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>`;
+      <div style="flex:1;position:relative">
+        <iframe id="modal-site-iframe" src="" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+      </div>`;
     document.body.appendChild(m);
   }
 }
