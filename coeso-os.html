@@ -6883,19 +6883,23 @@ function renderInicio() {
     const diaSem = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
     evCard.innerHTML = `
       <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:12px">📅 Próximos Eventos</div>
-      ${prox.length===0?'<div style="color:var(--text2);font-size:13px;text-align:center;padding:16px 0">Sem eventos esta semana</div>':
+      ${prox.length===0?'<div style="color:var(--text2);font-size:13px;text-align:center;padding:16px 0">Sem eventos agendados</div>':
         prox.map(ev=>{
           const d = new Date(ev.data+'T00:00:00');
-          const label = d.getDate()===hoje2.getDate()&&d.getMonth()===hoje2.getMonth()?'Hoje':`${diaSem[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+          const isHoje = d.getDate()===hoje2.getDate()&&d.getMonth()===hoje2.getMonth()&&d.getFullYear()===hoje2.getFullYear();
+          const diaLabel = isHoje?'Hoje':`${diaSem[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+          const cor = tipoCor[ev.tipo]||'#8b8fa8';
+          // Monta linha: CLIENTE · O QUE VAMOS FAZER · QUEM VAI · HORÁRIO · DIA
+          const partes = [];
+          if (ev.cliente) partes.push(`<strong>${ev.cliente}</strong>`);
+          partes.push(ev.titulo||ev.nome||'Evento');
+          if (ev.quem_vai) partes.push(`👥 ${ev.quem_vai}`);
+          if (ev.hora)    partes.push(`⏰ ${ev.hora}`);
+          partes.push(diaLabel);
           return `
-          <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
-            <div style="text-align:center;min-width:38px">
-              <div style="font-size:11px;font-weight:700;color:${tipoCor[ev.tipo]||'#8b8fa8'}">${label}</div>
-            </div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.titulo||ev.nome||'Evento'}</div>
-              <div style="font-size:11px;color:var(--text2)">${ev.tipo||''} ${ev.cliente?'· '+ev.cliente:''}</div>
-            </div>
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)" onclick="editarEvento(${ev.id})" style="cursor:pointer">
+            <div style="font-size:11px;font-weight:700;color:${cor};margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">${ev.tipo||'Evento'}</div>
+            <div style="font-size:12px;color:var(--text1);line-height:1.5">${partes.join(' · ')}</div>
           </div>`;}).join('')}
       <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('agenda')">Abrir agenda →</button>`;
   }
