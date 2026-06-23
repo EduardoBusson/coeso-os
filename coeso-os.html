@@ -6361,6 +6361,23 @@ function importarBackup(event) {
 }
 
 function migrarDados() {
+  // ── Eventos agendados manualmente ─────────────────────────
+  if (!Array.isArray(eventos)) eventos = [];
+  const _evFixos = [
+    { titulo:'Gravação na Mundo da Arte', data:'2026-06-27', hora:'14:00', tipo:'Gravação', cliente:'Mundo da Arte', quem_vai:'Kayan',   obs:'' },
+    { titulo:'Gravação',                  data:'2026-06-27', hora:'18:00', tipo:'Gravação', cliente:'',              quem_vai:'Kayan',   obs:'' },
+    { titulo:'Primeiro São João da DVB',  data:'2026-06-30', hora:'',      tipo:'Evento',   cliente:'',              quem_vai:'Eduardo', obs:'Compromisso pessoal' },
+  ];
+  let _evChg = false;
+  _evFixos.forEach(ev => {
+    const existe = eventos.some(e => e.titulo === ev.titulo && e.data === ev.data && e.hora === ev.hora);
+    if (!existe) {
+      eventos.push({ ...ev, id: nextId(eventos) });
+      _evChg = true;
+    }
+  });
+  if (_evChg) saveData('eventos', eventos);
+
   // Atribui criado_por='Eduardo' em itens legados
   if (!Array.isArray(demandas)) demandas = [];
   if (!Array.isArray(jobsExtras)) jobsExtras = [];
