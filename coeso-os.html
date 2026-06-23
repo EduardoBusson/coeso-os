@@ -213,7 +213,7 @@
 
   .tag { display: inline-block; background: var(--surface2); color: var(--text2); font-size: 11px; padding: 2px 8px; border-radius: 99px; }
 
-  /* RESPONSIVE */
+  /* RESPONSIVE — desktop (>900px) não é afetado */
   @media (max-width: 900px) {
     .sidebar { width: 60px; min-width: 60px; }
     .nav-item span, .logo span:last-child, .nav-section, .sidebar-bottom .btn { display: none; }
@@ -221,6 +221,58 @@
     .grid-4 { grid-template-columns: repeat(2,1fr); }
     .fin-summary { grid-template-columns: repeat(2,1fr); }
     .week-grid { grid-template-columns: repeat(3,1fr); }
+  }
+
+  /* MOBILE — só afeta telas pequenas (celular) */
+  @media (max-width: 600px) {
+    /* Layout base */
+    body { font-size: 14px; }
+    .sidebar {
+      position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+      width: 100% !important; min-width: unset !important;
+      height: 56px; flex-direction: row; padding: 0;
+      border-right: none; border-top: 1px solid var(--border);
+      z-index: 200; overflow-x: auto; overflow-y: hidden;
+    }
+    .nav-section, .logo, .sidebar-bottom { display: none !important; }
+    .nav-items { display: flex; flex-direction: row; overflow-x: auto; padding: 0 4px; gap: 0; }
+    .nav-item {
+      flex-direction: column; padding: 4px 8px; gap: 2px;
+      min-width: 56px; border-radius: 8px; font-size: 10px; white-space: nowrap;
+    }
+    .nav-item span.icon { font-size: 18px; }
+    .nav-item span:not(.icon) { display: block !important; font-size: 9px; }
+    .nav-item.active { background: var(--surface2); }
+
+    /* Conteúdo */
+    .main { margin-left: 0; padding-bottom: 64px; }
+    .page-content { padding: 12px; }
+    .page-header { padding: 12px 12px 0; flex-wrap: wrap; gap: 8px; }
+    .page-title { font-size: 18px; }
+
+    /* Grids viram coluna única */
+    .grid-2, .grid-3, .grid-4, .fin-summary { grid-template-columns: 1fr !important; }
+    .week-grid { grid-template-columns: 1fr !important; }
+
+    /* Cards */
+    .card { padding: 12px; }
+    .card-value { font-size: 28px; }
+
+    /* Tabelas scrolláveis */
+    table { display: block; overflow-x: auto; white-space: nowrap; font-size: 12px; }
+
+    /* Botões maiores */
+    .btn { min-height: 36px; font-size: 13px; padding: 8px 14px; }
+    .btn-sm { min-height: 32px; font-size: 12px; padding: 6px 10px; }
+
+    /* Modais */
+    .modal-content { margin: 8px; border-radius: 12px; max-height: 92vh; }
+
+    /* Financeiro */
+    .fin-mes-nav { flex-wrap: wrap; gap: 6px; }
+
+    /* Tráfego */
+    .trafego-form-grid { grid-template-columns: 1fr 1fr !important; }
   }
 </style>
 </head>
