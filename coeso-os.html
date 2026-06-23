@@ -6108,27 +6108,35 @@ function migrarDados() {
     saveData('clientes', clientes);
   }
 
-  // Configura campanhas iniciais Sportif (se não existir)
+  // Configura campanhas Sportif (início 12/06)
   const sportifId = (clientes.find(c=>c.nome==='Sportif')||{}).id;
-  if (sportifId && !trafegoConfig[sportifId]) {
-    trafegoConfig[sportifId] = {
-      campanhas: [
-        { nome: 'SPORTIF_CRIATIVOS', plataforma: 'meta', inicio: '', orcamento_diario: 30 }
-      ]
-    };
-    saveData('trafego_config', trafegoConfig);
+  if (sportifId) {
+    const cfgAtual = trafegoConfig[sportifId] || {};
+    const jaTemInicio = (cfgAtual.campanhas||[]).some(cp=>cp.inicio);
+    if (!jaTemInicio) {
+      trafegoConfig[sportifId] = {
+        campanhas: [
+          { nome: 'SPORTIF_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-12', orcamento_diario: 30 }
+        ]
+      };
+      saveData('trafego_config', trafegoConfig);
+    }
   }
 
-  // Configura campanhas iniciais Complexo Spot (se não existir)
+  // Configura campanhas Complexo Spot (início 08/06)
   const spotId = (clientes.find(c=>c.nome==='Complexo Spot')||{}).id;
-  if (spotId && !trafegoConfig[spotId]) {
-    trafegoConfig[spotId] = {
-      campanhas: [
-        { nome: 'SPOT_GUJ_CRIATIVOS',   plataforma: 'meta', inicio: '', orcamento_diario: 33 },
-        { nome: 'SPOT_JANGU_CRIATIVOS', plataforma: 'meta', inicio: '', orcamento_diario: 40 }
-      ]
-    };
-    saveData('trafego_config', trafegoConfig);
+  if (spotId) {
+    const cfgAtual = trafegoConfig[spotId] || {};
+    const jaTemInicio = (cfgAtual.campanhas||[]).some(cp=>cp.inicio);
+    if (!jaTemInicio) {
+      trafegoConfig[spotId] = {
+        campanhas: [
+          { nome: 'SPOT_GUJ_CRIATIVOS',   plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 33 },
+          { nome: 'SPOT_JANGU_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 40 }
+        ]
+      };
+      saveData('trafego_config', trafegoConfig);
+    }
   }
 }
 
