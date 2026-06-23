@@ -277,6 +277,46 @@
 </style>
 </head>
 <body>
+
+<!-- ===== TELA DE LOGIN ===== -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;z-index:99999;background:#060e18;flex-direction:column;align-items:center;justify-content:center">
+  <div style="width:100%;max-width:360px;padding:0 24px">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px">COESO</div>
+      <div style="font-size:13px;color:#4a6a8a;letter-spacing:3px;margin-top:2px">COMUNICAÇÃO</div>
+    </div>
+    <div style="background:#0d1f33;border:1px solid #1e3448;border-radius:16px;padding:28px 24px">
+      <div style="font-size:14px;color:#4a6a8a;margin-bottom:20px;text-align:center">Acesso ao sistema</div>
+      <div style="margin-bottom:14px">
+        <input id="login-user" class="form-input" placeholder="Usuário" autocomplete="username"
+          style="width:100%;box-sizing:border-box;font-size:15px;padding:12px 14px"
+          onkeydown="if(event.key==='Enter')document.getElementById('login-senha').focus()">
+      </div>
+      <div style="margin-bottom:20px">
+        <input id="login-senha" class="form-input" type="password" placeholder="Senha" autocomplete="current-password"
+          style="width:100%;box-sizing:border-box;font-size:15px;padding:12px 14px"
+          onkeydown="if(event.key==='Enter')fazerLogin()">
+      </div>
+      <button onclick="fazerLogin()" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;font-weight:600">
+        Entrar →
+      </button>
+      <div id="login-erro" style="color:#ff5a72;font-size:13px;text-align:center;margin-top:12px;min-height:18px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPLASH PÓS-LOGIN ===== -->
+<div id="splash-boas-vindas" style="display:none;position:fixed;inset:0;z-index:99998;background:#060e18;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div id="splash-bv-logo" style="opacity:0;transition:opacity 2s ease">
+    <div style="font-size:48px;font-weight:800;color:#fff;letter-spacing:-2px">COESO</div>
+    <div style="font-size:12px;color:#4a6a8a;letter-spacing:4px;text-align:center;margin-top:4px">COMUNICAÇÃO</div>
+  </div>
+  <div id="splash-bv-txt" style="opacity:0;transition:opacity 1s ease;font-size:18px;color:#7dd8f0;font-weight:500;margin-top:8px"></div>
+  <div style="width:200px;height:2px;background:#1e3448;border-radius:2px;margin-top:16px;overflow:hidden">
+    <div id="splash-bv-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#4a90d9,#7dd8f0);border-radius:2px;transition:width 2.5s ease"></div>
+  </div>
+</div>
+
 <!-- Splash / Loading screen -->
 <div id="fb-loading" style="display:none;position:fixed;inset:0;background:#060e18;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:0">
   <style>
