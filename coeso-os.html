@@ -6902,8 +6902,10 @@ function renderInicio() {
   const notCard = document.getElementById('inicio-noticias-card');
   if (notCard) {
     notCard.innerHTML = `
-      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:12px">📰 Notícias do Marketing</div>
-      <div id="inicio-news-list"><div style="color:var(--text2);font-size:12px">Carregando notícias...</div></div>`;
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2)">🌐 Fontes de Referência</div>
+      </div>
+      <div id="inicio-news-list"></div>`;
     carregarNoticiasInicio();
   }
 
