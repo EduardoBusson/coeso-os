@@ -4705,14 +4705,6 @@ function renderTrafego() {
               <label class="form-label" style="font-size:11px">Cliques Meta</label>
               <input id="tf-meta-cliques-${c.id}" class="form-input" type="number" min="0" placeholder="0" style="font-size:12px;padding:5px 8px">
             </div>
-            <div class="form-group" style="margin:0">
-              <label class="form-label" style="font-size:11px">Leads Google</label>
-              <input id="tf-google-leads-${c.id}" class="form-input" type="number" min="0" placeholder="0" style="font-size:12px;padding:5px 8px">
-            </div>
-            <div class="form-group" style="margin:0">
-              <label class="form-label" style="font-size:11px">Cliques Google</label>
-              <input id="tf-google-cliques-${c.id}" class="form-input" type="number" min="0" placeholder="0" style="font-size:12px;padding:5px 8px">
-            </div>
           </div>
           <div class="form-group" style="margin:0 0 12px">
             <label class="form-label" style="font-size:11px">Observação do dia</label>
@@ -4725,7 +4717,7 @@ function renderTrafego() {
         ${entradas.length ? (() => {
           let acumulado = 0;
           const linhas = entradas.map(e => {
-            const diario = Number(e.meta_inv||0) + Number(e.google_inv||0);
+            const diario = Number(e.meta_inv||0);
             acumulado += diario;
             return { e, diario, acumulado };
           }).reverse(); // mais recente primeiro
