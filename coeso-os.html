@@ -6144,21 +6144,25 @@ function migrarDados() {
   if (spotId) {
     trafegoConfig[spotId] = {
       campanhas: [
-        { nome: 'SPOT_GUJ_CRIATIVOS',   plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 33 },
-        { nome: 'SPOT_JANGU_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 40 }
+        { nome: 'SPOT_GUJ_CRIATIVOS',      plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 33 },
+        { nome: 'SPOT_JANGU_CRIATIVOS',    plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 40 },
+        { nome: 'JANGU_JUN26_COPA',        plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 0, ativo: false },
+        { nome: 'SPOT_GUJ_JUN26_PROMO',   plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 6, ativo: false }
       ]
     };
     if (!trafegoSeedV3) {
-      // GUJ = Guajeru · JANGU = Jangurussu — dados diários do Meta Ads (Valor usado real)
-      // Totais por dia = GUJ + JANGU; meta_obs traz o detalhamento por campanha
+      // 4 campanhas Meta — Jun 08-14: GUJ_CRIATIVOS + JANGU_CRIATIVOS + JANGU_JUN26_COPA (desativ.) + SPOT_GUJ_JUN26_PROMO (desativ.)
+      // Jun 15+: apenas GUJ_CRIATIVOS + JANGU_CRIATIVOS ativas
       trafegoData[spotId] = [
-        { data:'2026-06-08', meta_inv:9.71,  meta_leads:0, meta_imp:882,  meta_alc:808,  meta_cliques:0, meta_obs:'GUJ R$5,71 · JANGU R$4,00', google_inv:0, google_leads:0, google_cliques:0 },
-        { data:'2026-06-09', meta_inv:31.06, meta_leads:1, meta_imp:2480, meta_alc:2142, meta_cliques:0, meta_obs:'GUJ R$21,02 1L · JANGU R$10,04', google_inv:0, google_leads:0, google_cliques:0 },
-        { data:'2026-06-10', meta_inv:25.68, meta_leads:2, meta_imp:2066, meta_alc:1752, meta_cliques:0, meta_obs:'GUJ R$17,29 1L · JANGU R$8,39 1L', google_inv:0, google_leads:0, google_cliques:0 },
-        { data:'2026-06-11', meta_inv:21.48, meta_leads:1, meta_imp:1888, meta_alc:1665, meta_cliques:0, meta_obs:'GUJ R$13,79 · JANGU R$7,69 1L', google_inv:0, google_leads:0, google_cliques:0 },
-        { data:'2026-06-12', meta_inv:15.60, meta_leads:0, meta_imp:1221, meta_alc:1114, meta_cliques:0, meta_obs:'GUJ R$9,92 · JANGU R$5,68', google_inv:0, google_leads:0, google_cliques:0 },
-        { data:'2026-06-13', meta_inv:11.82, meta_leads:0, meta_imp:1212, meta_alc:1110, meta_cliques:0, meta_obs:'GUJ R$5,77 · JANGU R$6,05', google_inv:0, google_leads:0, google_cliques:0 },
-        { data:'2026-06-14', meta_inv:14.10, meta_leads:0, meta_imp:1511, meta_alc:1314, meta_cliques:0, meta_obs:'GUJ R$7,72 · JANGU R$6,38', google_inv:0, google_leads:0, google_cliques:0 },
+        // ── Jun 08-14: todas as 4 campanhas rodando
+        { data:'2026-06-08', meta_inv:16.70, meta_leads:0, meta_imp:1494, meta_alc:1303, meta_cliques:0, meta_obs:'GUJ R$5,71 · JANGU R$4,00 · COPA R$3,01 · PROMO R$3,98', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-09', meta_inv:47.23, meta_leads:1, meta_imp:3821, meta_alc:3174, meta_cliques:0, meta_obs:'GUJ R$21,02 1L · JANGU R$10,04 · COPA R$7,83 · PROMO R$8,34', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-10', meta_inv:37.94, meta_leads:4, meta_imp:3114, meta_alc:2570, meta_cliques:0, meta_obs:'GUJ R$17,29 1L · JANGU R$8,39 1L · COPA R$6,35 1L · PROMO R$5,91 1L', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-11', meta_inv:33.30, meta_leads:2, meta_imp:2773, meta_alc:2383, meta_cliques:0, meta_obs:'GUJ R$13,79 · JANGU R$7,69 1L · COPA R$5,96 · PROMO R$5,86 1L', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-12', meta_inv:23.63, meta_leads:0, meta_imp:2031, meta_alc:1746, meta_cliques:0, meta_obs:'GUJ R$9,92 · JANGU R$5,68 · COPA R$4,30 · PROMO R$3,73', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-13', meta_inv:20.66, meta_leads:0, meta_imp:2102, meta_alc:1808, meta_cliques:0, meta_obs:'GUJ R$5,77 · JANGU R$6,05 · COPA R$4,60 · PROMO R$4,24', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-14', meta_inv:21.57, meta_leads:0, meta_imp:2220, meta_alc:1868, meta_cliques:0, meta_obs:'GUJ R$7,72 · JANGU R$6,38 · COPA R$3,87 · PROMO R$3,60', google_inv:0, google_leads:0, google_cliques:0 },
+        // ── Jun 15+: apenas GUJ_CRIATIVOS + JANGU_CRIATIVOS
         { data:'2026-06-15', meta_inv:2.79,  meta_leads:0, meta_imp:277,  meta_alc:266,  meta_cliques:0, meta_obs:'GUJ R$1,84 · JANGU R$0,95', google_inv:0, google_leads:0, google_cliques:0 },
         { data:'2026-06-16', meta_inv:31.83, meta_leads:1, meta_imp:2642, meta_alc:2363, meta_cliques:0, meta_obs:'GUJ R$16,09 1L · JANGU R$15,74', google_inv:0, google_leads:0, google_cliques:0 },
         { data:'2026-06-17', meta_inv:5.01,  meta_leads:0, meta_imp:370,  meta_alc:356,  meta_cliques:0, meta_obs:'GUJ R$2,20 · JANGU R$2,81', google_inv:0, google_leads:0, google_cliques:0 },
@@ -6174,7 +6178,7 @@ function migrarDados() {
   }
 
   if (!trafegoSeedV3) {
-    saveData('trafego_seed_v3', true);
+    saveData('trafego_seed_v4', true);
   }
 }
 
