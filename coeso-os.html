@@ -6667,6 +6667,12 @@ function fazerLogin() {
   mostrarSplashBoasVindas(cfg.nome, cfg.modo);
 }
 
+function fazerLogout() {
+  if (!confirm('Tem certeza que deseja sair?')) return;
+  sessionStorage.removeItem('coeso_login');
+  location.reload();
+}
+
 function falarBoasVindas(nome, modo) {
   try {
     const feminino = modo === 'colaborador';
