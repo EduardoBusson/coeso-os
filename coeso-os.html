@@ -4778,17 +4778,13 @@ function toggleTrafego(clienteId) {
 function salvarDiaTrafego(clienteId) {
   const data       = document.getElementById(`tf-data-${clienteId}`)?.value || localDateStr();
   const metaInv    = parseFloat(document.getElementById(`tf-meta-inv-${clienteId}`)?.value)||0;
-  const googleInv  = parseFloat(document.getElementById(`tf-google-inv-${clienteId}`)?.value)||0;
   const metaLeads  = parseInt(document.getElementById(`tf-meta-leads-${clienteId}`)?.value)||0;
   const metaCliques= parseInt(document.getElementById(`tf-meta-cliques-${clienteId}`)?.value)||0;
-  const googleLeads= parseInt(document.getElementById(`tf-google-leads-${clienteId}`)?.value)||0;
-  const googleCli  = parseInt(document.getElementById(`tf-google-cliques-${clienteId}`)?.value)||0;
   const obs        = document.getElementById(`tf-meta-obs-${clienteId}`)?.value||'';
 
   if (!trafegoData[clienteId]) trafegoData[clienteId] = [];
   const idx = trafegoData[clienteId].findIndex(e=>e.data===data);
-  const entrada = { data, meta_inv:metaInv, meta_leads:metaLeads, meta_cliques:metaCliques,
-                    google_inv:googleInv, google_leads:googleLeads, google_cliques:googleCli, meta_obs:obs };
+  const entrada = { data, meta_inv:metaInv, meta_leads:metaLeads, meta_cliques:metaCliques, meta_obs:obs };
   if (idx>=0) trafegoData[clienteId][idx] = entrada;
   else trafegoData[clienteId].push(entrada);
   trafegoData[clienteId].sort((a,b)=>a.data.localeCompare(b.data));
