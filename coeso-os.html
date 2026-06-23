@@ -6488,7 +6488,7 @@ function _runInit() {
 // Para alterar senhas, edite os campos abaixo:
 const COESO_USUARIOS = {
   'eduardo': { senha: 'coeso2026',  modo: 'admin',       nome: 'Eduardo' },
-  'ana':     { senha: '123567815',  modo: 'colaborador',  nome: 'Ana'     }
+  'liz':     { senha: '123567815',  modo: 'colaborador',  nome: 'Liz'     }
 };
 
 function fazerLogin() {
@@ -6539,7 +6539,7 @@ function aplicarModo(modo) {
     setTimeout(() => {
       const banner = document.createElement('div');
       banner.innerHTML = `<div style="background:#0d2035;border-bottom:1px solid #1e3448;padding:8px 20px;font-size:13px;color:#aee8f5">
-        👥 <b>Modo Colaborador</b> — Bem-vinda, Ana!
+        👥 <b>Modo Colaborador</b> — Bem-vinda, Liz!
       </div>`;
       document.querySelector('.main-content')?.prepend(banner.firstElementChild);
     }, 100);
