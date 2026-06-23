@@ -225,6 +225,10 @@
 
   /* MOBILE — só afeta telas pequenas (celular) */
   @media (max-width: 600px) {
+    #page-inicio #inicio-stats-row { grid-template-columns: 1fr !important; }
+    #page-inicio #inicio-main-grid { grid-template-columns: 1fr !important; }
+    #page-inicio .card { margin-bottom: 12px; }
+
     /* Layout base */
     body { font-size: 14px; }
     .sidebar {
@@ -6292,6 +6296,14 @@ function importarBackup(event) {
 }
 
 function migrarDados() {
+  // Atribui criado_por='Eduardo' em itens legados
+  let _migChg = false;
+  demandas.forEach(d => { if (!d.criado_por) { d.criado_por = 'Eduardo'; _migChg = true; } });
+  if (_migChg) saveData('demandas', demandas);
+  let _migChgJ = false;
+  jobsExtras.forEach(j => { if (!j.criado_por) { j.criado_por = 'Eduardo'; _migChgJ = true; } });
+  if (_migChgJ) saveData('jobs_extras', jobsExtras);
+
   let alterou = false;
   // Inicializa videomaker maio 2026 com custos detalhados por cliente
   if (!videomakerData['2026-05']) {
