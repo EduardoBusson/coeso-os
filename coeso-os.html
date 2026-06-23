@@ -6108,8 +6108,8 @@ function migrarDados() {
     saveData('clientes', clientes);
   }
 
-  // ── SEED DE TRÁFEGO v3 — força re-seed com dados completos (Valor usado + Impressões + Alcance)
-  const trafegoSeedV3 = loadData('trafego_seed_v3', false);
+  // ── SEED DE TRÁFEGO v4 — adiciona campanhas extras desativadas JANGU_JUN26_COPA e SPOT_GUJ_JUN26_PROMO
+  const trafegoSeedV3 = loadData('trafego_seed_v4', false);
 
   // Configura campanhas Sportif (início 12/06)
   const sportifId = (clientes.find(c=>c.nome==='Sportif')||{}).id;
