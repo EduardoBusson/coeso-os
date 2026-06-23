@@ -6011,14 +6011,22 @@ function importarBackup(event) {
       const backup = JSON.parse(e.target.result);
       if (!backup || typeof backup !== 'object') throw new Error('Arquivo inválido');
       let count = 0;
+      const promises = [];
       Object.keys(backup).forEach(key => {
         if (key.startsWith('coeso_')) {
           localStorage.setItem(key, JSON.stringify(backup[key]));
+          const fbKey = key.replace('coeso_', '');
+          promises.push(_db.ref('dados/' + fbKey).set(JSON.stringify(backup[key])));
           count++;
         }
       });
-      showToast(`Backup restaurado! ${count} registros carregados. Recarregando...`);
-      setTimeout(() => location.reload(), 1500);
+      Promise.all(promises).then(() => {
+        showToast(`Backup restaurado! ${count} registros salvos no Firebase. Recarregando...`);
+        setTimeout(() => location.reload(), 1500);
+      }).catch(() => {
+        showToast(`Backup restaurado localmente. ${count} registros carregados. Recarregando...`);
+        setTimeout(() => location.reload(), 1500);
+      });
     } catch(err) {
       alert('Erro ao importar backup: ' + err.message);
     }
