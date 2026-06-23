@@ -6525,7 +6525,7 @@ function mostrarSplashBoasVindas(nome, modo) {
   }, 4200);
 }
 
-function aplicarModo(modo) {
+function aplicarModo(modo, viaLogin) {
   if (modo === 'colaborador') {
     document.querySelectorAll('.nav-item').forEach(el => {
       if (el.textContent.includes('Financeiro')) el.style.display = 'none';
@@ -6537,14 +6537,18 @@ function aplicarModo(modo) {
     };
     document.querySelectorAll('[onclick*="tab-financeiro-cli"]').forEach(el => el.style.display = 'none');
     setTimeout(() => {
-      const banner = document.createElement('div');
-      banner.innerHTML = `<div style="background:#0d2035;border-bottom:1px solid #1e3448;padding:8px 20px;font-size:13px;color:#aee8f5">
-        👥 <b>Modo Colaborador</b> — Bem-vinda, Liz!
-      </div>`;
-      document.querySelector('.main-content')?.prepend(banner.firstElementChild);
+      if (!document.getElementById('banner-colaborador')) {
+        const banner = document.createElement('div');
+        banner.id = 'banner-colaborador';
+        banner.innerHTML = `<div style="background:#0d2035;border-bottom:1px solid #1e3448;padding:8px 20px;font-size:13px;color:#aee8f5">
+          👥 <b>Modo Colaborador</b> — Bem-vinda, Liz!
+        </div>`;
+        document.querySelector('.main-content')?.prepend(banner.firstElementChild);
+      }
     }, 100);
   }
-  renderDashboard();
+  if (viaLogin) renderDashboard();
+  else { _runInit(); }
 }
 
 // ============================================================
