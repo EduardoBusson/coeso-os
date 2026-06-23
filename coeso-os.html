@@ -2085,6 +2085,85 @@ function despesaDoMes(mesKey) {
   return fixas + vmTotal + avulsas;
 }
 
+// ── Mini calendário do Dashboard ──────────────────────────────
+function renderMiniCal() {
+  const el = document.getElementById('dash-mini-cal');
+  if (!el) return;
+  const hoje = new Date();
+  const ano = hoje.getFullYear(), mes = hoje.getMonth();
+  const eventDays = new Set();
+  (eventos||[]).forEach(ev => {
+    if (!ev.data) return;
+    const d = new Date(ev.data + 'T00:00:00');
+    if (d.getFullYear()===ano && d.getMonth()===mes) eventDays.add(d.getDate());
+  });
+  const firstDay = new Date(ano, mes, 1).getDay();
+  const totalDias = new Date(ano, mes+1, 0).getDate();
+  const nomes = ['D','S','T','Q','Q','S','S'];
+  const nomeMes = hoje.toLocaleString('pt-BR',{month:'long',year:'numeric'});
+  let html = `<div style="text-align:center;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:capitalize">${nomeMes}</div>`;
+  html += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">`;
+  nomes.forEach(n => html += `<div style="text-align:center;font-size:10px;color:var(--text3);font-weight:600;padding:2px 0">${n}</div>`);
+  html += '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+  for (let i=0; i<firstDay; i++) html += '<div></div>';
+  for (let d=1; d<=totalDias; d++) {
+    const isHoje = d===hoje.getDate();
+    const temEvento = eventDays.has(d);
+    html += `<div style="text-align:center;padding:3px 1px;border-radius:4px;font-size:12px;cursor:default;
+      ${isHoje?'background:var(--accent);color:#fff;font-weight:700;':'color:var(--text2);'}
+      ${temEvento&&!isHoje?'color:var(--blue);font-weight:600;':''}">
+      ${d}${temEvento?`<div style="width:3px;height:3px;border-radius:50%;background:${isHoje?'rgba(255,255,255,0.8)':'var(--blue)'};margin:0 auto"></div>`:'<div style="height:3px"></div>'}
+    </div>`;
+  }
+  html += '</div>';
+  // Próximos 3 eventos do mês
+  const hj = new Date(ano, mes, hoje.getDate());
+  const proxEvts = (eventos||[]).filter(ev=>{
+    if (!ev.data) return false;
+    const d = new Date(ev.data+'T00:00:00');
+    return d>=hj;
+  }).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,3);
+  if (proxEvts.length) {
+    html += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">`;
+    proxEvts.forEach(ev=>{
+      const d = new Date(ev.data+'T00:00:00');
+      const label = `${d.getDate()} ${d.toLocaleString('pt-BR',{month:'short'})}`;
+      html += `<div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;font-size:12px">
+        <span style="min-width:36px;text-align:center;background:var(--surface2);border-radius:4px;padding:1px 4px;font-weight:600;color:var(--accent);font-size:11px">${label}</span>
+        <span style="color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.titulo||ev.tipo||'Evento'}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// ── Notícias do dia (Google News RSS via rss2json) ─────────────
+async function carregarNoticias() {
+  const el = document.getElementById('dash-noticias');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">⏳ Carregando notícias...</div>';
+  try {
+    const feed = encodeURIComponent('https://news.google.com/rss/search?q=marketing+digital+publicidade&hl=pt-BR&gl=BR&ceid=BR:pt-419');
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${feed}&count=7`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    if (data.status!=='ok' || !data.items?.length) throw new Error();
+    el.innerHTML = data.items.map(item=>{
+      const pub = new Date(item.pubDate);
+      const horas = Math.floor((Date.now()-pub)/3600000);
+      const tempo = horas<1?'agora':horas<24?`${horas}h atrás`:`${Math.floor(horas/24)}d atrás`;
+      const titulo = item.title.replace(/ - [^-]+$/,''); // remove fonte do título
+      return `<a href="${item.link}" target="_blank" rel="noopener" style="display:block;padding:8px 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit">
+        <div style="font-size:13px;font-weight:500;color:var(--text1);line-height:1.35;margin-bottom:3px">${titulo}</div>
+        <div style="font-size:11px;color:var(--text3)">${item.author||'Google News'} · ${tempo}</div>
+      </a>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">Não foi possível carregar as notícias. Verifique a conexão.</div>';
+  }
+}
+
 function renderChartReceita() {
   const el = document.getElementById('chartReceita');
   if (!el) return;
