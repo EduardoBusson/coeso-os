@@ -6636,9 +6636,8 @@ function _runInit() {
       </div>`;
       document.querySelector('#page-financeiro').prepend(banner.firstElementChild);
     }, 200);
-  } else {
-    renderDashboard();
   }
+  // Nota: não chama goTo/renderPage aqui — o chamador decide a página inicial
 }
 
 // ============================================================
