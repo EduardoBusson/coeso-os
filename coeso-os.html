@@ -224,6 +224,31 @@
   }
 
   /* MOBILE — só afeta telas pequenas (celular) */
+  
+  /* ── PÁGINA INÍCIO ────────────────────────────────── */
+  #page-inicio .card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    background: var(--surface);
+    transition: box-shadow 0.2s, transform 0.15s;
+  }
+  #page-inicio .card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
+  }
+  #page-inicio #inicio-stats-row .card:first-child { cursor: default; }
+  #page-inicio #inicio-stats-row .card:first-child:hover { transform: none; box-shadow: none; }
+  .inicio-section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.8px;
+    text-transform: uppercase; color: var(--text2); margin-bottom: 14px;
+  }
+  .inicio-item-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+  }
+  .inicio-item-row:last-child { border-bottom: none; }
+
   @media (max-width: 600px) {
     #page-inicio #inicio-stats-row { grid-template-columns: 1fr !important; }
     #page-inicio #inicio-main-grid { grid-template-columns: 1fr !important; }
@@ -3643,6 +3668,9 @@ function renderJobs() {
       <td style="color:var(--text2)">${j.entrega?formatDate(j.entrega):'—'}</td>
       <td style="font-weight:700;color:var(--accent)">R$ ${Number(j.valor||0).toLocaleString('pt-BR')}</td>
       <td><span class="badge ${JOB_STATUS_BADGE[j.status]||'badge-gray'}">${j.status}</span></td>
+      <td style="color:var(--text2);font-size:11px;text-align:center">
+        ${j.criado_por?`<span title="${j.criado_por}" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--surface2);color:var(--text);font-weight:700;font-size:10px">${j.criado_por[0]}</span>`:'—'}
+      </td>
       <td style="display:flex;gap:6px">
         <button class="btn btn-ghost btn-sm" onclick="editarJob(${j.id})">✏️</button>
         ${j.status!=='Pago'?`<button class="btn btn-ghost btn-sm" onclick="marcarJobPago(${j.id})">✓ Pago</button>`:''}
