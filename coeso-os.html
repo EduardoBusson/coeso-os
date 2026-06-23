@@ -6932,7 +6932,9 @@ async function carregarNoticiasInicio() {
     { url:'https://mundodomarketing.com.br',   domain:'mundodomarketing.com.br',    label:'Mundo do Marketing', cor:'#ff9f43', emoji:'📊' },
   ];
 
-  el.innerHTML = SITES.map((s,i)=>`
+  el.innerHTML = SITES.map((s,i)=>{
+    const thumb = `https://image.thum.io/get/width/700/crop/300/noanimate/${s.url}`;
+    return `
     <div style="margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid ${s.cor}44">
       <div style="background:#0a1929;padding:6px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid ${s.cor}33">
         <span style="width:8px;height:8px;border-radius:50%;background:#ff5a72;display:inline-block;flex-shrink:0"></span>
@@ -6943,14 +6945,16 @@ async function carregarNoticiasInicio() {
           style="font-size:10px;color:${s.cor};background:none;border:1px solid ${s.cor}55;border-radius:4px;padding:2px 7px;cursor:pointer;font-weight:700;margin-right:4px">⛶ expandir</button>
         <a href="${s.url}" target="_blank" style="font-size:10px;color:${s.cor};text-decoration:none;font-weight:700">↗ abrir</a>
       </div>
-      <div style="position:relative;height:200px;overflow:hidden">
-        <iframe src="${s.url}" id="ref-iframe-${i}"
-          style="width:100%;height:200px;border:0;display:block;pointer-events:auto"
-          loading="lazy" title="${s.label}"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
-        <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#0a1929);pointer-events:none"></div>
+      <div style="position:relative;height:190px;overflow:hidden;background:#0d1f2d;cursor:pointer"
+           onclick="abrirSiteModal('${s.url}','${s.label}','${s.cor}')">
+        <img src="${thumb}" alt="${s.label}"
+          style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;transition:transform .3s"
+          onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"
+          onerror="this.parentElement.innerHTML='<div style=\'height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer\' onclick=\'abrirSiteModal(\\\"${s.url}\\\",\\\"${s.label}\\\",\\\"${s.cor}\\\")\'>  <div style=\'font-size:36px\'>${s.emoji}</div><div style=\'font-size:14px;color:${s.cor};font-weight:700\'>${s.label}</div><div style=\'font-size:11px;color:var(--text2)\'>Clique para abrir</div></div>'">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:50px;background:linear-gradient(transparent,#0a1929);pointer-events:none"></div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   // Modal de site expandido (cria uma vez)
   if (!document.getElementById('modal-site-ref')) {
