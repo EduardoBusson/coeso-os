@@ -6482,6 +6482,212 @@ function _runInit() {
   }
 }
 
+// ============================================================
+// LOGIN
+// ============================================================
+// Para alterar senhas, edite os campos abaixo:
+const COESO_USUARIOS = {
+  'eduardo': { senha: 'coeso2026',  modo: 'admin',       nome: 'Eduardo' },
+  'ana':     { senha: '123567815',  modo: 'colaborador',  nome: 'Ana'     }
+};
+
+function fazerLogin() {
+  const user  = (document.getElementById('login-user')?.value||'').toLowerCase().trim();
+  const senha = document.getElementById('login-senha')?.value||'';
+  const cfg   = COESO_USUARIOS[user];
+  if (!cfg || cfg.senha !== senha) {
+    document.getElementById('login-erro').textContent = 'Usuário ou senha incorretos.';
+    document.getElementById('login-senha').value = '';
+    document.getElementById('login-senha').focus();
+    return;
+  }
+  sessionStorage.setItem('coeso_login', JSON.stringify({ user, modo: cfg.modo, nome: cfg.nome }));
+  document.getElementById('login-screen').style.display = 'none';
+  mostrarSplashBoasVindas(cfg.nome, cfg.modo);
+}
+
+function mostrarSplashBoasVindas(nome, modo) {
+  const el = document.getElementById('splash-boas-vindas');
+  el.style.display = 'flex';
+  setTimeout(() => { document.getElementById('splash-bv-logo').style.opacity = '1'; }, 200);
+  setTimeout(() => {
+    document.getElementById('splash-bv-txt').style.opacity = '1';
+    document.getElementById('splash-bv-txt').textContent = 'Olá, ' + nome + '! 👋';
+    document.getElementById('splash-bv-bar').style.width = '100%';
+  }, 1800);
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.6s';
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.style.display = 'none';
+      aplicarModo(modo);
+    }, 600);
+  }, 4200);
+}
+
+function aplicarModo(modo) {
+  if (modo === 'colaborador') {
+    document.querySelectorAll('.nav-item').forEach(el => {
+      if (el.textContent.includes('Financeiro')) el.style.display = 'none';
+    });
+    const origGoTo = window.goTo;
+    window.goTo = function(page) {
+      if (page === 'financeiro') { origGoTo('dashboard'); return; }
+      origGoTo(page);
+    };
+    document.querySelectorAll('[onclick*="tab-financeiro-cli"]').forEach(el => el.style.display = 'none');
+    setTimeout(() => {
+      const banner = document.createElement('div');
+      banner.innerHTML = `<div style="background:#0d2035;border-bottom:1px solid #1e3448;padding:8px 20px;font-size:13px;color:#aee8f5">
+        👥 <b>Modo Colaborador</b> — Bem-vinda, Ana!
+      </div>`;
+      document.querySelector('.main-content')?.prepend(banner.firstElementChild);
+    }, 100);
+  }
+  renderDashboard();
+}
+
+// ============================================================
+// CALENDÁRIO SAZONAL
+// ============================================================
+let _calAno  = new Date().getFullYear();
+let _calMes  = new Date().getMonth(); // 0-indexed
+
+function calcularPascoa(ano) {
+  const a=ano%19,b=Math.floor(ano/100),c=ano%100,d=Math.floor(b/4),e=b%4;
+  const f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3);
+  const h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4;
+  const l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+  const mes=Math.floor((h+l-7*m+114)/31)-1;
+  const dia=((h+l-7*m+114)%31)+1;
+  return {mes,dia};
+}
+
+function nthWeekday(ano,mes,dow,n) {
+  let count=0;
+  for(let d=1;d<=31;d++){
+    const dt=new Date(ano,mes,d);
+    if(dt.getMonth()!==mes) break;
+    if(dt.getDay()===dow){count++;if(count===n)return d;}
+  }
+  return null;
+}
+
+function lastWeekday(ano,mes,dow) {
+  const last=new Date(ano,mes+1,0).getDate();
+  for(let d=last;d>=1;d--){if(new Date(ano,mes,d).getDay()===dow)return d;}
+  return null;
+}
+
+function getDatasSazonais(ano, mes) {
+  const ds = [];
+  // Fixas
+  const fixas = {
+    0: [{d:1,n:'🎆 Ano Novo',c:'#f7c948'},{d:25,n:'🛍️ Liquidação Jan',c:'#6c8cff'}],
+    1: [{d:14,n:"💑 Valentine's Day",c:'#ff5a72'}],
+    2: [{d:8,n:'👩 Dia da Mulher',c:'#ff69b4'},{d:20,n:'🌳 Dia da Árvore',c:'#3dd68c'}],
+    3: [{d:1,n:'🤡 Dia da Mentira',c:'#8b8fa8'},{d:18,n:'🌍 Dia da Terra',c:'#3dd68c'}],
+    4: [{d:1,n:'⚒️ Dia do Trabalho',c:'#8b8fa8'},{d:15,n:'🙏 Corpus Christi',c:'#f7c948'}],
+    5: [{d:12,n:'💕 Dia dos Namorados',c:'#ff5a72'},{d:13,n:'🎉 Sto. Antônio',c:'#ff9f43'},{d:24,n:'🎉 São João',c:'#ff9f43'}],
+    6: [{d:28,n:'🏳️‍🌈 Dia do Orgulho',c:'#f7c948'}],
+    7: [{d:11,n:'🌻 Dia do Estudante',c:'#6c8cff'},{d:22,n:'🤙 Dia do Folclore',c:'#8b8fa8'}],
+    8: [{d:7,n:'🇧🇷 Independência',c:'#3dd68c'},{d:21,n:'🌱 Dia da Árvore',c:'#3dd68c'}],
+    9: [{d:12,n:'👶 Dia das Crianças',c:'#f7c948'},{d:15,n:'👨‍🏫 Dia do Professor',c:'#8b8fa8'},{d:31,n:'🎃 Halloween',c:'#ff9f43'}],
+    10:[{d:2,n:'🕯️ Finados',c:'#8b8fa8'},{d:15,n:'🇧🇷 Proclamação',c:'#3dd68c'},{d:20,n:'✊ Consciência Negra',c:'#6c8cff'}],
+    11:[{d:25,n:'🎄 Natal',c:'#3dd68c'},{d:31,n:'🎆 Réveillon',c:'#f7c948'}],
+  };
+  if(fixas[mes]) ds.push(...fixas[mes].map(x=>({dia:x.d,nome:x.n,cor:x.c})));
+
+  // Páscoa e Carnaval
+  const pascoa = calcularPascoa(ano);
+  const pascoaDate = new Date(ano, pascoa.mes, pascoa.dia);
+  const carnavalDate = new Date(pascoaDate); carnavalDate.setDate(carnavalDate.getDate()-47);
+  const sextaSanta = new Date(pascoaDate); sextaSanta.setDate(sextaSanta.getDate()-2);
+  [[carnavalDate,'🎭 Carnaval','#ff9f43'],[sextaSanta,'✝️ Sexta-feira Santa','#8b8fa8'],[pascoaDate,'🥚 Páscoa','#f7c948']].forEach(([dt,n,c])=>{
+    if(dt.getMonth()===mes) ds.push({dia:dt.getDate(),nome:n,cor:c});
+  });
+
+  // Variáveis
+  if(mes===4){const d=nthWeekday(ano,mes,0,2);if(d)ds.push({dia:d,nome:'💐 Dia das Mães',cor:'#ff69b4'});}
+  if(mes===7){const d=nthWeekday(ano,mes,0,2);if(d)ds.push({dia:d,nome:'👔 Dia dos Pais',cor:'#6c8cff'});}
+  if(mes===10){const d=lastWeekday(ano,mes,5);if(d)ds.push({dia:d,nome:'🛒 Black Friday',cor:'#7dd8f0'});}
+  // Dia das Mães variação (2° domingo maio)
+  return ds;
+}
+
+function renderMiniCal() {
+  const el = document.getElementById('dash-mini-cal');
+  if (!el) return;
+  const hoje = new Date();
+  const ano = _calAno, mes = _calMes;
+  const nomeMes = new Date(ano,mes,1).toLocaleString('pt-BR',{month:'long',year:'numeric'});
+
+  // Eventos do app neste mês
+  const eventDays = {};
+  (eventos||[]).forEach(ev=>{
+    if(!ev.data) return;
+    const d=new Date(ev.data+'T00:00:00');
+    if(d.getFullYear()===ano&&d.getMonth()===mes){
+      eventDays[d.getDate()] = eventDays[d.getDate()]||[];
+      eventDays[d.getDate()].push(ev.titulo||ev.tipo||'Evento');
+    }
+  });
+
+  // Datas sazonais
+  const sazonais = getDatasSazonais(ano, mes);
+  const sazMap = {};
+  sazonais.forEach(s=>{ sazMap[s.dia]=s; });
+
+  const firstDay = new Date(ano,mes,1).getDay();
+  const totalDias = new Date(ano,mes+1,0).getDate();
+  const nomes = ['D','S','T','Q','Q','S','S'];
+  const isHojeMes = hoje.getFullYear()===ano && hoje.getMonth()===mes;
+
+  let html = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <button class="btn btn-ghost btn-sm" onclick="_calMes--;if(_calMes<0){_calMes=11;_calAno--;}renderMiniCal()" style="padding:3px 8px">‹</button>
+    <span style="font-size:13px;font-weight:600;color:var(--text1);text-transform:capitalize">${nomeMes}</span>
+    <button class="btn btn-ghost btn-sm" onclick="_calMes++;if(_calMes>11){_calMes=0;_calAno++;}renderMiniCal()" style="padding:3px 8px">›</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:4px">
+    ${nomes.map(n=>`<div style="text-align:center;font-size:10px;color:var(--text3);font-weight:600;padding:2px 0">${n}</div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">
+    ${Array(firstDay).fill('<div></div>').join('')}
+    ${Array.from({length:totalDias},(_,i)=>{
+      const d=i+1;
+      const isHoje2 = isHojeMes && d===hoje.getDate();
+      const saz = sazMap[d];
+      const evts = eventDays[d];
+      let bg = isHoje2?'var(--accent)':'transparent';
+      let color = isHoje2?'#fff': saz?saz.cor:'var(--text2)';
+      let title = saz?saz.nome:'';
+      if(evts) title += (title?' · ':'')+evts[0];
+      return `<div title="${title}" style="text-align:center;padding:3px 1px;border-radius:4px;background:${bg};color:${color};font-size:12px;font-weight:${saz||isHoje2?'700':'400'};cursor:${title?'help':'default'};position:relative">
+        ${d}
+        <div style="display:flex;justify-content:center;gap:1px;min-height:4px;margin-top:1px">
+          ${saz?`<div style="width:4px;height:4px;border-radius:50%;background:${isHoje2?'rgba(255,255,255,0.8)':saz.cor}"></div>`:''}
+          ${evts?`<div style="width:4px;height:4px;border-radius:50%;background:${isHoje2?'rgba(255,255,255,0.8)':'var(--green)'}"></div>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  // Datas comemorativas do mês
+  if(sazonais.length){
+    html += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);max-height:90px;overflow-y:auto">`;
+    sazonais.sort((a,b)=>a.dia-b.dia).forEach(s=>{
+      html += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
+        <span style="min-width:22px;text-align:center;font-weight:700;color:${s.cor}">${s.dia}</span>
+        <span style="color:var(--text2)">${s.nome}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
 // Carrega dados do Realtime Database, depois inicia o app
 (async function() {
   const loadingEl = document.getElementById('fb-loading');
