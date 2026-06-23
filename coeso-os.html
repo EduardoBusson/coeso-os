@@ -1316,7 +1316,10 @@
     </div>
     <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-input" id="dem-desc" rows="3" placeholder="Descreva a demanda..."></textarea></div>
     <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px">
-      <button class="btn btn-ghost btn-sm" id="dem-excluir-btn" style="color:var(--red);display:none" onclick="excluirDemandaAtual()">🗑 Excluir</button>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <button class="btn btn-ghost btn-sm" id="dem-excluir-btn" style="color:var(--red);display:none" onclick="excluirDemandaAtual()">🗑 Excluir</button>
+        <span id="dem-criado-por-info" style="font-size:10px;color:var(--text2)"></span>
+      </div>
       <div style="display:flex;gap:8px;margin-left:auto">
         <button class="btn btn-ghost" onclick="closeModal('modal-demanda')">Cancelar</button>
         <button class="btn btn-primary" onclick="salvarDemanda()">Salvar</button>
@@ -3175,6 +3178,10 @@ function kanbanDrop(event, novoStatus, containerId) {
 function editarDemanda(id) {
   const d = demandas.find(x=>x.id===id);
   if (!d) return;
+  // Mostra quem criou
+  const criadoPorEl = document.getElementById('dem-criado-por-info');
+  if (criadoPorEl && d.criado_por) criadoPorEl.textContent = `Criado por: ${d.criado_por}`;
+  else if (criadoPorEl) criadoPorEl.textContent = '';
   document.getElementById('dem-modal-title').textContent = 'Editar Demanda';
   document.getElementById('dem-id').value = id;
   document.getElementById('dem-titulo').value = d.titulo || '';
@@ -6562,6 +6569,19 @@ function _runInit() {
   gerarCustosFixosMes(mesAtualKey());
   clientes.filter(c=>(c.status||'Ativo')==='Ativo' && c.diaVenc)
           .forEach(c => sincronizarClienteFinanceiro(c, mesAtualKey()));
+
+  // Se já logado, atualiza sidebar card
+  const _sessInit = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  if (_sessInit.nome) {
+    setTimeout(() => {
+      const e1 = document.getElementById('sidebar-user-name');
+      const e2 = document.getElementById('sidebar-user-role');
+      const e3 = document.getElementById('sidebar-user-avatar');
+      if (e1) e1.textContent = _sessInit.nome.split(' ')[0];
+      if (e2) e2.textContent = _sessInit.modo==='admin'?'Administrador':'Colaboradora';
+      if (e3) e3.textContent = _sessInit.nome[0].toUpperCase();
+    }, 50);
+  }
 
   // Modos especiais via URL param
   const urlParams = new URLSearchParams(window.location.search);
