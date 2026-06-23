@@ -6930,32 +6930,20 @@ async function carregarNoticiasInicio() {
     { url:'https://mundodomarketing.com.br',      label:'Mundo do Marketing', desc:'Estratégia e tendências', cor:'#ff9f43', bg:'rgba(255,159,67,.12)',  emoji:'📊' },
   ];
 
-  // Mini preview Nosso Meio via iframe
-  const previewHtml = `
-    <div style="margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid rgba(247,201,72,.3);position:relative">
-      <div style="background:#0d1f2d;padding:6px 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid rgba(247,201,72,.2)">
-        <span style="width:8px;height:8px;border-radius:50%;background:#ff5a72;display:inline-block"></span>
-        <span style="width:8px;height:8px;border-radius:50%;background:#f7c948;display:inline-block"></span>
-        <span style="width:8px;height:8px;border-radius:50%;background:#3dd68c;display:inline-block"></span>
-        <span style="font-size:10px;color:var(--text2);margin-left:6px;flex:1;text-align:center">nossomeio.com.br</span>
-        <a href="https://nossomeio.com.br" target="_blank" style="font-size:10px;color:#f7c948;text-decoration:none">↗ abrir</a>
+  el.innerHTML = SITES.map(s=>`
+    <div style="margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid ${s.cor}44;position:relative">
+      <div style="background:#0a1929;padding:6px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid ${s.cor}33">
+        <span style="width:8px;height:8px;border-radius:50%;background:#ff5a72;display:inline-block;flex-shrink:0"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#f7c948;display:inline-block;flex-shrink:0"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#3dd68c;display:inline-block;flex-shrink:0"></span>
+        <span style="font-size:10px;color:var(--text2);margin-left:6px;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.domain}</span>
+        <a href="${s.url}" target="_blank" style="font-size:10px;color:${s.cor};text-decoration:none;flex-shrink:0;font-weight:700">↗ abrir</a>
       </div>
-      <iframe src="https://nossomeio.com.br" style="width:100%;height:200px;border:0;background:#fff;display:block"
-        loading="lazy" title="Nosso Meio preview"
-        sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
-      <div style="position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(transparent,var(--surface));pointer-events:none"></div>
-    </div>`;
-
-  el.innerHTML = previewHtml + SITES.map(s=>`
-    <a href="${s.url}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:9px 11px;margin-bottom:6px;border-radius:8px;background:${s.bg};border:1px solid ${s.cor}33;text-decoration:none;transition:all .2s"
-       onmouseover="this.style.background='${s.bg.replace('.12',',.22')}'" onmouseout="this.style.background='${s.bg}'">
-      <span style="font-size:20px">${s.emoji}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:${s.cor}">${s.label}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:1px">${s.desc}</div>
-      </div>
-      <span style="font-size:14px;color:${s.cor};opacity:.7">→</span>
-    </a>`).join('');
+      <iframe src="${s.url}" style="width:100%;height:200px;border:0;background:#fff;display:block"
+        loading="lazy" title="${s.label}"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+      <div style="position:absolute;bottom:0;left:0;right:0;height:50px;background:linear-gradient(transparent,var(--surface));pointer-events:none"></div>
+    </div>`).join('');
 }
 
 function renderDatasSazonaisInicio() {
