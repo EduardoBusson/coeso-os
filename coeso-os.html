@@ -6115,12 +6115,31 @@ function migrarDados() {
     const jaTemInicio = (cfgAtual.campanhas||[]).some(cp=>cp.inicio);
     if (!jaTemInicio) {
       trafegoConfig[sportifId] = {
-        campanhas: [
-          { nome: 'SPORTIF_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-12', orcamento_diario: 30 }
-        ]
+        campanhas: [{ nome: 'SPORTIF_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-12', orcamento_diario: 30 }]
       };
       saveData('trafego_config', trafegoConfig);
     }
+    // Popula histórico diário Sportif (Meta Ads — dados por dia)
+    if (!trafegoData[sportifId]) trafegoData[sportifId] = [];
+    const sportifDias = [
+      { data:'2026-06-12', meta_inv:0,     meta_leads:0, meta_cliques:0, meta_obs:'Início da campanha', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-13', meta_inv:9.05,  meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$9,05/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-14', meta_inv:0,     meta_leads:0, meta_cliques:0, meta_obs:'Sem resultados', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-15', meta_inv:10.67, meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$10,67/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-16', meta_inv:28.72, meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$28,72/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-17', meta_inv:12.49, meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$12,49/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-18', meta_inv:0,     meta_leads:0, meta_cliques:0, meta_obs:'Sem resultados', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-19', meta_inv:9.04,  meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$9,04/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-20', meta_inv:0,     meta_leads:0, meta_cliques:0, meta_obs:'Sem resultados', google_inv:0, google_leads:0, google_cliques:0 },
+      { data:'2026-06-21', meta_inv:8.72,  meta_leads:2, meta_cliques:0, meta_obs:'2 conversas · R$4,36/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+    ];
+    sportifDias.forEach(dia => {
+      if (!trafegoData[sportifId].find(e=>e.data===dia.data)) {
+        trafegoData[sportifId].push(dia);
+      }
+    });
+    trafegoData[sportifId].sort((a,b)=>a.data.localeCompare(b.data));
+    saveData('trafego_data', trafegoData);
   }
 
   // Configura campanhas Complexo Spot (início 08/06)
