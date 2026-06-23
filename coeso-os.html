@@ -4790,7 +4790,7 @@ function salvarDiaTrafego(clienteId) {
   trafegoData[clienteId].sort((a,b)=>a.data.localeCompare(b.data));
 
   saveData('trafego_data', trafegoData);
-  showToast('✓ ' + formatDate(data) + ' — R$ ' + (metaInv+googleInv).toLocaleString('pt-BR',{minimumFractionDigits:2}) + ' registrado');
+  showToast('✓ ' + formatDate(data) + ' — R$ ' + metaInv.toLocaleString('pt-BR',{minimumFractionDigits:2}) + ' registrado');
   renderTrafego();
 }
 
@@ -4804,7 +4804,7 @@ function editarCampanhasTrafego(clienteId) {
   ).join('\n');
   const resp = prompt(
     `Campanhas de ${c.nome}:\n\n${linhas||'(nenhuma)'}\n\nPara adicionar/editar, informe no formato:\n` +
-    `NOME_CAMPANHA | AAAA-MM-DD | ORCAMENTO_DIARIO | meta ou google\n\n(uma campanha por linha):`
+    `NOME_CAMPANHA | AAAA-MM-DD | ORCAMENTO_DIARIO\n\n(uma campanha por linha):`
   );
   if (resp === null) return;
   const novas = resp.trim().split('\n').filter(l=>l.trim()).map(l=>{
