@@ -6919,37 +6919,41 @@ function renderInicio() {
 async function carregarNoticiasInicio() {
   const el = document.getElementById('inicio-news-list');
   if (!el) return;
-  try {
-    const feeds = [
-      'https://news.google.com/rss/search?q=marketing+digital+publicidade+brasil&hl=pt-BR&gl=BR&ceid=BR:pt-419',
-      'https://news.google.com/rss/search?q=redes+sociais+agencia+comunicacao&hl=pt-BR&gl=BR&ceid=BR:pt-419',
-    ];
-    const feed = feeds[Math.floor(Math.random()*feeds.length)];
-    const url  = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=6&api_key=`;
-    const res  = await fetch(url);
-    const data = await res.json();
-    const items = (data.items||[]).slice(0,5);
-    if (!items.length) throw new Error('empty');
-    el.innerHTML = items.map(item=>{
-      const pub = new Date(item.pubDate);
-      const ago = Math.round((Date.now()-pub)/60000);
-      const agoStr = ago<60?`${ago}min atrás`:ago<1440?`${Math.round(ago/60)}h atrás`:`${Math.round(ago/1440)}d atrás`;
-      const src  = item.author||item.source?.name||'';
-      return `<a href="${item.link}" target="_blank" style="display:block;padding:8px 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit">
-        <div style="font-size:13px;font-weight:500;color:var(--text);line-height:1.4;margin-bottom:3px">${item.title}</div>
-        <div style="font-size:11px;color:var(--text2)">${src?src+' · ':''}${agoStr}</div>
-      </a>`;
-    }).join('') + `<a href="https://rockcontent.com/br/blog/" target="_blank" style="display:block;font-size:11px;color:var(--accent2);margin-top:8px;text-decoration:none">Ver mais em Rock Content →</a>`;
-  } catch(e) {
-    el.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <a href="https://rockcontent.com/br/blog/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 Blog Rock Content — Marketing Digital</a>
-        <a href="https://resultadosdigitais.com.br/blog/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 Blog RD Station — Estratégias</a>
-        <a href="https://midiassociais.blog.br/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 Mídias Sociais — Tendências</a>
-        <a href="https://www.mktesocial.com.br/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 MKT e Social — Cases</a>
-        <a href="https://think.withgoogle.com/intl/pt-br/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 Think with Google Brasil</a>
-      </div>`;
-  }
+
+  // Sites fixos curados
+  const SITES = [
+    { url:'https://nossomeio.com.br',            label:'Nosso Meio',        desc:'Comunicação e cultura',   cor:'#f7c948', bg:'rgba(247,201,72,.12)',  emoji:'📡', preview:true },
+    { url:'https://www.meioemensagem.com.br',     label:'Meio & Mensagem',   desc:'Mídia, marketing e negócios', cor:'#6c8cff', bg:'rgba(108,140,255,.12)', emoji:'📰' },
+    { url:'https://oglobo.globo.com',             label:'O Globo',           desc:'Notícias e atualidades',  cor:'#3dd68c', bg:'rgba(61,214,140,.12)',  emoji:'🌐' },
+    { url:'https://mundodomarketing.com.br',      label:'Mundo do Marketing', desc:'Estratégia e tendências', cor:'#ff9f43', bg:'rgba(255,159,67,.12)',  emoji:'📊' },
+  ];
+
+  // Mini preview Nosso Meio via iframe
+  const previewHtml = `
+    <div style="margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid rgba(247,201,72,.3);position:relative">
+      <div style="background:#0d1f2d;padding:6px 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid rgba(247,201,72,.2)">
+        <span style="width:8px;height:8px;border-radius:50%;background:#ff5a72;display:inline-block"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#f7c948;display:inline-block"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#3dd68c;display:inline-block"></span>
+        <span style="font-size:10px;color:var(--text2);margin-left:6px;flex:1;text-align:center">nossomeio.com.br</span>
+        <a href="https://nossomeio.com.br" target="_blank" style="font-size:10px;color:#f7c948;text-decoration:none">↗ abrir</a>
+      </div>
+      <iframe src="https://nossomeio.com.br" style="width:100%;height:200px;border:0;background:#fff;display:block"
+        loading="lazy" title="Nosso Meio preview"
+        sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+      <div style="position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(transparent,var(--surface));pointer-events:none"></div>
+    </div>`;
+
+  el.innerHTML = previewHtml + SITES.map(s=>`
+    <a href="${s.url}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:9px 11px;margin-bottom:6px;border-radius:8px;background:${s.bg};border:1px solid ${s.cor}33;text-decoration:none;transition:all .2s"
+       onmouseover="this.style.background='${s.bg.replace('.12',',.22')}'" onmouseout="this.style.background='${s.bg}'">
+      <span style="font-size:20px">${s.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:${s.cor}">${s.label}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:1px">${s.desc}</div>
+      </div>
+      <span style="font-size:14px;color:${s.cor};opacity:.7">→</span>
+    </a>`).join('');
 }
 
 function renderDatasSazonaisInicio() {
