@@ -4798,27 +4798,49 @@ function toggleTrafego(clienteId) {
 }
 
 function salvarDiaTrafego(clienteId) {
-  const data   = document.getElementById(`tf-data-${clienteId}`)?.value || localDateStr();
+  const data       = document.getElementById(`tf-data-${clienteId}`)?.value || localDateStr();
   const metaInv    = parseFloat(document.getElementById(`tf-meta-inv-${clienteId}`)?.value)||0;
   const googleInv  = parseFloat(document.getElementById(`tf-google-inv-${clienteId}`)?.value)||0;
   const metaLeads  = parseInt(document.getElementById(`tf-meta-leads-${clienteId}`)?.value)||0;
   const metaCliques= parseInt(document.getElementById(`tf-meta-cliques-${clienteId}`)?.value)||0;
   const googleLeads= parseInt(document.getElementById(`tf-google-leads-${clienteId}`)?.value)||0;
   const googleCli  = parseInt(document.getElementById(`tf-google-cliques-${clienteId}`)?.value)||0;
-  const metaObs    = document.getElementById(`tf-meta-obs-${clienteId}`)?.value||'';
-  const googleObs  = document.getElementById(`tf-google-obs-${clienteId}`)?.value||'';
+  const obs        = document.getElementById(`tf-meta-obs-${clienteId}`)?.value||'';
 
   if (!trafegoData[clienteId]) trafegoData[clienteId] = [];
-  // Substitui entrada do mesmo dia se existir
   const idx = trafegoData[clienteId].findIndex(e=>e.data===data);
-  const entrada = { data, meta_inv:metaInv, meta_leads:metaLeads, meta_cliques:metaCliques, meta_obs:metaObs,
-                    google_inv:googleInv, google_leads:googleLeads, google_cliques:googleCli, google_obs:googleObs };
+  const entrada = { data, meta_inv:metaInv, meta_leads:metaLeads, meta_cliques:metaCliques,
+                    google_inv:googleInv, google_leads:googleLeads, google_cliques:googleCli, meta_obs:obs };
   if (idx>=0) trafegoData[clienteId][idx] = entrada;
   else trafegoData[clienteId].push(entrada);
+  trafegoData[clienteId].sort((a,b)=>a.data.localeCompare(b.data));
 
   saveData('trafego_data', trafegoData);
-  showToast('✓ Dia ' + formatDate(data) + ' salvo!');
+  showToast('✓ ' + formatDate(data) + ' — R$ ' + (metaInv+googleInv).toLocaleString('pt-BR',{minimumFractionDigits:2}) + ' registrado');
   renderTrafego();
+}
+
+function editarCampanhasTrafego(clienteId) {
+  const c = clientes.find(x=>x.id===clienteId);
+  if (!c) return;
+  const cfg = trafegoConfig[clienteId] || { campanhas: [] };
+  const camps = cfg.campanhas;
+  const linhas = camps.map((cp,i)=>
+    `${i+1}. ${cp.nome} | Início: ${cp.inicio||'não informado'} | Orç. diário: R$${cp.orcamento_diario||0} | Plataforma: ${cp.plataforma}`
+  ).join('\n');
+  const resp = prompt(
+    `Campanhas de ${c.nome}:\n\n${linhas||'(nenhuma)'}\n\nPara adicionar/editar, informe no formato:\n` +
+    `NOME_CAMPANHA | AAAA-MM-DD | ORCAMENTO_DIARIO | meta ou google\n\n(uma campanha por linha):`
+  );
+  if (resp === null) return;
+  const novas = resp.trim().split('\n').filter(l=>l.trim()).map(l=>{
+    const [nome,inicio,orc,plat] = l.split('|').map(s=>s.trim());
+    return { nome: nome||'', inicio: inicio||'', orcamento_diario: parseFloat(orc)||0, plataforma: (plat||'meta').toLowerCase() };
+  });
+  trafegoConfig[clienteId] = { campanhas: novas };
+  saveData('trafego_config', trafegoConfig);
+  renderTrafego();
+  showToast('Campanhas atualizadas!');
 }
 
 function excluirDiaTrafego(clienteId, data) {
