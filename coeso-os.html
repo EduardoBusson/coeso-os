@@ -6932,26 +6932,55 @@ async function carregarNoticiasInicio() {
     { url:'https://mundodomarketing.com.br',   domain:'mundodomarketing.com.br',    label:'Mundo do Marketing', cor:'#ff9f43', emoji:'📊' },
   ];
 
-  el.innerHTML = SITES.map(s=>{
-    const thumb = `https://image.thum.io/get/width/600/crop/280/noanimate/${s.url}`;
-    return `
-    <a href="${s.url}" target="_blank" style="display:block;margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid ${s.cor}44;text-decoration:none;transition:transform .15s;cursor:pointer"
-       onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='scale(1)'">
+  el.innerHTML = SITES.map((s,i)=>`
+    <div style="margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid ${s.cor}44">
       <div style="background:#0a1929;padding:6px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid ${s.cor}33">
         <span style="width:8px;height:8px;border-radius:50%;background:#ff5a72;display:inline-block;flex-shrink:0"></span>
         <span style="width:8px;height:8px;border-radius:50%;background:#f7c948;display:inline-block;flex-shrink:0"></span>
         <span style="width:8px;height:8px;border-radius:50%;background:#3dd68c;display:inline-block;flex-shrink:0"></span>
         <span style="font-size:10px;color:var(--text2);margin-left:6px;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.domain}</span>
-        <span style="font-size:10px;color:${s.cor};font-weight:700">↗ abrir</span>
+        <button onclick="abrirSiteModal('${s.url}','${s.label}','${s.cor}')"
+          style="font-size:10px;color:${s.cor};background:none;border:1px solid ${s.cor}55;border-radius:4px;padding:2px 7px;cursor:pointer;font-weight:700;margin-right:4px">⛶ expandir</button>
+        <a href="${s.url}" target="_blank" style="font-size:10px;color:${s.cor};text-decoration:none;font-weight:700">↗ abrir</a>
       </div>
-      <div style="position:relative;height:180px;overflow:hidden;background:#0d1f2d">
-        <img src="${thumb}" alt="${s.label}"
-          style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;opacity:.92"
-          onerror="this.parentElement.innerHTML='<div style=\'height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px\'><div style=\'font-size:32px\'>${s.emoji||'🌐'}</div><div style=\'font-size:13px;color:${s.cor};font-weight:700\'>${s.label}</div></div>'">
-        <div style="position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(transparent,#0a1929)"></div>
+      <div style="position:relative;height:200px;overflow:hidden">
+        <iframe src="${s.url}" id="ref-iframe-${i}"
+          style="width:100%;height:200px;border:0;display:block;pointer-events:auto"
+          loading="lazy" title="${s.label}"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#0a1929);pointer-events:none"></div>
       </div>
-    </a>`;
-  }).join('');
+    </div>`).join('');
+
+  // Modal de site expandido (cria uma vez)
+  if (!document.getElementById('modal-site-ref')) {
+    const m = document.createElement('div');
+    m.id = 'modal-site-ref';
+    m.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);flex-direction:column';
+    m.innerHTML = `
+      <div style="background:#0a1929;padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e3448">
+        <span style="width:10px;height:10px;border-radius:50%;background:#ff5a72;display:inline-block"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#f7c948;display:inline-block"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#3dd68c;display:inline-block"></span>
+        <span id="modal-site-label" style="font-size:13px;color:var(--text2);flex:1;text-align:center"></span>
+        <a id="modal-site-link" href="#" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;margin-right:8px">↗ abrir no navegador</a>
+        <button onclick="document.getElementById('modal-site-ref').style.display='none';document.getElementById('modal-site-iframe').src=''"
+          style="background:none;border:none;color:#ff5a72;font-size:18px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
+      </div>
+      <iframe id="modal-site-iframe" src="" style="flex:1;width:100%;border:0"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>`;
+    document.body.appendChild(m);
+  }
+}
+
+function abrirSiteModal(url, label, cor) {
+  const m = document.getElementById('modal-site-ref');
+  document.getElementById('modal-site-iframe').src = url;
+  document.getElementById('modal-site-label').textContent = url.replace('https://','').replace('www.','');
+  document.getElementById('modal-site-label').style.color = cor;
+  document.getElementById('modal-site-link').href = url;
+  m.style.display = 'flex';
+  void(0);
 }
 
 function renderDatasSazonaisInicio() {
