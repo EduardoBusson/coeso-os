@@ -6582,6 +6582,323 @@ function mostrarSplashBoasVindas(nome, modo) {
   }, 4200);
 }
 
+
+// ============================================================
+// SISTEMA DE PERFIL E PÁGINA INÍCIO
+// ============================================================
+
+function getPerfil() {
+  const sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const user = sess.user || 'eduardo';
+  const perfis = loadData('perfis_usuarios', {});
+  const defaults = {
+    eduardo: { nome: 'Eduardo Busson', cargo: 'Administrador', foto: null },
+    liz:     { nome: 'Liz',            cargo: 'Colaboradora',  foto: null },
+  };
+  return { user, ...( defaults[user]||{nome:user,cargo:'Colaborador',foto:null} ), ...(perfis[user]||{}) };
+}
+
+function salvarPerfil(campos) {
+  const sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const user = sess.user || 'eduardo';
+  const perfis = loadData('perfis_usuarios', {});
+  perfis[user] = { ...(perfis[user]||{}), ...campos };
+  saveData('perfis_usuarios', perfis);
+}
+
+function getUsuarioAtual() {
+  const sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  return sess.nome || 'Eduardo';
+}
+
+function renderInicio() {
+  const perfil = getPerfil();
+  const sess   = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const modo   = sess.modo || 'admin';
+
+  // ── Saudação ────────────────────────────────────────────
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  const emoji    = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+  const diasSem  = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  const mesesPt  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const now      = new Date();
+  const dataFmt  = `${diasSem[now.getDay()]}, ${now.getDate()} de ${mesesPt[now.getMonth()]} de ${now.getFullYear()}`;
+
+  const greetEl = document.getElementById('inicio-greeting');
+  if (greetEl) greetEl.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:26px;font-weight:700;color:var(--text);margin-bottom:4px">${emoji} ${saudacao}, ${perfil.nome.split(' ')[0]}!</div>
+        <div style="font-size:13px;color:var(--text2)">${dataFmt}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        ${modo==='admin'?`<button class="btn btn-ghost btn-sm logo-admin-only" onclick="goTo('dashboard')">📊 Dashboard agência</button>`:''}
+      </div>
+    </div>`;
+
+  // ── Profile card ────────────────────────────────────────
+  const fotoHtml = perfil.foto
+    ? `<img src="${perfil.foto}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)">`
+    : `<div style="width:64px;height:64px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:26px;border:2px solid var(--border)">${(perfil.nome||'?')[0].toUpperCase()}</div>`;
+
+  const statsRow = document.getElementById('inicio-stats-row');
+  if (statsRow) {
+    // stats
+    const jobsAbertos = (jobsExtras||[]).filter(j=>j.status&&j.status!=='Pago'&&j.status!=='Entregue');
+    const demandasPend= (demandas||[]).filter(d=>d.status&&d.status!=='Entregue'&&d.status!=='Cancelado');
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const em7  = new Date(hoje); em7.setDate(em7.getDate()+7);
+    const eventosProx = (eventos||[]).filter(ev=>{
+      if(!ev.data) return false;
+      const d = new Date(ev.data+'T00:00:00');
+      return d>=hoje && d<=em7;
+    }).length;
+
+    statsRow.innerHTML = `
+      <div class="card" style="text-align:center;padding:20px 12px">
+        ${fotoHtml}
+        <div style="margin-top:10px;font-weight:700;font-size:15px;color:var(--text)">${perfil.nome}</div>
+        <div style="font-size:11px;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-top:2px">${perfil.cargo}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;font-size:11px" onclick="abrirEditarPerfil()">✏️ Editar perfil</button>
+      </div>
+      <div class="card" style="text-align:center;padding:20px 12px;cursor:pointer" onclick="goTo('financeiro')">
+        <div style="font-size:36px;font-weight:800;color:var(--text)">${jobsAbertos.length}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">Jobs em aberto</div>
+        <div style="font-size:11px;color:var(--accent);margin-top:6px">→ ver financeiro</div>
+      </div>
+      <div class="card" style="text-align:center;padding:20px 12px;cursor:pointer" onclick="goTo('demandas')">
+        <div style="font-size:36px;font-weight:800;color:var(--text)">${demandasPend.length}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">Demandas pendentes</div>
+        <div style="font-size:11px;color:var(--accent);margin-top:6px">→ ver demandas</div>
+      </div>`;
+  }
+
+  // ── Jobs card ────────────────────────────────────────────
+  const jobsCard = document.getElementById('inicio-jobs-card');
+  if (jobsCard) {
+    const meus = (jobsExtras||[]).filter(j=>j.status&&j.status!=='Pago'&&j.status!=='Entregue')
+      .sort((a,b)=>(a.entrega||'').localeCompare(b.entrega||'')).slice(0,5);
+    const statusCor = {
+      'Em produção':'#3dd68c','Em revisão':'#f7c948','Aguardando':'#6c8cff',
+      'Aprovado':'#aee8f5','Pendente':'#8b8fa8'
+    };
+    jobsCard.innerHTML = `
+      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:12px">📋 Meus Jobs em Aberto</div>
+      ${meus.length===0?'<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px 0">✓ Nenhum job pendente</div>':
+        meus.map(j=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="width:8px;height:8px;border-radius:50%;background:${statusCor[j.status]||'#8b8fa8'};flex-shrink:0"></span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.desc||j.cliente||'—'}</div>
+              <div style="font-size:11px;color:var(--text2)">${j.cliente||''} ${j.entrega?'· '+j.entrega:''}</div>
+            </div>
+            <span style="font-size:10px;color:${statusCor[j.status]||'#8b8fa8'};white-space:nowrap">${j.status}</span>
+          </div>`).join('')}
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('financeiro')">Ver todos os jobs →</button>`;
+  }
+
+  // ── Demandas card ────────────────────────────────────────
+  const demCard = document.getElementById('inicio-demandas-card');
+  if (demCard) {
+    const recentes = (demandas||[])
+      .filter(d=>d.status&&d.status!=='Entregue'&&d.status!=='Cancelado')
+      .slice(-4).reverse();
+    const priorCor = { Alta:'#ff5a72', Media:'#f7c948', Normal:'#3dd68c', Baixa:'#8b8fa8' };
+    demCard.innerHTML = `
+      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:12px">🗂️ Demandas Recentes</div>
+      ${recentes.length===0?'<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px 0">✓ Sem demandas abertas</div>':
+        recentes.map(d=>{
+          const cli = d.cliente ? (clientes.find(c=>c.id===d.cliente)?.nome||d.clienteExterno||'') : (d.clienteExterno||'');
+          return `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="width:8px;height:8px;border-radius:50%;background:${priorCor[d.prioridade]||'#8b8fa8'};flex-shrink:0"></span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.titulo}</div>
+              <div style="font-size:11px;color:var(--text2)">${cli} · ${d.status}</div>
+            </div>
+            ${d.criado_por?`<span style="font-size:10px;color:var(--text2)">${d.criado_por[0]}</span>`:''}
+          </div>`;}).join('')}
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('demandas')">Ver todas →</button>`;
+  }
+
+  // ── Eventos card ─────────────────────────────────────────
+  const evCard = document.getElementById('inicio-eventos-card');
+  if (evCard) {
+    const hoje2 = new Date(); hoje2.setHours(0,0,0,0);
+    const prox = (eventos||[]).filter(ev=>ev.data&&new Date(ev.data+'T00:00:00')>=hoje2)
+      .sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
+    const tipoCor = {'Reunião':'#6c8cff','Entrega':'#3dd68c','Apresentação':'#f7c948','Call':'#ff9f43','Evento':'#ff5a72','Outro':'#8b8fa8'};
+    const diaSem = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    evCard.innerHTML = `
+      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:12px">📅 Próximos Eventos</div>
+      ${prox.length===0?'<div style="color:var(--text2);font-size:13px;text-align:center;padding:16px 0">Sem eventos esta semana</div>':
+        prox.map(ev=>{
+          const d = new Date(ev.data+'T00:00:00');
+          const label = d.getDate()===hoje2.getDate()&&d.getMonth()===hoje2.getMonth()?'Hoje':`${diaSem[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+          return `
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+            <div style="text-align:center;min-width:38px">
+              <div style="font-size:11px;font-weight:700;color:${tipoCor[ev.tipo]||'#8b8fa8'}">${label}</div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ev.titulo||ev.nome||'Evento'}</div>
+              <div style="font-size:11px;color:var(--text2)">${ev.tipo||''} ${ev.cliente?'· '+ev.cliente:''}</div>
+            </div>
+          </div>`;}).join('')}
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('agenda')">Abrir agenda →</button>`;
+  }
+
+  // ── Notícias card ─────────────────────────────────────────
+  const notCard = document.getElementById('inicio-noticias-card');
+  if (notCard) {
+    notCard.innerHTML = `
+      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:12px">📰 Notícias do Marketing</div>
+      <div id="inicio-news-list"><div style="color:var(--text2);font-size:12px">Carregando notícias...</div></div>`;
+    carregarNoticiasInicio();
+  }
+
+  // ── Datas sazonais ─────────────────────────────────────────
+  renderDatasSazonaisInicio();
+}
+
+async function carregarNoticiasInicio() {
+  const el = document.getElementById('inicio-news-list');
+  if (!el) return;
+  try {
+    const feeds = [
+      'https://news.google.com/rss/search?q=marketing+digital+publicidade+brasil&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+      'https://news.google.com/rss/search?q=redes+sociais+agencia+comunicacao&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+    ];
+    const feed = feeds[Math.floor(Math.random()*feeds.length)];
+    const url  = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=6&api_key=`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    const items = (data.items||[]).slice(0,5);
+    if (!items.length) throw new Error('empty');
+    el.innerHTML = items.map(item=>{
+      const pub = new Date(item.pubDate);
+      const ago = Math.round((Date.now()-pub)/60000);
+      const agoStr = ago<60?`${ago}min atrás`:ago<1440?`${Math.round(ago/60)}h atrás`:`${Math.round(ago/1440)}d atrás`;
+      const src  = item.author||item.source?.name||'';
+      return `<a href="${item.link}" target="_blank" style="display:block;padding:8px 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit">
+        <div style="font-size:13px;font-weight:500;color:var(--text);line-height:1.4;margin-bottom:3px">${item.title}</div>
+        <div style="font-size:11px;color:var(--text2)">${src?src+' · ':''}${agoStr}</div>
+      </a>`;
+    }).join('') + `<a href="https://rockcontent.com/br/blog/" target="_blank" style="display:block;font-size:11px;color:var(--accent2);margin-top:8px;text-decoration:none">Ver mais em Rock Content →</a>`;
+  } catch(e) {
+    el.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <a href="https://rockcontent.com/br/blog/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 Blog Rock Content — Marketing Digital</a>
+        <a href="https://resultadosdigitais.com.br/blog/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 Blog RD Station — Estratégias</a>
+        <a href="https://midiassociais.blog.br/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 Mídias Sociais — Tendências</a>
+        <a href="https://www.mktesocial.com.br/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 MKT e Social — Cases</a>
+        <a href="https://think.withgoogle.com/intl/pt-br/" target="_blank" style="font-size:13px;color:var(--accent2);text-decoration:none">📖 Think with Google Brasil</a>
+      </div>`;
+  }
+}
+
+function renderDatasSazonaisInicio() {
+  const el = document.getElementById('inicio-datas-sazonais');
+  if (!el) return;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const em60 = new Date(hoje); em60.setDate(em60.getDate()+60);
+  // Coleta datas dos próximos 2 meses
+  const todasDatas = [];
+  for (let m=0; m<=2; m++) {
+    const chk = new Date(hoje.getFullYear(), hoje.getMonth()+m, 1);
+    const ds = getDatasSazonais(chk.getFullYear(), chk.getMonth());
+    ds.forEach(d => {
+      const dt = new Date(chk.getFullYear(), chk.getMonth(), d.dia);
+      if (dt >= hoje && dt <= em60) todasDatas.push({ dt, nome: d.nome, cor: d.cor });
+    });
+  }
+  todasDatas.sort((a,b)=>a.dt-b.dt);
+  const mesesPt = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const diasSem = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  el.innerHTML = todasDatas.length === 0
+    ? '<div style="color:var(--text2);font-size:13px">Nenhuma data nos próximos 60 dias.</div>'
+    : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">`
+      + todasDatas.map(d=>{
+          const diff = Math.round((d.dt-hoje)/(1000*60*60*24));
+          const diffStr = diff===0?'Hoje':diff===1?'Amanhã':`em ${diff} dias`;
+          return `<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;border-left:3px solid ${d.cor}">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${d.nome}</div>
+            <div style="font-size:11px;color:var(--text2)">${diasSem[d.dt.getDay()]} ${d.dt.getDate()} ${mesesPt[d.dt.getMonth()]} · <span style="color:${d.cor}">${diffStr}</span></div>
+          </div>`;}).join('')
+      + '</div>';
+}
+
+// ── Modal Editar Perfil ────────────────────────────────────
+function abrirEditarPerfil() {
+  const p = getPerfil();
+  const fotoPreview = p.foto
+    ? `<img src="${p.foto}" id="perfil-foto-preview" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);display:block;margin:0 auto 8px">`
+    : `<div id="perfil-foto-preview" style="width:80px;height:80px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 8px;border:2px solid var(--border)">${(p.nome||'?')[0]}</div>`;
+
+  let m = document.getElementById('modal-perfil');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'modal-perfil';
+    m.className = 'modal-overlay';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div class="modal" style="max-width:380px">
+      <div class="modal-header">
+        <div class="modal-title">Editar Perfil</div>
+        <button class="modal-close" onclick="document.getElementById('modal-perfil').style.display='none'">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;margin-bottom:16px">
+          ${fotoPreview}
+          <label style="cursor:pointer;display:inline-block">
+            <span class="btn btn-ghost btn-sm" style="font-size:11px">📷 Alterar foto</span>
+            <input type="file" accept="image/*" style="display:none" onchange="previewFotoPerfil(event)">
+          </label>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">Nome completo</label>
+          <input id="perfil-nome" class="form-input" value="${p.nome||''}" placeholder="Seu nome">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">Cargo / função</label>
+          <input id="perfil-cargo" class="form-input" value="${p.cargo||''}" placeholder="Ex: Diretor de Arte">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-perfil').style.display='none'">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarPerfilForm()">Salvar</button>
+      </div>
+    </div>`;
+  m.style.display = 'flex';
+}
+
+let _fotoPendente = null;
+function previewFotoPerfil(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    _fotoPendente = ev.target.result;
+    const prev = document.getElementById('perfil-foto-preview');
+    if (prev) { prev.outerHTML = `<img src="${_fotoPendente}" id="perfil-foto-preview" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);display:block;margin:0 auto 8px">`; }
+  };
+  reader.readAsDataURL(file);
+}
+
+function salvarPerfilForm() {
+  const nome  = document.getElementById('perfil-nome')?.value.trim();
+  const cargo = document.getElementById('perfil-cargo')?.value.trim();
+  const campos = {};
+  if (nome)  campos.nome  = nome;
+  if (cargo) campos.cargo = cargo;
+  if (_fotoPendente) { campos.foto = _fotoPendente; _fotoPendente = null; }
+  salvarPerfil(campos);
+  document.getElementById('modal-perfil').style.display = 'none';
+  renderInicio();
+  showToast('✅ Perfil atualizado!');
+}
+
 function aplicarModo(modo, viaLogin) {
   if (modo === 'colaborador') {
     document.querySelectorAll('.nav-item').forEach(el => {
