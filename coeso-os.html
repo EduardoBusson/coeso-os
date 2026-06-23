@@ -6924,10 +6924,10 @@ async function carregarNoticiasInicio() {
 
   // Sites fixos curados
   const SITES = [
-    { url:'https://nossomeio.com.br',            label:'Nosso Meio',        desc:'Comunicação e cultura',   cor:'#f7c948', bg:'rgba(247,201,72,.12)',  emoji:'📡', preview:true },
-    { url:'https://www.meioemensagem.com.br',     label:'Meio & Mensagem',   desc:'Mídia, marketing e negócios', cor:'#6c8cff', bg:'rgba(108,140,255,.12)', emoji:'📰' },
-    { url:'https://oglobo.globo.com',             label:'O Globo',           desc:'Notícias e atualidades',  cor:'#3dd68c', bg:'rgba(61,214,140,.12)',  emoji:'🌐' },
-    { url:'https://mundodomarketing.com.br',      label:'Mundo do Marketing', desc:'Estratégia e tendências', cor:'#ff9f43', bg:'rgba(255,159,67,.12)',  emoji:'📊' },
+    { url:'https://nossomeio.com.br',          domain:'nossomeio.com.br',          label:'Nosso Meio',         cor:'#f7c948' },
+    { url:'https://www.meioemensagem.com.br',  domain:'meioemensagem.com.br',       label:'Meio & Mensagem',    cor:'#6c8cff' },
+    { url:'https://oglobo.globo.com',          domain:'oglobo.globo.com',           label:'O Globo',            cor:'#3dd68c' },
+    { url:'https://mundodomarketing.com.br',   domain:'mundodomarketing.com.br',    label:'Mundo do Marketing', cor:'#ff9f43' },
   ];
 
   el.innerHTML = SITES.map(s=>`
