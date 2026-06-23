@@ -6108,85 +6108,73 @@ function migrarDados() {
     saveData('clientes', clientes);
   }
 
+  // ── SEED DE TRÁFEGO v3 — força re-seed com dados completos (Valor usado + Impressões + Alcance)
+  const trafegoSeedV3 = loadData('trafego_seed_v3', false);
+
   // Configura campanhas Sportif (início 12/06)
   const sportifId = (clientes.find(c=>c.nome==='Sportif')||{}).id;
   if (sportifId) {
-    const cfgAtual = trafegoConfig[sportifId] || {};
-    const jaTemInicio = (cfgAtual.campanhas||[]).some(cp=>cp.inicio);
-    if (!jaTemInicio) {
-      trafegoConfig[sportifId] = {
-        campanhas: [{ nome: 'SPORTIF_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-12', orcamento_diario: 30 }]
-      };
-      saveData('trafego_config', trafegoConfig);
+    trafegoConfig[sportifId] = {
+      campanhas: [{ nome: 'SPORTIF_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-12', orcamento_diario: 30 }]
+    };
+    if (!trafegoSeedV3) {
+      // Re-seed com dados completos — Valor usado real do Meta Ads
+      trafegoData[sportifId] = [
+        { data:'2026-06-12', meta_inv:4.67,  meta_leads:0, meta_imp:207,  meta_alc:199,  meta_cliques:0, meta_obs:'Início · sem conversas', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-13', meta_inv:9.05,  meta_leads:1, meta_imp:366,  meta_alc:335,  meta_cliques:0, meta_obs:'1 conversa · R$9,05/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-14', meta_inv:7.48,  meta_leads:0, meta_imp:253,  meta_alc:237,  meta_cliques:0, meta_obs:'Sem conversas', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-15', meta_inv:10.67, meta_leads:1, meta_imp:442,  meta_alc:413,  meta_cliques:0, meta_obs:'1 conversa · R$10,67/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-16', meta_inv:28.72, meta_leads:1, meta_imp:985,  meta_alc:840,  meta_cliques:0, meta_obs:'1 conversa · R$28,72/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-17', meta_inv:12.49, meta_leads:1, meta_imp:375,  meta_alc:335,  meta_cliques:0, meta_obs:'1 conversa · R$12,49/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-18', meta_inv:7.39,  meta_leads:0, meta_imp:199,  meta_alc:189,  meta_cliques:0, meta_obs:'Sem conversas', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-19', meta_inv:9.04,  meta_leads:1, meta_imp:235,  meta_alc:211,  meta_cliques:0, meta_obs:'1 conversa · R$9,04/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-20', meta_inv:3.64,  meta_leads:0, meta_imp:83,   meta_alc:82,   meta_cliques:0, meta_obs:'Sem conversas', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-21', meta_inv:8.72,  meta_leads:2, meta_imp:234,  meta_alc:215,  meta_cliques:0, meta_obs:'2 conversas · R$4,36/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-22', meta_inv:33.31, meta_leads:4, meta_imp:1045, meta_alc:872,  meta_cliques:0, meta_obs:'4 conversas · R$8,33/resultado', google_inv:0, google_leads:0, google_cliques:0 },
+      ];
+    } else if (!trafegoData[sportifId]) {
+      trafegoData[sportifId] = [];
     }
-    // Popula histórico diário Sportif (Meta Ads — dados por dia)
-    if (!trafegoData[sportifId]) trafegoData[sportifId] = [];
-    const sportifDias = [
-      { data:'2026-06-12', meta_inv:0,     meta_leads:0, meta_cliques:0, meta_obs:'Início da campanha', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-13', meta_inv:9.05,  meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$9,05/resultado', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-14', meta_inv:0,     meta_leads:0, meta_cliques:0, meta_obs:'Sem resultados', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-15', meta_inv:10.67, meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$10,67/resultado', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-16', meta_inv:28.72, meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$28,72/resultado', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-17', meta_inv:12.49, meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$12,49/resultado', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-18', meta_inv:0,     meta_leads:0, meta_cliques:0, meta_obs:'Sem resultados', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-19', meta_inv:9.04,  meta_leads:1, meta_cliques:0, meta_obs:'1 conversa · R$9,04/resultado', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-20', meta_inv:0,     meta_leads:0, meta_cliques:0, meta_obs:'Sem resultados', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-21', meta_inv:8.72,  meta_leads:2, meta_cliques:0, meta_obs:'2 conversas · R$4,36/resultado', google_inv:0, google_leads:0, google_cliques:0 },
-      { data:'2026-06-22', meta_inv:33.32, meta_leads:4, meta_cliques:0, meta_obs:'4 conversas · R$8,33/resultado', google_inv:0, google_leads:0, google_cliques:0 },
-    ];
-    sportifDias.forEach(dia => {
-      if (!trafegoData[sportifId].find(e=>e.data===dia.data)) {
-        trafegoData[sportifId].push(dia);
-      }
-    });
-    trafegoData[sportifId].sort((a,b)=>a.data.localeCompare(b.data));
+    saveData('trafego_config', trafegoConfig);
     saveData('trafego_data', trafegoData);
   }
 
-  // Configura campanhas Complexo Spot (início 08/06)
+  // Configura campanhas Complexo Spot (início 08/06) — GUJ + JANGU combinados por dia
   const spotId = (clientes.find(c=>c.nome==='Complexo Spot')||{}).id;
   if (spotId) {
-    const cfgAtual = trafegoConfig[spotId] || {};
-    const jaTemInicio = (cfgAtual.campanhas||[]).some(cp=>cp.inicio);
-    if (!jaTemInicio) {
-      trafegoConfig[spotId] = {
-        campanhas: [
-          { nome: 'SPOT_GUJ_CRIATIVOS',   plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 33 },
-          { nome: 'SPOT_JANGU_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 40 }
-        ]
-      };
-      saveData('trafego_config', trafegoConfig);
+    trafegoConfig[spotId] = {
+      campanhas: [
+        { nome: 'SPOT_GUJ_CRIATIVOS',   plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 33 },
+        { nome: 'SPOT_JANGU_CRIATIVOS', plataforma: 'meta', inicio: '2026-06-08', orcamento_diario: 40 }
+      ]
+    };
+    if (!trafegoSeedV3) {
+      // GUJ = Guajeru · JANGU = Jangurussu — dados diários do Meta Ads (Valor usado real)
+      // Totais por dia = GUJ + JANGU; meta_obs traz o detalhamento por campanha
+      trafegoData[spotId] = [
+        { data:'2026-06-08', meta_inv:9.71,  meta_leads:0, meta_imp:882,  meta_alc:808,  meta_cliques:0, meta_obs:'GUJ R$5,71 · JANGU R$4,00', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-09', meta_inv:31.06, meta_leads:1, meta_imp:2480, meta_alc:2142, meta_cliques:0, meta_obs:'GUJ R$21,02 1L · JANGU R$10,04', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-10', meta_inv:25.68, meta_leads:2, meta_imp:2066, meta_alc:1752, meta_cliques:0, meta_obs:'GUJ R$17,29 1L · JANGU R$8,39 1L', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-11', meta_inv:21.48, meta_leads:1, meta_imp:1888, meta_alc:1665, meta_cliques:0, meta_obs:'GUJ R$13,79 · JANGU R$7,69 1L', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-12', meta_inv:15.60, meta_leads:0, meta_imp:1221, meta_alc:1114, meta_cliques:0, meta_obs:'GUJ R$9,92 · JANGU R$5,68', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-13', meta_inv:11.82, meta_leads:0, meta_imp:1212, meta_alc:1110, meta_cliques:0, meta_obs:'GUJ R$5,77 · JANGU R$6,05', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-14', meta_inv:14.10, meta_leads:0, meta_imp:1511, meta_alc:1314, meta_cliques:0, meta_obs:'GUJ R$7,72 · JANGU R$6,38', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-15', meta_inv:2.79,  meta_leads:0, meta_imp:277,  meta_alc:266,  meta_cliques:0, meta_obs:'GUJ R$1,84 · JANGU R$0,95', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-16', meta_inv:31.83, meta_leads:1, meta_imp:2642, meta_alc:2363, meta_cliques:0, meta_obs:'GUJ R$16,09 1L · JANGU R$15,74', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-17', meta_inv:5.01,  meta_leads:0, meta_imp:370,  meta_alc:356,  meta_cliques:0, meta_obs:'GUJ R$2,20 · JANGU R$2,81', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-20', meta_inv:3.60,  meta_leads:0, meta_imp:328,  meta_alc:308,  meta_cliques:0, meta_obs:'GUJ R$2,10 · JANGU R$1,50', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-21', meta_inv:16.18, meta_leads:1, meta_imp:1213, meta_alc:1024, meta_cliques:0, meta_obs:'GUJ R$8,67 · JANGU R$7,51 1L', google_inv:0, google_leads:0, google_cliques:0 },
+        { data:'2026-06-22', meta_inv:82.14, meta_leads:7, meta_imp:5184, meta_alc:3442, meta_cliques:0, meta_obs:'GUJ R$35,98 2L · JANGU R$46,16 5L', google_inv:0, google_leads:0, google_cliques:0 },
+      ];
+    } else if (!trafegoData[spotId]) {
+      trafegoData[spotId] = [];
     }
-    // Histórico JANGU (valor real por dia — coluna "Valor usado")
-    if (!trafegoData[spotId]) trafegoData[spotId] = [];
-    const spotJanguDias = [
-      { data:'2026-06-08', meta_inv:4.00,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$4,00' },
-      { data:'2026-06-09', meta_inv:10.04, meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$10,04' },
-      { data:'2026-06-10', meta_inv:8.39,  meta_leads:1, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$8,39 · 1 lead R$8,39/result' },
-      { data:'2026-06-11', meta_inv:7.69,  meta_leads:1, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$7,69 · 1 lead R$7,69/result' },
-      { data:'2026-06-12', meta_inv:5.68,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$5,68' },
-      { data:'2026-06-13', meta_inv:6.05,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$6,05' },
-      { data:'2026-06-14', meta_inv:6.38,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$6,38' },
-      { data:'2026-06-15', meta_inv:0.95,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$0,95' },
-      { data:'2026-06-16', meta_inv:15.74, meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$15,74' },
-      { data:'2026-06-17', meta_inv:2.81,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$2,81' },
-      { data:'2026-06-20', meta_inv:1.50,  meta_leads:0, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$1,50' },
-      { data:'2026-06-21', meta_inv:7.51,  meta_leads:1, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$7,51 · 1 lead R$7,51/result' },
-      { data:'2026-06-22', meta_inv:46.16, meta_leads:5, google_inv:0, google_leads:0, meta_cliques:0, google_cliques:0, meta_obs:'JANGU R$46,16 · 5 leads R$9,23/result' },
-    ];
-    spotJanguDias.forEach(dia => {
-      const idx = trafegoData[spotId].findIndex(e=>e.data===dia.data);
-      if (idx >= 0) {
-        // Soma ao existente (GUJ já pode estar lá)
-        trafegoData[spotId][idx].meta_inv   = (trafegoData[spotId][idx].meta_inv||0) + dia.meta_inv;
-        trafegoData[spotId][idx].meta_leads = (trafegoData[spotId][idx].meta_leads||0) + dia.meta_leads;
-        trafegoData[spotId][idx].meta_obs   = (trafegoData[spotId][idx].meta_obs ? trafegoData[spotId][idx].meta_obs + ' | ' : '') + dia.meta_obs;
-      } else {
-        trafegoData[spotId].push(dia);
-      }
-    });
-    trafegoData[spotId].sort((a,b)=>a.data.localeCompare(b.data));
+    saveData('trafego_config', trafegoConfig);
     saveData('trafego_data', trafegoData);
+  }
+
+  if (!trafegoSeedV3) {
+    saveData('trafego_seed_v3', true);
   }
 }
 
