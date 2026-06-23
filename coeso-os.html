@@ -778,7 +778,7 @@
     <div class="page-header">
       <div>
         <div class="page-title">📡 Gestão de Tráfego</div>
-        <div class="page-sub">Meta Ads · Google Ads por cliente</div>
+        <div class="page-sub">Meta Ads por cliente</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="renderTrafego()">🔄 Atualizar</button>
     </div>
@@ -4629,13 +4629,7 @@ const TRAFEGO_CAMPOS = [
   { key:'meta_cliques',       label:'Cliques no link',         tipo:'number' },
   { key:'meta_cpc',           label:'CPC médio (R$)',          tipo:'money' },
   { key:'meta_leads',         label:'Leads gerados',           tipo:'number' },
-  { key:'meta_obs',           label:'Observações Meta',        tipo:'text' },
-  { key:'google_investimento',label:'Investimento Google (R$)',tipo:'money' },
-  { key:'google_cliques',     label:'Cliques Google',          tipo:'number' },
-  { key:'google_impressoes',  label:'Impressões Google',       tipo:'number' },
-  { key:'google_cpc',         label:'CPC Google (R$)',         tipo:'money' },
-  { key:'google_conversoes',  label:'Conversões',              tipo:'number' },
-  { key:'google_obs',         label:'Observações Google',      tipo:'text' },
+  { key:'meta_obs',           label:'Observações',             tipo:'text' },
 ];
 
 // trafegoData[clienteId] = [ {data, meta_inv, meta_leads, meta_cliques, meta_obs, google_inv, google_leads, google_cliques, google_obs}, ... ]
