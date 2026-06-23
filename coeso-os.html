@@ -6052,14 +6052,26 @@ function migrarDados() {
   const sportifId = (clientes.find(c=>c.nome==='Sportif')||{}).id;
   if (sportifId) {
     if (!trafegoData[sportifId]) trafegoData[sportifId] = [];
-    const jaTemHoje = trafegoData[sportifId].find(e=>e.data==='2026-06-22');
-    if (!jaTemHoje) {
+    if (!trafegoData[sportifId].find(e=>e.data==='2026-06-22')) {
       trafegoData[sportifId].push({
         data: '2026-06-22',
-        meta_inv: 101.87,
-        meta_leads: 7,
-        meta_cliques: 0,
+        meta_inv: 101.87, meta_leads: 7, meta_cliques: 0,
         meta_obs: 'SPORTIF_CRIATIVOS · R$14,55/resultado · Orçamento diário R$30 · Impressões 3.379 · Alcance 2.405',
+        google_inv: 0, google_leads: 0, google_cliques: 0, google_obs: ''
+      });
+      saveData('trafego_data', trafegoData);
+    }
+  }
+
+  // Pré-popula dado de tráfego Complexo Spot dia 22/06/2026 (Meta Ads)
+  const spotId = (clientes.find(c=>c.nome==='Complexo Spot')||{}).id;
+  if (spotId) {
+    if (!trafegoData[spotId]) trafegoData[spotId] = [];
+    if (!trafegoData[spotId].find(e=>e.data==='2026-06-22')) {
+      trafegoData[spotId].push({
+        data: '2026-06-22',
+        meta_inv: 188.85, meta_leads: 6, meta_cliques: 0,
+        meta_obs: 'SPOT_GUJ_CRIATIVOS: 3 leads R$37,37/result Orç.R$33/dia | SPOT_JANGU_CRIATIVOS: 3 leads R$25,58/result Orç.R$40/dia',
         google_inv: 0, google_leads: 0, google_cliques: 0, google_obs: ''
       });
       saveData('trafego_data', trafegoData);
