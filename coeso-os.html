@@ -2110,6 +2110,7 @@ function goTo(page) {
 }
 
 function renderPage(page) {
+  if (page === 'inicio')    renderInicio();
   if (page === 'dashboard') renderDashboard();
   if (page === 'agenda') renderAgenda();
   if (page === 'clientes') renderClientes();
@@ -3158,6 +3159,8 @@ function salvarDemanda() {
   const clienteExterno = clienteId === 0 ? (document.getElementById('dem-cliente-externo').value.trim() || 'Externo') : '';
   if (!titulo || (!clienteId && !clienteExterno)) { alert('Preencha título e cliente.'); return; }
   const editId = parseInt(document.getElementById('dem-id').value);
+  const _sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const _criador = _sess.nome || 'Eduardo';
   const dados = {
     titulo, cliente: clienteId, clienteExterno,
     tipo:        document.getElementById('dem-tipo').value,
@@ -3169,10 +3172,10 @@ function salvarDemanda() {
   };
   if (editId) {
     const idx = demandas.findIndex(d=>d.id===editId);
-    if (idx>=0) demandas[idx] = { ...demandas[idx], ...dados };
+    if (idx>=0) demandas[idx] = { ...demandas[idx], ...dados, criado_por: demandas[idx].criado_por||_criador };
     showToast('Demanda atualizada!');
   } else {
-    demandas.push({ id: nextId(demandas), ...dados });
+    demandas.push({ id: nextId(demandas), ...dados, criado_por: _criador });
     showToast('Demanda criada!');
   }
   saveData('demandas', demandas);
@@ -3538,17 +3541,21 @@ function salvarJob() {
     ? (document.getElementById('job-cliente-externo').value.trim() || 'Externo')
     : selVal;
 
+  const _sessJ = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
   const job = {
-    id:      editandoJobId || nextId(jobsExtras),
-    mes:     finMesSel || mesAtualKey(),
-    cliente: clienteNome,
-    tipo:    document.getElementById('job-tipo').value,
+    id:        editandoJobId || nextId(jobsExtras),
+    mes:       finMesSel || mesAtualKey(),
+    cliente:   clienteNome,
+    tipo:      document.getElementById('job-tipo').value,
     desc, valor,
-    entrega: document.getElementById('job-entrega').value,
-    status:  document.getElementById('job-status').value,
-    resp:    document.getElementById('job-resp').value.trim(),
-    obs:     document.getElementById('job-obs').value.trim(),
-    criado:  localDateStr(),
+    entrega:   document.getElementById('job-entrega').value,
+    status:    document.getElementById('job-status').value,
+    resp:      document.getElementById('job-resp').value.trim(),
+    obs:       document.getElementById('job-obs').value.trim(),
+    criado:    localDateStr(),
+    criado_por: editandoJobId
+      ? (jobsExtras.find(x=>x.id===editandoJobId)?.criado_por || _sessJ.nome || 'Eduardo')
+      : (_sessJ.nome || 'Eduardo'),
   };
 
   if (editandoJobId) {
