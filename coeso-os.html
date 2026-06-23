@@ -6824,10 +6824,12 @@ function renderInicio() {
         <div style="font-size:11px;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-top:2px">${perfil.cargo}</div>
         <button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;font-size:11px" onclick="abrirEditarPerfil()">✏️ Editar perfil</button>
       </div>
-      <div class="card" style="text-align:center;padding:20px 12px;cursor:pointer" onclick="goTo('agenda')">
-        <div style="font-size:36px;font-weight:800;color:#6c8cff">${eventosProx}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:4px">Eventos esta semana</div>
-        <div style="font-size:11px;color:#6c8cff;margin-top:6px">→ ver agenda</div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <iframe id="spotify-player"
+          src="https://open.spotify.com/embed/playlist/37i9dQZF1DX8Uebhn9wzrS?utm_source=generator&theme=0"
+          style="width:100%;height:152px;border:0;border-radius:inherit"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"></iframe>
       </div>
       <div class="card" style="text-align:center;padding:20px 12px;cursor:pointer" onclick="goTo('demandas')">
         <div style="font-size:36px;font-weight:800;color:#3dd68c">${demandasPend.length}</div>
