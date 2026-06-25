@@ -539,6 +539,12 @@
     </div>
   </div>
 
+
+  <!-- ===== PORTAL DO CLIENTE ===== -->
+  <div class="page" id="page-cliente">
+    <div id="cliente-portal-content" style="max-width:860px;margin:0 auto;padding:24px 20px"></div>
+  </div>
+
   <!-- ===== DASHBOARD ===== -->
   <div class="page" id="page-dashboard">
     <div class="page-header">
@@ -2097,6 +2103,7 @@ const DEMO_EVENTOS = [
   { id:2, titulo:'Gravação Complexo Spot',       data:'2026-06-10', hora:'09:00', tipo:'Gravação',             cliente:'Complexo Spot' },
 ];
 let eventos = loadData('eventos', DEMO_EVENTOS);
+let planosAcao = loadData('planos_acao', {});
 
 // Categorias e cores da agenda
 const EVENTO_CORES = {
@@ -2699,6 +2706,18 @@ function abrirCliente(id) {
     document.querySelector('#cliente-detail .btn-primary').parentElement.appendChild(delBtn);
   }
   delBtn.onclick = () => confirmarExclusaoCliente(id);
+
+  // Botão portal do cliente (admin only)
+  let portalBtn = document.getElementById('det-portal-btn');
+  if (!portalBtn) {
+    portalBtn = document.createElement('button');
+    portalBtn.id = 'det-portal-btn';
+    portalBtn.className = 'btn btn-ghost btn-sm';
+    portalBtn.style.color = '#6c8cff';
+    document.querySelector('#cliente-detail .btn-primary').parentElement.appendChild(portalBtn);
+  }
+  portalBtn.textContent = '🌐 Portal cliente';
+  portalBtn.onclick = () => abrirPlanoAcao(c.nome);
 
   const clinDemandas = demandas.filter(d=>d.cliente===id);
   document.getElementById('det-stats').innerHTML = [
@@ -6361,6 +6380,133 @@ function importarBackup(event) {
 }
 
 function migrarDados() {
+  // ── Demandas Focus e Plano ORY (migração v2) ──────────────
+  const _migV = loadData('mig_versao', 0);
+  if (_migV < 2) {
+    if (!Array.isArray(demandas)) demandas = [];
+    const _demandasFocus = [
+      { titulo:'ROTEIROS JULHO',          clienteExterno:'Focus', cliente:0, tipo:'Audiovisual',     status:'Em produção', prioridade:'Alta',  prazo:'2026-06-26', desc:'Roteiros de julho — prazo de entrega 26/06', criado_por:'Eduardo' },
+      { titulo:'GRAVAÇÃO 28/06',          clienteExterno:'Focus', cliente:0, tipo:'Audiovisual',     status:'Em produção', prioridade:'Alta',  prazo:'2026-06-28', desc:'Gravação a ser realizada em 28/06 (Kayan)', criado_por:'Eduardo' },
+      { titulo:'HORÁRIO FUNCIONAMENTO COPA DO MUNDO', clienteExterno:'Focus', cliente:0, tipo:'Direção de Arte', status:'Aguardando', prioridade:'Média', prazo:'', desc:'Aguardando cliente fornecer os dados', criado_por:'Eduardo' },
+      { titulo:'CRIATIVOS JULHO',         clienteExterno:'Focus', cliente:0, tipo:'Direção de Arte', status:'Em produção', prioridade:'Alta',  prazo:'2026-06-29', desc:'Criativos de julho — prazo de entrega 29/06', criado_por:'Eduardo' },
+    ];
+    _demandasFocus.forEach(d => {
+      const existe = demandas.some(x => x.titulo === d.titulo && x.clienteExterno === 'Focus');
+      if (!existe) demandas.push({ ...d, id: nextId(demandas) });
+    });
+    saveData('demandas', demandas);
+
+    // Plano de ação ORY
+    let _planos = loadData('planos_acao', {});
+    if (!_planos['Focus'] || !_planos['Focus'].setores?.length) {
+      _planos['Focus'] = {
+        titulo: 'Lançamento ORY — Plano de Ação Completo',
+        descricao: 'Programação do rebranding Focus → ORY. Lançamento: 17/07/2026',
+        setores: [
+          {
+            nome: '🎬 AUDIOVISUAL',
+            status: 'Em andamento',
+            itens: [
+              { texto: 'Roteiros julho — prazo 26/06', feito: false },
+              { texto: 'Gravação com Kayan — 28/06', feito: false },
+              { texto: 'Edição dos vídeos — 02 a 07/07', feito: false },
+              { texto: 'Reel: Ar condicionados (produto)', feito: false },
+              { texto: 'Reel: Transformação Focus → ORY', feito: false },
+              { texto: 'Reel: Fundadores/sócios — trajetória', feito: false },
+              { texto: 'Reel: Institucional ORY', feito: false },
+              { texto: 'Aprovação final dos vídeos — até 10/07', feito: false },
+              { texto: 'Legendas e formatos (Reels/Stories/Feed) — 11-12/07', feito: false },
+              { texto: 'Upload e programação — 14/07', feito: false },
+            ]
+          },
+          {
+            nome: '🎨 DIREÇÃO DE ARTE',
+            status: 'Em andamento',
+            itens: [
+              { texto: 'Criativos julho — prazo 29/06', feito: false },
+              { texto: 'Horário funcionamento Copa (aguardando dados do cliente)', feito: false },
+              { texto: 'Identidade visual ORY — versão final aprovada', feito: false },
+              { texto: 'Arte outdoor entregue ao veículo — até 28/06', feito: false },
+              { texto: 'Kit peças lançamento (feed, stories, destaque)', feito: false },
+              { texto: 'Aprovação final artes — até 10/07', feito: false },
+              { texto: 'Mockups site/digital ORY', feito: false },
+              { texto: 'Motion/animação logo ORY para vídeos', feito: false },
+            ]
+          },
+          {
+            nome: '📺 MÍDIA OFFLINE / OUTDOOR',
+            status: 'Em andamento',
+            itens: [
+              { texto: 'Definir pontos de outdoor (localização e formatos)', feito: false },
+              { texto: 'Consultar calendário bi-semana 2026 com veículo', feito: false },
+              { texto: 'Bi-semana 13: Jul/01–15 → arte p/ veículo até 28/06', feito: false },
+              { texto: 'Bi-semana 14: Jul/16–31 (lançamento) → arte até 13/07', feito: false },
+              { texto: 'Aprovar criativo com cliente — até 26/06', feito: false },
+              { texto: 'Emissão de ordem de veiculação', feito: false },
+              { texto: 'Confirmação instalação e foto do outdoor', feito: false },
+            ]
+          },
+          {
+            nome: '📱 REDES SOCIAIS',
+            status: 'Em andamento',
+            itens: [
+              { texto: 'Cronograma julho aprovado — até 28/06', feito: false },
+              { texto: 'BIO e perfil atualizados para ORY', feito: false },
+              { texto: 'Contagem regressiva stories (a partir de 10/07)', feito: false },
+              { texto: 'Teasers "algo vem aí" — 07 a 14/07', feito: false },
+              { texto: 'Reel ar condicionados publicado — até 12/07', feito: false },
+              { texto: 'Reel transformação publicado — 15/07', feito: false },
+              { texto: 'Reel fundadores publicado — 16/07', feito: false },
+              { texto: 'Reel institucional + POST LANÇAMENTO — 17/07', feito: false },
+              { texto: 'Monitoramento e respostas no dia do lançamento', feito: false },
+            ]
+          },
+          {
+            nome: '🌟 MARKETING DE INFLUÊNCIA',
+            status: 'Planejado',
+            itens: [
+              { texto: 'Mapear influenciadores locais e regionais', feito: false },
+              { texto: 'Definir perfil ideal (micro/macro, nicho)', feito: false },
+              { texto: 'Briefing e proposta enviada — até 02/07', feito: false },
+              { texto: 'Negociação e contratação fechada — até 07/07', feito: false },
+              { texto: 'Envio de kit press/presenteável ORY', feito: false },
+              { texto: 'Postagem do influenciador: 15-17/07', feito: false },
+              { texto: 'Monitoramento de alcance/resultados', feito: false },
+            ]
+          },
+          {
+            nome: '🌐 SITE / DIGITAL',
+            status: 'Em andamento',
+            itens: [
+              { texto: 'Site ORY validado ✓ (já concluído)', feito: true },
+              { texto: 'Ajustes finais de conteúdo e textos', feito: false },
+              { texto: 'SEO básico: meta tags, título, descrição', feito: false },
+              { texto: 'Integração de formulários e WhatsApp', feito: false },
+              { texto: 'Testes mobile e desktop', feito: false },
+              { texto: 'Site ao ar (URL ORY ativa) — até 14/07', feito: false },
+              { texto: 'Pixel Meta e Google Analytics instalados', feito: false },
+            ]
+          },
+          {
+            nome: '📣 ESTRATÉGIA & LANÇAMENTO',
+            status: 'Planejado',
+            itens: [
+              { texto: 'Alinhamento interno equipe Coeso — até 28/06', feito: false },
+              { texto: 'Comunicado oficial para base de clientes Focus', feito: false },
+              { texto: 'Assessoria de imprensa / press release ORY', feito: false },
+              { texto: 'Definir ação especial no dia 17/07 (live, evento, desconto)', feito: false },
+              { texto: 'Monitoria geral no lançamento (equipe de plantão)', feito: false },
+              { texto: 'Relatório pós-lançamento — até 24/07', feito: false },
+            ]
+          },
+        ]
+      };
+      saveData('planos_acao', _planos);
+      planosAcao = _planos;
+    }
+    saveData('mig_versao', 2);
+  }
+
   // Atribui criado_por='Eduardo' em itens legados
   if (!Array.isArray(demandas)) demandas = [];
   if (!Array.isArray(jobsExtras)) jobsExtras = [];
@@ -6554,6 +6700,7 @@ function reinitData() {
   pacoteEntregas = loadData('pacote_entregas',{});
   trafegoData    = loadData('trafego_data',   {});
   trafegoConfig  = loadData('trafego_config', {});
+  planosAcao     = loadData('planos_acao',   {});
 }
 
 function _runInit() {
@@ -6649,7 +6796,8 @@ function _runInit() {
 // Para alterar senhas, edite os campos abaixo:
 const COESO_USUARIOS = {
   'eduardo': { senha: 'coeso2026',  modo: 'admin',       nome: 'Eduardo' },
-  'liz':     { senha: '123567815',  modo: 'colaborador',  nome: 'Liz'     }
+  'liz':     { senha: '123567815',  modo: 'colaborador',  nome: 'Liz'     },
+  'focus':   { senha: 'focus2026',  modo: 'cliente',      nome: 'Focus',  cliente: 'Focus' },
 };
 
 function fazerLogin() {
@@ -6662,7 +6810,7 @@ function fazerLogin() {
     document.getElementById('login-senha').focus();
     return;
   }
-  sessionStorage.setItem('coeso_login', JSON.stringify({ user, modo: cfg.modo, nome: cfg.nome }));
+  sessionStorage.setItem('coeso_login', JSON.stringify({ user, modo: cfg.modo, nome: cfg.nome, cliente: cfg.cliente||'' }));
   document.getElementById('login-screen').style.display = 'none';
   mostrarSplashBoasVindas(cfg.nome, cfg.modo);
 }
@@ -6676,22 +6824,43 @@ function fazerLogout() {
 function falarBoasVindas(nome, modo) {
   try {
     const feminino = modo === 'colaborador';
-    const texto = feminino
-      ? `Oi ${nome}, seja bem\u002dvinda.`
-      : `Oi ${nome}, seja bem\u002dvindo.`;
-    const utter = new SpeechSynthesisUtterance(texto);
-    utter.lang = 'pt-BR';
-    utter.rate = 0.92;
-    utter.pitch = feminino ? 1.25 : 1.0;
-    // Prefere voz feminina para colaboradora
-    const voices = window.speechSynthesis.getVoices();
-    const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
-    if (ptVoices.length) {
-      const femVoice = ptVoices.find(v => /female|fem|woman|Luciana|francisca/i.test(v.name));
-      utter.voice = (feminino && femVoice) ? femVoice : ptVoices[0];
+    const cliente  = modo === 'cliente';
+    let texto;
+    if (cliente) {
+      texto = `Seja bem-vindo, safado!`;
+    } else if (feminino) {
+      texto = `Oi ${nome}, seja bem-vinda!`;
+    } else {
+      texto = `Oi ${nome}, seja bem-vindo!`;
     }
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
+
+    const falar = () => {
+      const utter = new SpeechSynthesisUtterance(texto);
+      utter.lang    = 'pt-BR';
+      utter.rate    = 1.15;   // mais rápido
+      utter.pitch   = feminino ? 1.2 : (cliente ? 1.1 : 1.0);
+      utter.volume  = 1;      // volume máximo
+      const voices  = window.speechSynthesis.getVoices();
+      const ptVoices= voices.filter(v => v.lang.startsWith('pt'));
+      if (ptVoices.length) {
+        const femVoice = ptVoices.find(v => /female|fem|woman|Luciana|francisca/i.test(v.name));
+        utter.voice = (feminino && femVoice) ? femVoice : ptVoices[0];
+      }
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    };
+
+    // Mobile unlock: toca silêncio antes para liberar AudioContext no iOS
+    const silentAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+    silentAudio.play().catch(()=>{});
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      falar();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => falar();
+      setTimeout(falar, 400); // fallback
+    }
   } catch(e) {}
 }
 
@@ -6714,7 +6883,11 @@ function mostrarSplashBoasVindas(nome, modo) {
     const txtEl = document.getElementById('splash-bv-txt');
     const genSuffix = modo === 'colaborador' ? 'bem-vinda' : 'bem-vindo';
     txtEl.style.opacity = '1';
-    txtEl.innerHTML = `Olá, <b>${nome}</b>! Seja ${genSuffix} 👋`;
+    if (modo === 'cliente') {
+      txtEl.innerHTML = `Seja bem-vindo, <b>safado</b>! 😄`;
+    } else {
+      txtEl.innerHTML = `Olá, <b>${nome}</b>! Seja ${genSuffix} 👋`;
+    }
     document.getElementById('splash-bv-bar').style.width = '100%';
   }, 1600);
   setTimeout(() => {
@@ -7090,6 +7263,1212 @@ function salvarPerfilForm() {
   showToast('✅ Perfil atualizado!');
 }
 
+// ============================================================
+// PORTAL DO CLIENTE
+// ============================================================
+function renderPortalCliente() {
+  const sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const clienteNome = sess.cliente || sess.nome || 'Cliente';
+  const el = document.getElementById('cliente-portal-content');
+  if (!el) return;
+
+  const activeTab = sessionStorage.getItem('portal_tab') || 'visaogeral';
+
+  const TABS = [
+    { id:'visaogeral',   icon:'🏠', label:'Visão Geral' },
+    { id:'calendario',   icon:'📅', label:'Calendário' },
+    { id:'aprovacao',    icon:'✅', label:'Aprovações' },
+    { id:'biblioteca',   icon:'📁', label:'Biblioteca' },
+    { id:'solicitacoes', icon:'📝', label:'Solicitações' },
+    { id:'instagram',    icon:'📸', label:'Instagram' },
+    { id:'oportunidades',icon:'💡', label:'Oportunidades' },
+    { id:'score',        icon:'⭐', label:'Score' },
+    { id:'relatorio',    icon:'📊', label:'Relatório' },
+  ];
+
+  el.innerHTML = `
+  <div style="max-width:960px;margin:0 auto;padding-bottom:60px">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0a1929 0%,#0d2035 100%);border-radius:16px;padding:22px 28px;margin-bottom:20px;border:1px solid #1e3448;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:10px;color:#aee8f5;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Portal do Cliente</div>
+        <div style="font-size:26px;font-weight:800;color:#fff">${clienteNome}</div>
+      </div>
+      <button onclick="fazerLogout()" style="background:none;border:1px solid #ff5a7244;color:#ff5a72;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px">🚪 Sair</button>
+    </div>
+
+    <!-- Tab nav -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;background:var(--surface);border-radius:12px;padding:8px;border:1px solid var(--border)">
+      ${TABS.map(t => {
+        const isAct = activeTab === t.id;
+        return '<button onclick="switchPortalTab(\'' + t.id + '\')" id="ptab-' + t.id + '" style="flex:1;min-width:80px;padding:8px 10px;border-radius:8px;border:none;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;background:' + (isAct?'var(--accent)':'transparent') + ';color:' + (isAct?'#fff':'var(--text2)') + '">' + t.icon + ' ' + t.label + '</button>';
+      }).join('')}
+    </div>
+
+    <!-- Tab content -->
+    <div id="portal-tab-content"></div>
+  </div>`;
+
+  renderPortalTab(activeTab, clienteNome);
+}
+
+function switchPortalTab(tabId) {
+  sessionStorage.setItem('portal_tab', tabId);
+  const sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const clienteNome = sess.cliente || sess.nome || 'Cliente';
+  // update tab button styles
+  document.querySelectorAll('[id^="ptab-"]').forEach(btn => {
+    const isActive = btn.id === 'ptab-' + tabId;
+    btn.style.background = isActive ? 'var(--accent)' : 'transparent';
+    btn.style.color = isActive ? '#fff' : 'var(--text2)';
+  });
+  renderPortalTab(tabId, clienteNome);
+}
+
+function renderPortalTab(tabId, clienteNome) {
+  const el = document.getElementById('portal-tab-content');
+  if (!el) return;
+  switch(tabId) {
+    case 'visaogeral':    el.innerHTML = _tabVisaoGeral(clienteNome); break;
+    case 'calendario':    el.innerHTML = _tabCalendario(clienteNome); break;
+    case 'aprovacao':     el.innerHTML = _tabAprovacao(clienteNome); break;
+    case 'biblioteca':    el.innerHTML = _tabBiblioteca(clienteNome); break;
+    case 'solicitacoes':  el.innerHTML = _tabSolicitacoes(clienteNome); _bindSolicitacoes(clienteNome); break;
+    case 'instagram':     el.innerHTML = _tabInstagram(clienteNome); break;
+    case 'oportunidades': el.innerHTML = _tabOportunidades(clienteNome); break;
+    case 'score':         el.innerHTML = _tabScore(clienteNome); break;
+    case 'relatorio':     el.innerHTML = _tabRelatorio(clienteNome); break;
+  }
+}
+
+// ── TAB 1: VISÃO GERAL ─────────────────────────────────────
+function _tabVisaoGeral(clienteNome) {
+  const _cliObj = (clientes||[]).find(c=>(c.nome||'').toLowerCase()===clienteNome.toLowerCase());
+  const _cliId  = _cliObj ? _cliObj.id : null;
+  const demandasCli = (demandas||[]).filter(d=>{
+    const porId  = _cliId && d.cliente===_cliId;
+    const porExt = (d.clienteExterno||'').toLowerCase()===clienteNome.toLowerCase();
+    return (porId||porExt) && d.status!=='Entregue' && d.status!=='Cancelado';
+  });
+  const plano = (planosAcao||{})[clienteNome]||{titulo:'',descricao:'',setores:[]};
+  const todosItens = (plano.setores||[]).flatMap(s=>s.itens||[]);
+  const feitos = todosItens.filter(i=>i.feito).length;
+  const prog = todosItens.length ? Math.round(feitos/todosItens.length*100) : 0;
+  const metricas = loadData('metricas_cliente_'+clienteNome.toLowerCase().replace(/\s/g,'_'), {
+    seguidores_ig:  {valor:'—',meta:'10k',label:'Seguidores IG'},
+    alcance_semanal:{valor:'—',meta:'',  label:'Alcance Semanal'},
+    engajamento:    {valor:'—',meta:'5%',label:'Taxa Engajamento'},
+    seguidores_fb:  {valor:'—',meta:'', label:'Seguidores FB'},
+    visitas_site:   {valor:'—',meta:'', label:'Visitas Site/mês'},
+    leads_mes:      {valor:'—',meta:'', label:'Leads Gerados'},
+  });
+  const cal = loadData('cal_'+clienteNome, []);
+  const agora = new Date();
+  const semana = cal.filter(c=>{
+    const d = new Date(c.data);
+    const diff = (d - agora)/(1000*60*60*24);
+    return diff >= 0 && diff <= 7;
+  });
+  const aguardAprov = loadData('aprov_'+clienteNome, []).filter(a=>a.status==='Aguardando');
+  const sol = loadData('sol_'+clienteNome, []);
+  const solPend = sol.filter(s=>s.status!=='Finalizado');
+
+  const DEM_COR = {'Em produção':'#3dd68c','Em revisão':'#f7c948','Pendente':'#8b8fa8','Aprovado':'#6c8cff','Aguardando':'#ff9f43'};
+
+  return `
+  <!-- Métricas rápidas -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:20px">
+    ${Object.entries(metricas).map(([k,m])=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--accent)">${m.valor}</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.3">${m.label}</div>
+      ${m.meta?`<div style="font-size:10px;color:#3dd68c;margin-top:3px">meta: ${m.meta}</div>`:''}
+    </div>`).join('')}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;cursor:pointer" onclick="abrirEditarMetricas('${clienteNome}')">
+      <div style="font-size:22px">✏️</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:3px">Atualizar<br>métricas</div>
+    </div>
+  </div>
+
+  <!-- Linha: progresso + próx captação -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+    <div class="card" style="padding:18px 20px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:12px">🚀 ${plano.titulo||'Plano de Ação'}</div>
+      <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:8px">
+        <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,#6c8cff,#3dd68c);border-radius:4px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)">
+        <span>${feitos}/${todosItens.length} tarefas</span><span style="font-weight:700;color:#6c8cff">${prog}%</span>
+      </div>
+    </div>
+    <div class="card" style="padding:18px 20px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:12px">📅 Conteúdos desta semana</div>
+      ${semana.length===0
+        ? `<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 0">Nenhum conteúdo agendado</div>`
+        : semana.slice(0,4).map(c=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:10px;background:var(--accent)22;color:var(--accent);border-radius:4px;padding:1px 6px;font-weight:600">${c.tipo||'Post'}</span>
+          <span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titulo}</span>
+          <span style="font-size:10px;color:var(--text2)">${new Date(c.data).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Pendências -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
+    <div class="card" style="padding:16px 18px;cursor:pointer" onclick="switchPortalTab('aprovacao')">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Aguardando aprovação</div>
+      <div style="font-size:28px;font-weight:800;color:#f7c948">${aguardAprov.length}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px">→ Ver aprovações</div>
+    </div>
+    <div class="card" style="padding:16px 18px;cursor:pointer" onclick="switchPortalTab('solicitacoes')">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Solicitações pendentes</div>
+      <div style="font-size:28px;font-weight:800;color:#6c8cff">${solPend.length}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px">→ Ver solicitações</div>
+    </div>
+    <div class="card" style="padding:16px 18px;cursor:pointer" onclick="switchPortalTab('score')">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Score Focus</div>
+      <div style="font-size:28px;font-weight:800;color:#3dd68c">${_calcScore(clienteNome)}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px">→ Ver detalhes</div>
+    </div>
+  </div>
+
+  <!-- Demandas em andamento -->
+  <div class="card" style="padding:18px 20px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:12px">📌 Demandas em Andamento</div>
+    ${demandasCli.length===0
+      ? `<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">✓ Nenhuma demanda pendente</div>`
+      : demandasCli.map(d=>{
+          const cor = DEM_COR[d.status]||'#8b8fa8';
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+            <span style="width:8px;height:8px;border-radius:50%;background:${cor};flex-shrink:0"></span>
+            <span style="flex:1;font-size:13px">${d.titulo||d.texto||'Demanda'}</span>
+            <span style="font-size:10px;font-weight:700;color:${cor};background:${cor}22;padding:2px 8px;border-radius:20px">${d.status}</span>
+          </div>`;
+        }).join('')}
+  </div>`;
+}
+
+// ── TAB 2: CALENDÁRIO ──────────────────────────────────────
+function _tabCalendario(clienteNome) {
+  const agora = new Date();
+  let mes = parseInt(sessionStorage.getItem('cal_mes')||agora.getMonth());
+  let ano = parseInt(sessionStorage.getItem('cal_ano')||agora.getFullYear());
+  const cal = loadData('cal_'+clienteNome, []);
+
+  const TIPOS = ['Feed','Reels','Stories','Carrossel','Campanha','Aviso'];
+  const TIPO_COR = {Feed:'#6c8cff',Reels:'#ff9f43',Stories:'#3dd68c',Carrossel:'#f7c948',Campanha:'#ff5a72',Aviso:'#aee8f5'};
+  const STATUS_CAL = ['Planejado','Em produção','Aguardando arte','Aprovado','Publicado'];
+  const STATUS_COR_CAL = {Planejado:'#8b8fa8','Em produção':'#f7c948','Aguardando arte':'#ff9f43',Aprovado:'#6c8cff',Publicado:'#3dd68c'};
+
+  const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mes];
+  const diasMes = new Date(ano, mes+1, 0).getDate();
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+
+  // Group items by day
+  const porDia = {};
+  cal.forEach(c => {
+    if (!c.data) return;
+    const d = new Date(c.data);
+    if (d.getMonth()===mes && d.getFullYear()===ano) {
+      const day = d.getDate();
+      if (!porDia[day]) porDia[day] = [];
+      porDia[day].push(c);
+    }
+  });
+
+  // Build calendar grid
+  let calHtml = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:20px">';
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  calHtml += dias.map(d=>`<div style="background:var(--surface);padding:8px 4px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);letter-spacing:1px">${d}</div>`).join('');
+  
+  for (let i=0; i<primeiroDia; i++) calHtml += '<div style="background:var(--surface);min-height:70px"></div>';
+  
+  for (let d=1; d<=diasMes; d++) {
+    const items = porDia[d]||[];
+    const isHoje = d===agora.getDate() && mes===agora.getMonth() && ano===agora.getFullYear();
+    calHtml += `<div style="background:var(--surface);min-height:70px;padding:4px;${isHoje?'outline:2px solid var(--accent);outline-offset:-1px':''}">
+      <div style="font-size:11px;font-weight:700;color:${isHoje?'var(--accent)':'var(--text2)'};margin-bottom:3px">${d}</div>
+      ${items.slice(0,3).map(c=>{
+        const cor = TIPO_COR[c.tipo]||'#8b8fa8';
+        return `<div onclick='_abrirItemCal(${JSON.stringify(c)})' style="font-size:9px;line-height:1.2;background:${cor}33;color:${cor};border-radius:3px;padding:2px 4px;margin-bottom:2px;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${c.tipo||''} ${c.titulo||''}</div>`;
+      }).join('')}
+      ${items.length>3?`<div style="font-size:9px;color:var(--text2)">+${items.length-3}</div>`:''}
+    </div>`;
+  }
+  calHtml += '</div>';
+
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="navCalMes(-1)" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--text)">‹</button>
+      <div style="font-size:16px;font-weight:700">${nomeMes} ${ano}</div>
+      <button onclick="navCalMes(1)" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--text)">›</button>
+    </div>
+    <button onclick="abrirNovoConteudo('${clienteNome}')" class="btn btn-primary" style="font-size:12px">+ Novo Conteúdo</button>
+  </div>
+  <!-- Legenda tipos -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    ${Object.entries(TIPO_COR).map(([t,c])=>`<span style="font-size:11px;background:${c}22;color:${c};border-radius:20px;padding:3px 10px;font-weight:600">${t}</span>`).join('')}
+  </div>
+  ${calHtml}
+  <!-- Lista do mês -->
+  <div class="card" style="padding:18px 20px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:12px">📋 Todos os conteúdos — ${nomeMes}</div>
+    ${cal.filter(c=>{ const d=new Date(c.data); return d.getMonth()===mes && d.getFullYear()===ano; }).length===0
+      ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px">Nenhum conteúdo planejado para este mês</div>`
+      : cal.filter(c=>{ const d=new Date(c.data); return d.getMonth()===mes && d.getFullYear()===ano; })
+           .sort((a,b)=>new Date(a.data)-new Date(b.data))
+           .map(c=>{
+             const cor = TIPO_COR[c.tipo]||'#8b8fa8';
+             const scorCor = STATUS_COR_CAL[c.status]||'#8b8fa8';
+             return `<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+               <div style="text-align:center;min-width:32px">
+                 <div style="font-size:14px;font-weight:800;color:var(--accent)">${new Date(c.data).getDate()}</div>
+                 <div style="font-size:9px;color:var(--text2)">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(c.data).getDay()]}</div>
+               </div>
+               <div>
+                 <div style="font-size:13px;font-weight:600">${c.titulo}</div>
+                 ${c.objetivo?`<div style="font-size:11px;color:var(--text2)">${c.objetivo}</div>`:''}
+               </div>
+               <span style="font-size:10px;font-weight:700;color:${cor};background:${cor}22;padding:2px 8px;border-radius:20px;white-space:nowrap">${c.tipo||'Post'}</span>
+               <span style="font-size:10px;font-weight:700;color:${scorCor};background:${scorCor}22;padding:2px 8px;border-radius:20px;white-space:nowrap">${c.status||'Planejado'}</span>
+             </div>`;
+           }).join('')}
+  </div>`;
+}
+
+function navCalMes(dir) {
+  let mes = parseInt(sessionStorage.getItem('cal_mes')|| new Date().getMonth());
+  let ano = parseInt(sessionStorage.getItem('cal_ano')|| new Date().getFullYear());
+  mes += dir;
+  if (mes < 0) { mes = 11; ano--; }
+  if (mes > 11) { mes = 0; ano++; }
+  sessionStorage.setItem('cal_mes', mes);
+  sessionStorage.setItem('cal_ano', ano);
+  const sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  renderPortalTab('calendario', sess.cliente||sess.nome||'Cliente');
+}
+
+function _abrirItemCal(item) {
+  const TIPO_COR = {Feed:'#6c8cff',Reels:'#ff9f43',Stories:'#3dd68c',Carrossel:'#f7c948',Campanha:'#ff5a72',Aviso:'#aee8f5'};
+  const STATUS_COR_CAL = {Planejado:'#8b8fa8','Em produção':'#f7c948','Aguardando arte':'#ff9f43',Aprovado:'#6c8cff',Publicado:'#3dd68c'};
+  const cor = TIPO_COR[item.tipo]||'#8b8fa8';
+  const scorCor = STATUS_COR_CAL[item.status]||'#8b8fa8';
+  const modal = document.createElement('div');
+  modal.id = 'modal-cal-item';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:480px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+        <div>
+          <div style="display:flex;gap:8px;margin-bottom:6px">
+            <span style="font-size:11px;font-weight:700;color:${cor};background:${cor}22;border-radius:20px;padding:2px 10px">${item.tipo||'Post'}</span>
+            <span style="font-size:11px;font-weight:700;color:${scorCor};background:${scorCor}22;border-radius:20px;padding:2px 10px">${item.status||'Planejado'}</span>
+          </div>
+          <div style="font-size:16px;font-weight:700">${item.titulo}</div>
+          <div style="font-size:12px;color:var(--text2)">${new Date(item.data).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</div>
+        </div>
+        <button onclick="document.getElementById('modal-cal-item').remove()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      ${item.objetivo?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px"><b>Objetivo:</b> ${item.objetivo}</div>`:''}
+      ${item.legenda?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px;white-space:pre-wrap;background:var(--surface2);border-radius:8px;padding:10px"><b>Legenda:</b><br>${item.legenda}</div>`:''}
+      ${item.comentario?`<div style="font-size:12px;color:#f7c948;margin-bottom:8px;padding:8px;background:#f7c94822;border-radius:8px">💬 ${item.comentario}</div>`:''}
+      <button onclick="document.getElementById('modal-cal-item').remove()" class="btn btn-ghost" style="width:100%;margin-top:8px">Fechar</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function abrirNovoConteudo(clienteNome) {
+  const modal = document.createElement('div');
+  modal.id = 'modal-novo-conteudo';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:480px;border:1px solid var(--border);max-height:90vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700">📅 Novo Conteúdo</div>
+        <button onclick="document.getElementById('modal-novo-conteudo').remove()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input id="nc-titulo" class="form-input" placeholder="Título do conteúdo">
+        <select id="nc-tipo" class="form-input">
+          <option>Feed</option><option>Reels</option><option>Stories</option><option>Carrossel</option><option>Campanha</option><option>Aviso</option>
+        </select>
+        <input id="nc-data" class="form-input" type="date" value="${new Date().toISOString().split('T')[0]}">
+        <input id="nc-objetivo" class="form-input" placeholder="Objetivo (ex: captar leads, engajamento)">
+        <textarea id="nc-legenda" class="form-input" rows="3" placeholder="Legenda sugerida..."></textarea>
+        <select id="nc-status" class="form-input">
+          <option>Planejado</option><option>Em produção</option><option>Aguardando arte</option><option>Aprovado</option><option>Publicado</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="document.getElementById('modal-novo-conteudo').remove()" class="btn btn-ghost" style="flex:1">Cancelar</button>
+        <button onclick="salvarNovoConteudo('${clienteNome}')" class="btn btn-primary" style="flex:1">💾 Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function salvarNovoConteudo(clienteNome) {
+  const titulo = document.getElementById('nc-titulo')?.value.trim();
+  if (!titulo) { showToast('Digite o título'); return; }
+  const cal = loadData('cal_'+clienteNome, []);
+  cal.push({
+    id: Date.now(),
+    titulo,
+    tipo:     document.getElementById('nc-tipo')?.value||'Feed',
+    data:     document.getElementById('nc-data')?.value||new Date().toISOString().split('T')[0],
+    objetivo: document.getElementById('nc-objetivo')?.value.trim()||'',
+    legenda:  document.getElementById('nc-legenda')?.value.trim()||'',
+    status:   document.getElementById('nc-status')?.value||'Planejado',
+  });
+  saveData('cal_'+clienteNome, cal);
+  document.getElementById('modal-novo-conteudo')?.remove();
+  showToast('✅ Conteúdo adicionado!');
+  renderPortalTab('calendario', clienteNome);
+}
+
+// ── TAB 3: APROVAÇÃO ───────────────────────────────────────
+function _tabAprovacao(clienteNome) {
+  const itens = loadData('aprov_'+clienteNome, []);
+  const TIPOS = ['Capa','Reels','Stories','Carrossel','Aviso','Campanha'];
+  const STATUS_A = {Aguardando:'#f7c948',Aprovado:'#3dd68c','Alteração solicitada':'#ff5a72',Comentado:'#6c8cff'};
+
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="font-size:14px;font-weight:700">✅ Aprovação de Conteúdo</div>
+    <div style="display:flex;gap:6px">
+      <span style="font-size:11px;background:#f7c94822;color:#f7c948;border-radius:20px;padding:3px 10px">${itens.filter(i=>i.status==='Aguardando').length} aguardando</span>
+      <span style="font-size:11px;background:#3dd68c22;color:#3dd68c;border-radius:20px;padding:3px 10px">${itens.filter(i=>i.status==='Aprovado').length} aprovados</span>
+    </div>
+  </div>
+  ${itens.length===0
+    ? `<div class="card" style="text-align:center;padding:48px;color:var(--text2)">
+         <div style="font-size:36px;margin-bottom:12px">✅</div>
+         <div style="font-size:14px">Nenhum conteúdo aguardando aprovação</div>
+       </div>`
+    : itens.map((item,idx) => {
+        const cor = STATUS_A[item.status]||'#8b8fa8';
+        return `
+        <div style="background:var(--surface);border:1px solid ${item.status==='Aguardando'?'#f7c94844':'var(--border)'};border-radius:12px;padding:18px 20px;margin-bottom:12px;border-left:4px solid ${cor}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+                <span style="font-size:10px;background:${cor}22;color:${cor};border-radius:20px;padding:2px 8px;font-weight:700">${item.status||'Aguardando'}</span>
+                <span style="font-size:10px;color:var(--text2);background:var(--surface2);border-radius:20px;padding:2px 8px">${item.tipo||'Post'}</span>
+              </div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:4px">${item.titulo}</div>
+              ${item.descricao?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">${item.descricao}</div>`:''}
+              ${item.comentarios && item.comentarios.length>0?`
+              <div style="margin-top:8px">
+                ${item.comentarios.map(c=>`
+                <div style="font-size:11px;background:${c.tipo==='cliente'?'#6c8cff22':'#3dd68c22'};color:${c.tipo==='cliente'?'#6c8cff':'#3dd68c'};border-radius:6px;padding:6px 10px;margin-bottom:4px">
+                  ${c.tipo==='cliente'?'👤':'🎨'} <b>${c.tipo==='cliente'?'Você':'Focus'}:</b> ${c.texto}
+                  <span style="float:right;font-size:10px;opacity:.6">${c.data||''}</span>
+                </div>`).join('')}
+              </div>`:''}
+            </div>
+          </div>
+          ${item.status==='Aguardando'?`
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button onclick="acaoAprovacao('${clienteNome}',${idx},'Aprovado')" style="flex:1;min-width:100px;padding:8px;background:#3dd68c22;border:1px solid #3dd68c44;color:#3dd68c;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">✅ Aprovar</button>
+            <button onclick="acaoAprovacao('${clienteNome}',${idx},'Alteração solicitada')" style="flex:1;min-width:100px;padding:8px;background:#ff5a7222;border:1px solid #ff5a7244;color:#ff5a72;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">✏️ Solicitar alteração</button>
+            <button onclick="abrirComentarioAprov('${clienteNome}',${idx})" style="flex:1;min-width:100px;padding:8px;background:#6c8cff22;border:1px solid #6c8cff44;color:#6c8cff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">💬 Comentar</button>
+          </div>`:''}
+        </div>`;
+      }).join('')}`;
+}
+
+function acaoAprovacao(clienteNome, idx, acao) {
+  const itens = loadData('aprov_'+clienteNome, []);
+  if (!itens[idx]) return;
+  itens[idx].status = acao;
+  itens[idx].dataAcao = new Date().toLocaleDateString('pt-BR');
+  saveData('aprov_'+clienteNome, itens);
+  showToast(acao==='Aprovado' ? '✅ Aprovado!' : '✏️ Alteração solicitada!');
+  renderPortalTab('aprovacao', clienteNome);
+}
+
+function abrirComentarioAprov(clienteNome, idx) {
+  const modal = document.createElement('div');
+  modal.id = 'modal-comentario-aprov';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:420px;border:1px solid var(--border)">
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">💬 Adicionar comentário</div>
+      <textarea id="txt-comentario-aprov" class="form-input" rows="4" placeholder="Escreva seu comentário..."></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button onclick="document.getElementById('modal-comentario-aprov').remove()" class="btn btn-ghost" style="flex:1">Cancelar</button>
+        <button onclick="salvarComentarioAprov('${clienteNome}',${idx})" class="btn btn-primary" style="flex:1">Enviar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function salvarComentarioAprov(clienteNome, idx) {
+  const txt = document.getElementById('txt-comentario-aprov')?.value.trim();
+  if (!txt) return;
+  const itens = loadData('aprov_'+clienteNome, []);
+  if (!itens[idx]) return;
+  if (!itens[idx].comentarios) itens[idx].comentarios = [];
+  itens[idx].comentarios.push({ tipo:'cliente', texto:txt, data: new Date().toLocaleDateString('pt-BR') });
+  itens[idx].status = 'Comentado';
+  saveData('aprov_'+clienteNome, itens);
+  document.getElementById('modal-comentario-aprov')?.remove();
+  showToast('💬 Comentário enviado!');
+  renderPortalTab('aprovacao', clienteNome);
+}
+
+// ── TAB 4: BIBLIOTECA ──────────────────────────────────────
+function _tabBiblioteca(clienteNome) {
+  const bib = loadData('bib_'+clienteNome, {fotos:[],videos:[],logos:[],paleta:[],campanhas:[],artes:[]});
+  const cats = [
+    {id:'fotos',    icon:'📷', label:'Fotos'},
+    {id:'videos',   icon:'🎬', label:'Vídeos'},
+    {id:'logos',    icon:'✏️', label:'Logos & Marca'},
+    {id:'paleta',   icon:'🎨', label:'Paleta & Fontes'},
+    {id:'campanhas',icon:'📢', label:'Campanhas Antigas'},
+    {id:'artes',    icon:'🖼️', label:'Artes Aprovadas'},
+  ];
+  const activeCat = sessionStorage.getItem('bib_cat')||'fotos';
+  const items = bib[activeCat]||[];
+
+  const tabBtns = cats.map(c => {
+    const isAct = activeCat === c.id;
+    return '<button onclick="switchBibCat(\'' + clienteNome + '\',\'' + c.id + '\')" style="padding:8px 14px;border-radius:8px;border:1px solid ' + (isAct?'var(--accent)':'var(--border)') + ';background:' + (isAct?'var(--accent)':'var(--surface)') + ';color:' + (isAct?'#fff':'var(--text2)') + ';cursor:pointer;font-size:12px;font-weight:600">' + c.icon + ' ' + c.label + '</button>';
+  }).join('');
+  const corInput = activeCat==='paleta' ? '<input id="bib-cor" class="form-input" placeholder="Código da cor (#hex)" style="font-size:13px">' : '';
+
+  let html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">' + tabBtns + '</div>'
+    + '<div class="card" style="padding:14px 16px;margin-bottom:16px;border:1px dashed var(--border)">'
+    + '<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end">'
+    + '<div style="display:flex;flex-direction:column;gap:8px">'
+    + '<input id="bib-titulo" class="form-input" placeholder="Nome / descrição do arquivo">'
+    + '<input id="bib-url" class="form-input" placeholder="URL do arquivo (Drive, Dropbox, etc.)">'
+    + corInput + '</div>'
+    + '<button onclick="adicionarItemBib(\'' + clienteNome + '\',\'' + activeCat + '\')" class="btn btn-primary" style="white-space:nowrap">+ Adicionar</button>'
+    + '</div></div>';
+
+  if (items.length === 0) {
+    const catIcon = (cats.find(c=>c.id===activeCat)||{}).icon || '📁';
+    html += `<div class="card" style="text-align:center;padding:48px;color:var(--text2)">
+         <div style="font-size:36px;margin-bottom:12px">${catIcon}</div>
+         <div>Nenhum item nesta categoria ainda</div>
+         <div style="font-size:12px;margin-top:6px">Adicione arquivos via URL acima</div>
+       </div>`;
+  } else {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">';
+    items.forEach((item, i) => {
+      let preview = '';
+      if (item.url && (item.url.match(/\.(jpg|jpeg|png|gif|webp)/i) || item.url.includes('drive.google'))) {
+        preview = '<div style="height:120px;background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="window.open(\'' + item.url + '\',\'_blank\')"><span style="font-size:36px">' + (['fotos','artes'].includes(activeCat)?'🖼️':'📁') + '</span></div>';
+      } else if (item.cor) {
+        preview = '<div style="height:60px;background:' + item.cor + '"></div>';
+      } else {
+        const icon2 = activeCat==='videos'?'🎬':activeCat==='logos'?'✏️':'📁';
+        preview = '<div style="height:60px;background:var(--surface2);display:flex;align-items:center;justify-content:center"><span style="font-size:24px">' + icon2 + '</span></div>';
+      }
+      const corDiv = item.cor ? '<div style="font-size:11px;color:var(--text2)">' + item.cor + '</div>' : '';
+      const openBtn = item.url ? '<button onclick="window.open(\'' + item.url + '\',\'_blank\')" style="flex:1;padding:5px;background:var(--accent)22;border:none;border-radius:6px;color:var(--accent);cursor:pointer;font-size:11px">🔗 Abrir</button>' : '';
+      html += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">'
+        + preview
+        + '<div style="padding:10px 12px">'
+        + '<div style="font-size:12px;font-weight:600;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (item.titulo||'Sem nome') + '</div>'
+        + corDiv
+        + '<div style="display:flex;gap:6px;margin-top:8px">'
+        + openBtn
+        + '<button onclick="removerItemBib(\'' + clienteNome + '\',\'' + activeCat + '\',' + i + ')" style="padding:5px 8px;background:none;border:1px solid #ff5a7244;border-radius:6px;color:#ff5a72;cursor:pointer;font-size:11px">✕</button>'
+        + '</div></div></div>';
+    });
+    html += '</div>';
+  }
+  return html;
+}
+
+function switchBibCat(clienteNome, cat) {
+  sessionStorage.setItem('bib_cat', cat);
+  renderPortalTab('biblioteca', clienteNome);
+}
+
+function adicionarItemBib(clienteNome, cat) {
+  const titulo = document.getElementById('bib-titulo')?.value.trim();
+  const url    = document.getElementById('bib-url')?.value.trim();
+  const cor    = document.getElementById('bib-cor')?.value.trim();
+  if (!titulo && !url && !cor) { showToast('Preencha pelo menos um campo'); return; }
+  const bib = loadData('bib_'+clienteNome, {fotos:[],videos:[],logos:[],paleta:[],campanhas:[],artes:[]});
+  if (!bib[cat]) bib[cat] = [];
+  bib[cat].push({ id: Date.now(), titulo, url, cor });
+  saveData('bib_'+clienteNome, bib);
+  showToast('✅ Item adicionado!');
+  renderPortalTab('biblioteca', clienteNome);
+}
+
+function removerItemBib(clienteNome, cat, idx) {
+  const bib = loadData('bib_'+clienteNome, {fotos:[],videos:[],logos:[],paleta:[],campanhas:[],artes:[]});
+  if (!bib[cat]) return;
+  bib[cat].splice(idx, 1);
+  saveData('bib_'+clienteNome, bib);
+  renderPortalTab('biblioteca', clienteNome);
+}
+
+// ── TAB 5: SOLICITAÇÕES ────────────────────────────────────
+function _tabSolicitacoes(clienteNome) {
+  const sol = loadData('sol_'+clienteNome, []);
+  const CATS = ['Arte','Vídeo','Copywriting','Estratégia','Campanha','Outro'];
+  const STATUS_S = ['Recebido','Em produção','Em revisão','Aprovado','Finalizado'];
+  const STATUS_COR_S = {Recebido:'#8b8fa8','Em produção':'#f7c948','Em revisão':'#ff9f43',Aprovado:'#6c8cff',Finalizado:'#3dd68c'};
+  const filterStatus = sessionStorage.getItem('sol_filter')||'todas';
+
+  const filtradas = filterStatus==='todas' ? sol : sol.filter(s=>s.status===filterStatus);
+
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="font-size:14px;font-weight:700">📝 Minhas Solicitações</div>
+    <button onclick="abrirNovaSolicitacao('${clienteNome}')" class="btn btn-primary" style="font-size:12px">+ Nova Solicitação</button>
+  </div>
+  <!-- Filtros de status -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+    ${['todas',...STATUS_S].map(s=>`
+    <button onclick="filtrarSolicitacoes('${clienteNome}','${s}')"
+      style="padding:5px 12px;border-radius:20px;border:1px solid ${filterStatus===s?'var(--accent)':'var(--border)'};background:${filterStatus===s?'var(--accent)':'transparent'};color:${filterStatus===s?'#fff':'var(--text2)'};cursor:pointer;font-size:11px">
+      ${s==='todas'?'Todas':s} ${s==='todas'?`(${sol.length})`:sol.filter(x=>x.status===s).length>0?`(${sol.filter(x=>x.status===s).length})`:''}
+    </button>`).join('')}
+  </div>
+  ${filtradas.length===0
+    ? `<div class="card" style="text-align:center;padding:48px;color:var(--text2)">
+         <div style="font-size:36px;margin-bottom:12px">📝</div>
+         <div>Nenhuma solicitação ${filterStatus==='todas'?'ainda':'com este status'}</div>
+       </div>`
+    : filtradas.map((s,idx)=>{
+        const cor = STATUS_COR_S[s.status]||'#8b8fa8';
+        const steps = ['Recebido','Em produção','Em revisão','Aprovado','Finalizado'];
+        const stepIdx = steps.indexOf(s.status);
+        return `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:12px;border-left:4px solid ${cor}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+            <div>
+              <div style="font-size:14px;font-weight:700">${s.titulo}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:3px">${s.categoria||''} · ${s.criado||''}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${cor};background:${cor}22;padding:4px 12px;border-radius:20px;white-space:nowrap">${s.status}</span>
+          </div>
+          ${s.descricao?`<div style="font-size:12px;color:var(--text2);margin-bottom:12px">${s.descricao}</div>`:''}
+          <!-- Progress steps -->
+          <div style="display:flex;align-items:center;gap:0">
+            ${steps.map((step,si)=>{
+              const done  = si <= stepIdx;
+              const active= si === stepIdx;
+              const scor  = STATUS_COR_S[step]||'#8b8fa8';
+              return `
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                <div style="width:20px;height:20px;border-radius:50%;background:${done?scor:'var(--surface2)'};border:2px solid ${done?scor:'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1">
+                  ${done && !active?'✓':''}
+                </div>
+                <div style="font-size:9px;color:${active?scor:'var(--text2)'};margin-top:4px;text-align:center;font-weight:${active?'700':'400'}">${step}</div>
+              </div>
+              ${si<steps.length-1?`<div style="flex:1;height:2px;background:${si<stepIdx?cor:'var(--surface2)'};margin-bottom:16px"></div>`:''}`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}`;
+}
+
+function filtrarSolicitacoes(clienteNome, status) {
+  sessionStorage.setItem('sol_filter', status);
+  renderPortalTab('solicitacoes', clienteNome);
+}
+
+function _bindSolicitacoes() {} // placeholder
+
+function abrirNovaSolicitacao(clienteNome) {
+  const CATS = ['Arte','Vídeo','Copywriting','Estratégia','Campanha','Outro'];
+  const modal = document.createElement('div');
+  modal.id = 'modal-nova-sol';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:480px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700">📝 Nova Solicitação</div>
+        <button onclick="document.getElementById('modal-nova-sol').remove()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input id="sol-titulo" class="form-input" placeholder="Título da solicitação">
+        <select id="sol-cat" class="form-input">
+          ${CATS.map(c=>`<option>${c}</option>`).join('')}
+        </select>
+        <textarea id="sol-desc" class="form-input" rows="4" placeholder="Descreva o que você precisa..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="document.getElementById('modal-nova-sol').remove()" class="btn btn-ghost" style="flex:1">Cancelar</button>
+        <button onclick="salvarNovaSolicitacao('${clienteNome}')" class="btn btn-primary" style="flex:1">Enviar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function salvarNovaSolicitacao(clienteNome) {
+  const titulo = document.getElementById('sol-titulo')?.value.trim();
+  if (!titulo) { showToast('Digite o título'); return; }
+  const sol = loadData('sol_'+clienteNome, []);
+  sol.unshift({
+    id:         Date.now(),
+    titulo,
+    categoria:  document.getElementById('sol-cat')?.value||'Outro',
+    descricao:  document.getElementById('sol-desc')?.value.trim()||'',
+    status:     'Recebido',
+    criado:     new Date().toLocaleDateString('pt-BR'),
+  });
+  saveData('sol_'+clienteNome, sol);
+  document.getElementById('modal-nova-sol')?.remove();
+  showToast('✅ Solicitação enviada!');
+  renderPortalTab('solicitacoes', clienteNome);
+}
+
+// ── TAB 6: INSTAGRAM ───────────────────────────────────────
+function _tabInstagram(clienteNome) {
+  const ig = loadData('ig_'+clienteNome, {
+    seguidores:'—', alcance7d:'—', impressoes:'—', engajamento:'—',
+    posts_mes:'—', reels_views:'—', contas_alcancadas:'—', saves:'—',
+    ultimo_post:'—', melhor_post:'—'
+  });
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="font-size:14px;font-weight:700">📸 Instagram da Focus</div>
+    <button onclick="abrirEditarIG('${clienteNome}')" style="font-size:11px;background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:5px 12px;cursor:pointer">✏️ Atualizar dados</button>
+  </div>
+  <!-- Aviso API -->
+  <div style="background:#f7c94822;border:1px solid #f7c94844;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#f7c948">
+    💡 <b>Integração automática:</b> Para atualização automática dos dados do Instagram é necessário configurar a Meta Graph API com uma conta Business/Creator. Por ora, atualize manualmente clicando em "Atualizar dados".
+  </div>
+  <!-- Métricas IG -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+    ${[
+      {k:'seguidores',      label:'Seguidores',         icon:'👥', cor:'#6c8cff'},
+      {k:'alcance7d',       label:'Alcance (7 dias)',    icon:'📡', cor:'#3dd68c'},
+      {k:'impressoes',      label:'Impressões',          icon:'👁️', cor:'#f7c948'},
+      {k:'engajamento',     label:'Taxa Engajamento',    icon:'❤️', cor:'#ff5a72'},
+      {k:'posts_mes',       label:'Posts no mês',        icon:'📷', cor:'#aee8f5'},
+      {k:'reels_views',     label:'Views Reels',         icon:'▶️', cor:'#ff9f43'},
+      {k:'contas_alcancadas',label:'Contas alcançadas',  icon:'🌐', cor:'#6c8cff'},
+      {k:'saves',           label:'Salvamentos',         icon:'🔖', cor:'#3dd68c'},
+    ].map(m=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 14px;text-align:center;border-top:3px solid ${m.cor}">
+      <div style="font-size:20px;margin-bottom:6px">${m.icon}</div>
+      <div style="font-size:24px;font-weight:800;color:${m.cor}">${ig[m.k]||'—'}</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:4px">${m.label}</div>
+    </div>`).join('')}
+  </div>
+  <!-- Info adicional -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card" style="padding:16px 18px">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">📅 Último post</div>
+      <div style="font-size:13px;font-weight:600">${ig.ultimo_post||'—'}</div>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">🏆 Melhor post do mês</div>
+      <div style="font-size:13px;font-weight:600">${ig.melhor_post||'—'}</div>
+    </div>
+  </div>`;
+}
+
+function abrirEditarIG(clienteNome) {
+  const ig = loadData('ig_'+clienteNome, {seguidores:'—',alcance7d:'—',impressoes:'—',engajamento:'—',posts_mes:'—',reels_views:'—',contas_alcancadas:'—',saves:'—',ultimo_post:'—',melhor_post:'—'});
+  const campos = [
+    {k:'seguidores',       label:'Seguidores'},
+    {k:'alcance7d',        label:'Alcance (7 dias)'},
+    {k:'impressoes',       label:'Impressões'},
+    {k:'engajamento',      label:'Taxa Engajamento'},
+    {k:'posts_mes',        label:'Posts no mês'},
+    {k:'reels_views',      label:'Views Reels'},
+    {k:'contas_alcancadas',label:'Contas alcançadas'},
+    {k:'saves',            label:'Salvamentos'},
+    {k:'ultimo_post',      label:'Último post (data)'},
+    {k:'melhor_post',      label:'Melhor post do mês'},
+  ];
+  const modal = document.createElement('div');
+  modal.id = 'modal-ig-wrap';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700">📸 Atualizar Instagram — ${clienteNome}</div>
+        <button onclick="document.getElementById('modal-ig-wrap').remove()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${campos.map(c=>`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center">
+          <label style="font-size:12px;color:var(--text2)">${c.label}</label>
+          <input id="ig-${c.k}" class="form-input" value="${ig[c.k]||''}" placeholder="valor">
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="document.getElementById('modal-ig-wrap').remove()" class="btn btn-ghost" style="flex:1">Cancelar</button>
+        <button onclick="salvarIG('${clienteNome}')" class="btn btn-primary" style="flex:1">💾 Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  window._igKey = 'ig_'+clienteNome;
+  window._igCampos = campos;
+}
+
+function salvarIG(clienteNome) {
+  const ig = {};
+  (window._igCampos||[]).forEach(c => {
+    ig[c.k] = document.getElementById('ig-'+c.k)?.value.trim()||'—';
+  });
+  saveData('ig_'+clienteNome, ig);
+  document.getElementById('modal-ig-wrap')?.remove();
+  showToast('✅ Dados do Instagram atualizados!');
+  renderPortalTab('instagram', clienteNome);
+}
+
+// ── TAB 7: OPORTUNIDADES ───────────────────────────────────
+function _tabOportunidades(clienteNome) {
+  const cal = loadData('cal_'+clienteNome, []);
+  const ig  = loadData('ig_'+clienteNome, {});
+  const sol = loadData('sol_'+clienteNome, []);
+  const bib = loadData('bib_'+clienteNome, {fotos:[],videos:[],logos:[],paleta:[],campanhas:[],artes:[]});
+  const agora = new Date();
+  const insights = [];
+
+  // Análise de conteúdo
+  const postsPublicados = cal.filter(c=>c.status==='Publicado');
+  const agora7 = new Date(agora.getTime() - 7*24*3600000);
+  const postsUlt7 = postsPublicados.filter(c=>new Date(c.data)>=agora7);
+  if (postsUlt7.length === 0) {
+    insights.push({ tipo:'alerta', icon:'⚠️', titulo:'Nenhum post publicado nos últimos 7 dias', desc:'A frequência de publicação afeta diretamente o alcance orgânico. Recomenda-se ao menos 3 posts por semana.', cor:'#ff5a72' });
+  } else if (postsUlt7.length < 3) {
+    insights.push({ tipo:'atencao', icon:'📊', titulo:`Apenas ${postsUlt7.length} post(s) nos últimos 7 dias`, desc:'Aumente para 3-5 posts semanais para maximizar o alcance.', cor:'#f7c948' });
+  } else {
+    insights.push({ tipo:'ok', icon:'✅', titulo:'Frequência de postagem em dia!', desc:`${postsUlt7.length} posts nos últimos 7 dias. Ótimo ritmo!`, cor:'#3dd68c' });
+  }
+
+  // Reels
+  const reelsUlt30 = cal.filter(c=>{
+    const d = new Date(c.data);
+    return c.tipo==='Reels' && d >= new Date(agora.getTime()-30*24*3600000) && c.status==='Publicado';
+  });
+  if (reelsUlt30.length < 4) {
+    insights.push({ tipo:'oportunidade', icon:'🎬', titulo:'Oportunidade: mais Reels!', desc:`Apenas ${reelsUlt30.length} Reels no último mês. O algoritmo prioriza Reels — tente ao menos 8-12 por mês para ganhar alcance orgânico.`, cor:'#ff9f43' });
+  }
+
+  // Variedade de formatos
+  const tiposUsados = [...new Set(postsPublicados.map(c=>c.tipo))];
+  if (tiposUsados.length < 3) {
+    insights.push({ tipo:'oportunidade', icon:'🎨', titulo:'Diversifique os formatos', desc:`Você usou apenas ${tiposUsados.length} formato(s): ${tiposUsados.join(', ')}. Misturar Feed, Reels, Stories e Carrossel aumenta o engajamento.`, cor:'#6c8cff' });
+  }
+
+  // Biblioteca vazia
+  const totalBib = Object.values(bib).flat().length;
+  if (totalBib < 5) {
+    insights.push({ tipo:'oportunidade', icon:'📁', titulo:'Biblioteca desatualizada', desc:'Adicione fotos, vídeos e artes aprovadas na Biblioteca para facilitar a produção de conteúdo.', cor:'#aee8f5' });
+  }
+
+  // Aprovações pendentes
+  const aprovPend = loadData('aprov_'+clienteNome, []).filter(a=>a.status==='Aguardando');
+  if (aprovPend.length > 0) {
+    insights.push({ tipo:'alerta', icon:'⏳', titulo:`${aprovPend.length} conteúdo(s) aguardando sua aprovação`, desc:'Aprovar em tempo reduz o tempo de publicação e melhora o fluxo de produção.', cor:'#f7c948' });
+  }
+
+  // Próxima data sazonal
+  const datasSaz = [
+    { data: new Date(agora.getFullYear(),6,4), nome:'Dia do Esporte' },
+    { data: new Date(agora.getFullYear(),7,1), nome:'Dia do Médico' },
+    { data: new Date(agora.getFullYear(),8,7), nome:'Independência do Brasil' },
+    { data: new Date(agora.getFullYear(),9,12), nome:'Dia das Crianças' },
+    { data: new Date(agora.getFullYear(),10,15), nome:'Black Friday' },
+  ];
+  const proxSaz = datasSaz.find(d => d.data > agora && (d.data - agora)/(1000*60*60*24) <= 30);
+  if (proxSaz) {
+    const dias = Math.round((proxSaz.data - agora)/(1000*60*60*24));
+    insights.push({ tipo:'oportunidade', icon:'🗓️', titulo:`Data sazonal em ${dias} dias: ${proxSaz.nome}`, desc:'Planeje conteúdo temático para aproveitar esta data e aumentar o engajamento.', cor:'#3dd68c' });
+  }
+
+  if (insights.length === 0) {
+    insights.push({ tipo:'ok', icon:'🚀', titulo:'Tudo em dia!', desc:'Nenhum alerta identificado. Continue com a boa frequência de publicação!', cor:'#3dd68c' });
+  }
+
+  return `
+  <div style="font-size:14px;font-weight:700;margin-bottom:16px">💡 Centro de Oportunidades</div>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:20px">Insights automáticos gerados com base nos seus dados de conteúdo e engajamento.</div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    ${insights.map(ins=>`
+    <div style="background:var(--surface);border:1px solid ${ins.cor}33;border-radius:12px;padding:16px 20px;border-left:4px solid ${ins.cor}">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="font-size:24px;flex-shrink:0">${ins.icon}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:${ins.cor};margin-bottom:4px">${ins.titulo}</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.5">${ins.desc}</div>
+        </div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── TAB 8: SCORE ───────────────────────────────────────────
+function _calcScore(clienteNome) {
+  const cal      = loadData('cal_'+clienteNome, []);
+  const aprov    = loadData('aprov_'+clienteNome, []);
+  const bib      = loadData('bib_'+clienteNome, {fotos:[],videos:[],logos:[],paleta:[],campanhas:[],artes:[]});
+  const sol      = loadData('sol_'+clienteNome, []);
+  const ig       = loadData('ig_'+clienteNome, {});
+  const agora    = new Date();
+  const ult30    = new Date(agora.getTime()-30*24*3600000);
+  const postsUlt30 = cal.filter(c=>c.status==='Publicado' && new Date(c.data)>=ult30);
+
+  let score = 0;
+  // 1. Frequência (15): 12+ posts = 15, 8 = 12, 4 = 8, 1 = 4, 0 = 0
+  const freq = postsUlt30.length;
+  score += freq>=12 ? 15 : freq>=8 ? 12 : freq>=4 ? 8 : freq>=1 ? 4 : 0;
+  // 2. Aprovação no prazo (15): % aprovados vs total
+  const totalAprov = aprov.length;
+  const aprovados  = aprov.filter(a=>a.status==='Aprovado').length;
+  score += totalAprov>0 ? Math.round((aprovados/totalAprov)*15) : 8;
+  // 3. Variedade (10): nº de tipos diferentes
+  const tipos = [...new Set(postsUlt30.map(c=>c.tipo))].length;
+  score += tipos>=4 ? 10 : tipos===3 ? 7 : tipos===2 ? 4 : tipos===1 ? 2 : 0;
+  // 4. Prova social (10): se tem Reels no período
+  const reels = postsUlt30.filter(c=>c.tipo==='Reels').length;
+  score += reels>=8 ? 10 : reels>=4 ? 7 : reels>=2 ? 4 : reels>=1 ? 2 : 0;
+  // 5. Presença de professores (10): manual, assume 8 se dado ig atualizado
+  score += ig.seguidores && ig.seguidores!=='—' ? 8 : 4;
+  // 6. Engajamento (15): se preenchido
+  score += ig.engajamento && ig.engajamento!=='—' ? 12 : 0;
+  // 7. Biblioteca (10): total de itens
+  const totalBib = Object.values(bib).flat().length;
+  score += totalBib>=20 ? 10 : totalBib>=10 ? 7 : totalBib>=5 ? 4 : totalBib>=1 ? 2 : 0;
+  // 8. Participação cliente (10): solicitações feitas
+  score += sol.length>=5 ? 10 : sol.length>=3 ? 7 : sol.length>=1 ? 4 : 0;
+
+  return Math.min(score, 100);
+}
+
+function _tabScore(clienteNome) {
+  const cal      = loadData('cal_'+clienteNome, []);
+  const aprov    = loadData('aprov_'+clienteNome, []);
+  const bib      = loadData('bib_'+clienteNome, {fotos:[],videos:[],logos:[],paleta:[],campanhas:[],artes:[]});
+  const sol      = loadData('sol_'+clienteNome, []);
+  const ig       = loadData('ig_'+clienteNome, {});
+  const agora    = new Date();
+  const ult30    = new Date(agora.getTime()-30*24*3600000);
+  const postsUlt30 = cal.filter(c=>c.status==='Publicado' && new Date(c.data)>=ult30);
+
+  const criterios = [
+    { nome:'Frequência de publicação',  peso:15, val: (()=>{ const f=postsUlt30.length; return f>=12?15:f>=8?12:f>=4?8:f>=1?4:0; })(), desc:`${postsUlt30.length} posts publicados nos últimos 30 dias` },
+    { nome:'Aprovação em prazo',         peso:15, val: (()=>{ const t=aprov.length,a=aprov.filter(x=>x.status==='Aprovado').length; return t>0?Math.round((a/t)*15):8; })(), desc:`${aprov.filter(x=>x.status==='Aprovado').length}/${aprov.length} conteúdos aprovados` },
+    { nome:'Variedade de formatos',      peso:10, val: (()=>{ const t=[...new Set(postsUlt30.map(c=>c.tipo))].length; return t>=4?10:t===3?7:t===2?4:t===1?2:0; })(), desc:`${[...new Set(postsUlt30.map(c=>c.tipo))].length} formato(s) diferentes` },
+    { nome:'Prova social (Reels)',        peso:10, val: (()=>{ const r=postsUlt30.filter(c=>c.tipo==='Reels').length; return r>=8?10:r>=4?7:r>=2?4:r>=1?2:0; })(), desc:`${postsUlt30.filter(c=>c.tipo==='Reels').length} Reels no período` },
+    { nome:'Dados IG atualizados',       peso:10, val: ig.seguidores&&ig.seguidores!=='—'?8:4, desc:ig.seguidores&&ig.seguidores!=='—'?'Dados preenchidos':'Complete os dados do Instagram' },
+    { nome:'Engajamento orgânico',        peso:15, val: ig.engajamento&&ig.engajamento!=='—'?12:0, desc:ig.engajamento&&ig.engajamento!=='—'?`Taxa: ${ig.engajamento}`:'Preencha a taxa de engajamento' },
+    { nome:'Atualização da biblioteca',  peso:10, val: (()=>{ const t=Object.values(bib).flat().length; return t>=20?10:t>=10?7:t>=5?4:t>=1?2:0; })(), desc:`${Object.values(bib).flat().length} itens na biblioteca` },
+    { nome:'Participação do cliente',    peso:10, val: (()=>{ return sol.length>=5?10:sol.length>=3?7:sol.length>=1?4:0; })(), desc:`${sol.length} solicitação(ões) realizadas` },
+  ];
+
+  const total = criterios.reduce((s,c)=>s+c.val, 0);
+  const totalPeso = criterios.reduce((s,c)=>s+c.peso, 0);
+  const pct = Math.round((total/totalPeso)*100);
+  const corScore = pct>=80?'#3dd68c':pct>=60?'#f7c948':pct>=40?'#ff9f43':'#ff5a72';
+  const labelScore = pct>=80?'Excelente':pct>=60?'Bom':pct>=40?'Regular':'Precisa melhorar';
+
+  return `
+  <div style="font-size:14px;font-weight:700;margin-bottom:20px">⭐ Score Focus</div>
+  <!-- Score gauge -->
+  <div class="card" style="padding:28px;text-align:center;margin-bottom:20px;border-top:4px solid ${corScore}">
+    <div style="font-size:72px;font-weight:900;color:${corScore};line-height:1">${pct}</div>
+    <div style="font-size:14px;color:${corScore};font-weight:700;margin-top:4px">${labelScore}</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:8px">${total}/${totalPeso} pontos</div>
+    <div style="height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;margin-top:16px">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${corScore},${corScore}aa);border-radius:5px;transition:width .6s"></div>
+    </div>
+  </div>
+  <!-- Critérios -->
+  <div style="display:flex;flex-direction:column;gap:10px">
+    ${criterios.map(c=>{
+      const pctC = Math.round((c.val/c.peso)*100);
+      const cor = pctC>=80?'#3dd68c':pctC>=50?'#f7c948':'#ff5a72';
+      return `
+      <div class="card" style="padding:14px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:600">${c.nome}</div>
+          <div style="font-size:13px;font-weight:800;color:${cor}">${c.val}/${c.peso}</div>
+        </div>
+        <div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:6px">
+          <div style="height:100%;width:${pctC}%;background:${cor};border-radius:3px"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text2)">${c.desc}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── TAB 9: RELATÓRIO ───────────────────────────────────────
+function _tabRelatorio(clienteNome) {
+  const cal  = loadData('cal_'+clienteNome, []);
+  const ig   = loadData('ig_'+clienteNome, {});
+  const aprov= loadData('aprov_'+clienteNome, []);
+  const agora= new Date();
+  const mesAtual = agora.getMonth();
+  const anoAtual = agora.getFullYear();
+  const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mesAtual];
+  
+  const relatorios = loadData('rel_'+clienteNome, []);
+  const relMes = relatorios.find(r=>r.mes===mesAtual && r.ano===anoAtual);
+  
+  const postsMes = cal.filter(c=>{ const d=new Date(c.data); return d.getMonth()===mesAtual && d.getFullYear()===anoAtual; });
+  const pubMes   = postsMes.filter(c=>c.status==='Publicado');
+  const aprvMes  = aprov.filter(a=>a.dataAcao && new Date(a.dataAcao.split('/').reverse().join('-')).getMonth()===mesAtual);
+
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="font-size:14px;font-weight:700">📊 Relatório Mensal — ${nomeMes} ${anoAtual}</div>
+    <button onclick="gerarRelatorio('${clienteNome}')" class="btn btn-primary" style="font-size:12px">📥 Gerar relatório</button>
+  </div>
+
+  <!-- Resumo automático -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+    ${[
+      { label:'Conteúdos entregues', val: pubMes.length,  cor:'#6c8cff', icon:'📦' },
+      { label:'Conteúdos planejados',val: postsMes.length, cor:'#f7c948', icon:'📅' },
+      { label:'Aprovações',           val: aprvMes.length, cor:'#3dd68c', icon:'✅' },
+      { label:'Score do mês',         val: _calcScore(clienteNome), cor:'#ff9f43', icon:'⭐' },
+    ].map(m=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:20px;margin-bottom:6px">${m.icon}</div>
+      <div style="font-size:28px;font-weight:800;color:${m.cor}">${m.val}</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:4px">${m.label}</div>
+    </div>`).join('')}
+  </div>
+
+  ${relMes ? `
+  <!-- Relatório salvo -->
+  <div class="card" style="padding:20px;margin-bottom:16px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:12px">📋 Relatório de ${nomeMes}</div>
+    ${relMes.melhores?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#3dd68c;margin-bottom:4px">🏆 Melhores posts</div><div style="font-size:12px;color:var(--text2)">${relMes.melhores}</div></div>`:''}
+    ${relMes.piores?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#ff5a72;margin-bottom:4px">📉 Posts com menor desempenho</div><div style="font-size:12px;color:var(--text2)">${relMes.piores}</div></div>`:''}
+    ${relMes.aprendizados?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#f7c948;margin-bottom:4px">💡 Aprendizados</div><div style="font-size:12px;color:var(--text2)">${relMes.aprendizados}</div></div>`:''}
+    ${relMes.recomendacoes?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#6c8cff;margin-bottom:4px">🎯 Recomendações</div><div style="font-size:12px;color:var(--text2)">${relMes.recomendacoes}</div></div>`:''}
+    ${relMes.pendencias?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#ff9f43;margin-bottom:4px">⚠️ Pendências</div><div style="font-size:12px;color:var(--text2)">${relMes.pendencias}</div></div>`:''}
+    ${relMes.planoProxMes?`<div><div style="font-size:11px;font-weight:700;color:#aee8f5;margin-bottom:4px">🚀 Plano para o próximo mês</div><div style="font-size:12px;color:var(--text2)">${relMes.planoProxMes}</div></div>`:''}
+  </div>` : `
+  <div class="card" style="text-align:center;padding:36px;color:var(--text2);margin-bottom:16px">
+    <div style="font-size:32px;margin-bottom:10px">📊</div>
+    <div>Relatório de ${nomeMes} ainda não gerado</div>
+    <div style="font-size:12px;margin-top:6px">Clique em "Gerar relatório" para preencher</div>
+  </div>`}
+
+  <!-- Histórico -->
+  ${relatorios.length>0?`
+  <div class="card" style="padding:16px 20px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:12px">📚 Histórico</div>
+    ${relatorios.slice().reverse().map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px">${ ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][r.mes]} ${r.ano}</div>
+      <div style="font-size:12px;color:var(--text2)">${r.posts||0} posts entregues</div>
+    </div>`).join('')}
+  </div>`:''}`;
+}
+
+function gerarRelatorio(clienteNome) {
+  const agora = new Date();
+  const mesAtual = agora.getMonth();
+  const anoAtual = agora.getFullYear();
+  const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mesAtual];
+  const cal = loadData('cal_'+clienteNome, []);
+  const pubMes = cal.filter(c=>{ const d=new Date(c.data); return d.getMonth()===mesAtual && d.getFullYear()===anoAtual && c.status==='Publicado'; });
+  
+  const modal = document.createElement('div');
+  modal.id = 'modal-relatorio';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700">📊 Relatório — ${nomeMes}</div>
+        <button onclick="document.getElementById('modal-relatorio').remove()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="form-group"><label class="form-label">🏆 Melhores posts do mês</label><textarea id="rel-melhores" class="form-input" rows="2" placeholder="Descreva os posts com melhor desempenho..."></textarea></div>
+        <div class="form-group"><label class="form-label">📉 Posts com menor desempenho</label><textarea id="rel-piores" class="form-input" rows="2" placeholder="..."></textarea></div>
+        <div class="form-group"><label class="form-label">💡 Aprendizados do mês</label><textarea id="rel-aprendizados" class="form-input" rows="2" placeholder="O que funcionou? O que pode melhorar?"></textarea></div>
+        <div class="form-group"><label class="form-label">🎯 Recomendações</label><textarea id="rel-recomendacoes" class="form-input" rows="2" placeholder="Sugestões para o próximo período..."></textarea></div>
+        <div class="form-group"><label class="form-label">⚠️ Pendências</label><textarea id="rel-pendencias" class="form-input" rows="2" placeholder="Itens em aberto..."></textarea></div>
+        <div class="form-group"><label class="form-label">🚀 Plano para o próximo mês</label><textarea id="rel-plano" class="form-input" rows="2" placeholder="Objetivos e ações para o próximo mês..."></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="document.getElementById('modal-relatorio').remove()" class="btn btn-ghost" style="flex:1">Cancelar</button>
+        <button onclick="salvarRelatorio('${clienteNome}')" class="btn btn-primary" style="flex:1">💾 Salvar relatório</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  window._relMes = mesAtual;
+  window._relAno = anoAtual;
+  window._relPosts = pubMes.length;
+  window._relCliente = clienteNome;
+}
+
+function salvarRelatorio(clienteNome) {
+  const relatorios = loadData('rel_'+clienteNome, []);
+  const idx = relatorios.findIndex(r=>r.mes===window._relMes && r.ano===window._relAno);
+  const novo = {
+    mes: window._relMes, ano: window._relAno, posts: window._relPosts,
+    melhores:      document.getElementById('rel-melhores')?.value.trim()||'',
+    piores:        document.getElementById('rel-piores')?.value.trim()||'',
+    aprendizados:  document.getElementById('rel-aprendizados')?.value.trim()||'',
+    recomendacoes: document.getElementById('rel-recomendacoes')?.value.trim()||'',
+    pendencias:    document.getElementById('rel-pendencias')?.value.trim()||'',
+    planoProxMes:  document.getElementById('rel-plano')?.value.trim()||'',
+  };
+  if (idx>=0) relatorios[idx] = novo; else relatorios.push(novo);
+  saveData('rel_'+clienteNome, relatorios);
+  document.getElementById('modal-relatorio')?.remove();
+  showToast('✅ Relatório salvo!');
+  renderPortalTab('relatorio', clienteNome);
+}
+
+
+function toggleChecklistCliente(clienteNome, setorNome, itemIdx) {
+  let p = (planosAcao||{})[clienteNome];
+  if (!p) return;
+  const setor = p.setores.find(s=>s.nome===setorNome);
+  if (!setor || !setor.itens[itemIdx]) return;
+  setor.itens[itemIdx].feito = !setor.itens[itemIdx].feito;
+  saveData('planos_acao', planosAcao);
+  renderPortalCliente();
+}
+
+// ── Editar métricas do cliente ─────────────────────────────
+function abrirEditarMetricas(clienteNome) {
+  const key = 'metricas_cliente_' + clienteNome.toLowerCase().replace(/\s/g,'_');
+  const metricas = loadData(key, {
+    seguidores_ig:   { valor:'—', meta:'10k',  label:'Seguidores Instagram' },
+    alcance_semanal: { valor:'—', meta:'',     label:'Alcance semanal' },
+    engajamento:     { valor:'—', meta:'5%',   label:'Taxa de engajamento' },
+    seguidores_fb:   { valor:'—', meta:'',     label:'Seguidores Facebook' },
+    visitas_site:    { valor:'—', meta:'',     label:'Visitas ao site/mês' },
+    leads_mes:       { valor:'—', meta:'',     label:'Leads gerados' },
+  });
+  const wrap = document.createElement('div');
+  wrap.id = 'modal-metricas-wrap';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  wrap.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:480px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:15px;font-weight:700">📊 Atualizar Métricas — ${clienteNome}</div>
+        <button onclick="document.getElementById('modal-metricas-wrap').remove()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${Object.entries(metricas).map(([k,m])=>`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center">
+          <label style="font-size:12px;color:var(--text2)">${m.label}</label>
+          <input id="met-${k}" class="form-input" value="${m.valor}" placeholder="valor" style="font-size:13px">
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+        <button onclick="document.getElementById('modal-metricas-wrap').remove()" class="btn btn-ghost">Cancelar</button>
+        <button onclick="salvarMetricas('${clienteNome}')" class="btn btn-primary">💾 Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  window._metricasKey = key;
+  window._metricasObj = metricas;
+}
+
+function salvarMetricas(clienteNome) {
+  const key = window._metricasKey;
+  const metricas = window._metricasObj;
+  Object.keys(metricas).forEach(k => {
+    const inp = document.getElementById('met-'+k);
+    if (inp) metricas[k].valor = inp.value.trim()||'—';
+  });
+  saveData(key, metricas);
+  document.getElementById('modal-metricas-wrap')?.remove();
+  showToast('✅ Métricas atualizadas!');
+  renderPortalCliente();
+}
+
+// Admin: abre modal para editar plano de ação de um cliente
+function abrirPlanoAcao(clienteNome) {
+  const plano = (planosAcao||{})[clienteNome] || { titulo:'', descricao:'', setores:[] };
+  const modal = document.createElement('div');
+  modal.id = 'modal-plano-acao-wrap';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:28px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:16px;font-weight:700">✏️ Plano de Ação — ${clienteNome}</div>
+        <button onclick="document.getElementById('modal-plano-acao-wrap').remove()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Título do plano</label>
+        <input id="plano-titulo" class="form-input" value="${plano.titulo||''}" placeholder="Ex: Lançamento ORY — Plano Geral">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <input id="plano-desc" class="form-input" value="${plano.descricao||''}" placeholder="Breve descrição para o cliente">
+      </div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin:16px 0 10px">Setores</div>
+      <div id="plano-setores-list">
+        ${(plano.setores||[]).map((s,i)=>`
+        <div class="plano-setor-row" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px">
+            <input class="form-input" placeholder="Nome do setor" value="${s.nome||''}" style="font-size:13px" data-field="nome" data-idx="${i}">
+            <button onclick="removerSetor(${i})" style="background:none;border:1px solid #ff5a7255;color:#ff5a72;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px">✕</button>
+          </div>
+          <select class="form-input" data-field="status" data-idx="${i}" style="font-size:12px;margin-bottom:8px">
+            ${['Planejado','Em andamento','Em revisão','Concluído','Aguardando'].map(opt=>`<option ${s.status===opt?'selected':''}>${opt}</option>`).join('')}
+          </select>
+          <textarea class="form-input" data-field="itens" data-idx="${i}" rows="3" placeholder="Um item por linha..." style="font-size:12px">${(s.itens||[]).map(it=>it.texto||it).join('\n')}</textarea>
+        </div>`).join('')}
+      </div>
+      <button onclick="adicionarSetor()" class="btn btn-ghost btn-sm" style="width:100%;margin-bottom:16px">+ Adicionar setor</button>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="document.getElementById('modal-plano-acao-wrap').remove()" class="btn btn-ghost">Cancelar</button>
+        <button onclick="salvarPlanoAcao('${clienteNome}')" class="btn btn-primary">💾 Salvar plano</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  window._planoClienteAtual = clienteNome;
+}
+
+function adicionarSetor() {
+  const list = document.getElementById('plano-setores-list');
+  const idx = list.querySelectorAll('.plano-setor-row').length;
+  const div = document.createElement('div');
+  div.className = 'plano-setor-row';
+  div.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px';
+  div.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px">
+      <input class="form-input" placeholder="Nome do setor" data-field="nome" data-idx="${idx}" style="font-size:13px">
+      <button onclick="this.closest('.plano-setor-row').remove()" style="background:none;border:1px solid #ff5a7255;color:#ff5a72;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px">✕</button>
+    </div>
+    <select class="form-input" data-field="status" data-idx="${idx}" style="font-size:12px;margin-bottom:8px">
+      ${['Planejado','Em andamento','Em revisão','Concluído','Aguardando'].map(opt=>`<option>${opt}</option>`).join('')}
+    </select>
+    <textarea class="form-input" data-field="itens" data-idx="${idx}" rows="3" placeholder="Um item por linha..." style="font-size:12px"></textarea>`;
+  list.appendChild(div);
+}
+
+function removerSetor(idx) {
+  document.querySelectorAll('.plano-setor-row')[idx]?.remove();
+}
+
+function salvarPlanoAcao(clienteNome) {
+  const titulo = document.getElementById('plano-titulo').value.trim();
+  const descricao = document.getElementById('plano-desc').value.trim();
+  const setores = [];
+  document.querySelectorAll('.plano-setor-row').forEach(row => {
+    const nome   = row.querySelector('[data-field="nome"]')?.value.trim();
+    const status = row.querySelector('[data-field="status"]')?.value;
+    const itensRaw = row.querySelector('[data-field="itens"]')?.value||'';
+    const itens = itensRaw.split('\n').map(l=>l.trim()).filter(Boolean).map(texto=>({texto,feito:false}));
+    if (nome) setores.push({ nome, status, itens });
+  });
+  if (!planosAcao) planosAcao = {};
+  planosAcao[clienteNome] = { titulo, descricao, setores };
+  saveData('planos_acao', planosAcao);
+  document.getElementById('modal-plano-acao-wrap')?.remove();
+  showToast('✅ Plano de ação salvo!');
+}
+
 function aplicarModo(modo, viaLogin) {
   // ── Oculta logo edit para todos (edit btn só para admin) ──
   if (modo !== 'admin') {
@@ -7097,19 +8476,14 @@ function aplicarModo(modo, viaLogin) {
   }
 
   if (modo === 'colaborador') {
-    // Oculta financeiro, comercial, leads
     document.querySelectorAll('.nav-item').forEach(el => {
       const t = el.textContent;
       if (t.includes('Financeiro') || t.includes('Comercial') || t.includes('Leads') ||
-          t.includes('Rentabilidade') || t.includes('Oportunidades')) {
-        el.style.display = 'none';
-      }
+          t.includes('Rentabilidade') || t.includes('Oportunidades')) el.style.display = 'none';
     });
     document.querySelectorAll('.nav-comercial,.nav-leads').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-intel-section').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-negocio-section').forEach(el => el.style.display = 'none');
-
-    // Bloqueia acesso às páginas restritas
     const origGoTo = window.goTo;
     window.goTo = function(page) {
       const bloqueadas = ['financeiro','comercial','leads','intel-rent','intel-upsell','intel-exec','intel-health','intel-ia'];
@@ -7119,9 +8493,25 @@ function aplicarModo(modo, viaLogin) {
     document.querySelectorAll('[onclick*="tab-financeiro-cli"]').forEach(el => el.style.display = 'none');
   }
 
+  if (modo === 'cliente') {
+    // Esconde toda a sidebar — cliente só vê o portal
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    const main = document.querySelector('.main');
+    if (main) { main.style.marginLeft = '0'; main.style.width = '100%'; }
+    // Bloqueia tudo exceto portal
+    window.goTo = function(page) {
+      if (page !== 'cliente') return;
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const pg = document.getElementById('page-cliente');
+      if (pg) pg.classList.add('active');
+      renderPortalCliente();
+    };
+  }
+
   // Atualiza mini card da sidebar
   const _sessS = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
-  if (_sessS.nome) {
+  if (_sessS.nome && modo !== 'cliente') {
     const el1 = document.getElementById('sidebar-user-name');
     const el2 = document.getElementById('sidebar-user-role');
     const el3 = document.getElementById('sidebar-user-avatar');
@@ -7131,9 +8521,15 @@ function aplicarModo(modo, viaLogin) {
   }
   _runInit();
   setTimeout(() => {
-    goTo('inicio');
-    // Garante renderização mesmo se goTo já estava no início
-    setTimeout(() => renderInicio(), 50);
+    if (modo === 'cliente') {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const pg = document.getElementById('page-cliente');
+      if (pg) pg.classList.add('active');
+      setTimeout(() => renderPortalCliente(), 50);
+    } else {
+      goTo('inicio');
+      setTimeout(() => renderInicio(), 50);
+    }
   }, 250);
 }
 
