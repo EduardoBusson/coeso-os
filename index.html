@@ -542,7 +542,7 @@
       </div>
 
       <!-- Calendário sazonal compacto -->
-      <div class="card" style="margin-bottom:28px">
+      <div class="card" id="inicio-datas-card" style="margin-bottom:28px">
         <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:14px">📅 Próximas datas comemorativas</div>
         <div id="inicio-datas-sazonais"></div>
       </div>
@@ -2074,12 +2074,21 @@ function garantirGravacoes() {
     { titulo:'EDIÇÃO — FOCUS',           tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Focus',          cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
   ];
   let maxId = (demandas||[]).reduce((m,d) => Math.max(m, d.id||0), 0);
-  let adicionou = false;
+  let mudou = false;
   gravs.forEach(g => {
-    const existe = (demandas||[]).some(d => d.titulo === g.titulo);
-    if (!existe) { demandas.push({ id: ++maxId, criado_por: 'Eduardo', ...g }); adicionou = true; }
+    const idx = (demandas||[]).findIndex(d => d.titulo === g.titulo);
+    if (idx === -1) {
+      demandas.push({ id: ++maxId, criado_por: 'Eduardo', ...g });
+      mudou = true;
+    } else {
+      // Corrige endereço se ficou como literal '${d.endereco}' por bug antigo
+      if (demandas[idx].endereco === '${d.endereco}' || demandas[idx].endereco === undefined) {
+        demandas[idx].endereco = g.endereco;
+        mudou = true;
+      }
+    }
   });
-  if (adicionou) saveData('demandas', demandas); // salva em localStorage E Firebase
+  if (mudou) saveData('demandas', demandas); // salva em localStorage E Firebase
 }
 let leads         = loadData('leads',         DEMO_LEADS);
 let contasReceber = loadData('receber',       DEMO_RECEBER);
@@ -7322,14 +7331,16 @@ function falarBoasVindas(nome, modo) {
       utter.volume = 1;
       const voices   = window.speechSynthesis.getVoices();
       const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
-      if (ptVoices.length) {
-        if (feminino) {
-          const fem = ptVoices.find(v => /female|fem|woman|Luciana|francisca/i.test(v.name));
-          utter.voice = fem || ptVoices[0];
-        } else {
-          const masc = ptVoices.find(v => /male|man|Daniel|Eddy|Reed/i.test(v.name) && !/female/i.test(v.name));
-          utter.voice = masc || ptVoices[0];
-        }
+      if (feminino) {
+        const fem = ptVoices.find(v => /Luciana|francisca|female|fem|woman/i.test(v.name));
+        utter.voice = fem || ptVoices[0] || null;
+      } else {
+        // Tenta voz pt masculina; Safari não tem — usa voz en masculina (Daniel, Eddy, Alex)
+        const mascPt = ptVoices.find(v => /male|man|Eddy|Reed/i.test(v.name) && !/female|Luciana/i.test(v.name));
+        const mascAny = voices.find(v => /\bEddy\b|\bReed\b|\bDaniel\b|\bAlex\b|\bFred\b|\bRishi\b/i.test(v.name) && !/female|Luciana|Samantha|Karen|Victoria|Moira|Tessa/i.test(v.name));
+        utter.voice = mascPt || mascAny || null;
+        // Sem voz pt masculina → pitch mais baixo para soar grave
+        if (!mascPt) utter.pitch = 0.68;
       }
       window.speechSynthesis.speak(utter);
     };
@@ -7557,15 +7568,21 @@ function renderInicio() {
       <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('agenda')">Abrir agenda →</button>`;
   }}
 
-  // ── Notícias card ─────────────────────────────────────────
+  // ── Datas comemorativas e Notícias — escondido para Kaian ──
+  const datasCard = document.getElementById('inicio-datas-card');
+  if (datasCard) datasCard.style.display = isKaian ? 'none' : '';
   const notCard = document.getElementById('inicio-noticias-card');
   if (notCard) {
-    notCard.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2)">🌐 Fontes de Referência</div>
-      </div>
-      <div id="inicio-news-list"></div>`;
-    carregarNoticiasInicio();
+    if (isKaian) {
+      notCard.style.display = 'none';
+    } else {
+      notCard.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2)">🌐 Fontes de Referência</div>
+        </div>
+        <div id="inicio-news-list"></div>`;
+      carregarNoticiasInicio();
+    }
   }
 
   // ── Calendário de gravações para Kaian ───────────────────
