@@ -510,6 +510,9 @@
       <!-- Demandas progress chart -->
       <div class="card" id="inicio-demandas-chart-card" style="margin-bottom:28px"></div>
 
+      <!-- Calendário de gravações — visível só para Kaian -->
+      <div class="card" id="inicio-cal-gravacoes" style="margin-bottom:28px;display:none"></div>
+
       <!-- Demandas Recentes + Notícias -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px" id="inicio-main-grid">
         <div id="inicio-demandas-card" class="card" style="min-height:120px"></div>
@@ -539,7 +542,7 @@
       </div>
 
       <!-- Calendário sazonal compacto -->
-      <div class="card" style="margin-bottom:28px">
+      <div class="card" id="inicio-datas-card" style="margin-bottom:28px">
         <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:14px">📅 Próximas datas comemorativas</div>
         <div id="inicio-datas-sazonais"></div>
       </div>
@@ -2071,12 +2074,21 @@ function garantirGravacoes() {
     { titulo:'EDIÇÃO — FOCUS',           tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Focus',          cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
   ];
   let maxId = (demandas||[]).reduce((m,d) => Math.max(m, d.id||0), 0);
-  let adicionou = false;
+  let mudou = false;
   gravs.forEach(g => {
-    const existe = (demandas||[]).some(d => d.titulo === g.titulo);
-    if (!existe) { demandas.push({ id: ++maxId, criado_por: 'Eduardo', ...g }); adicionou = true; }
+    const idx = (demandas||[]).findIndex(d => d.titulo === g.titulo);
+    if (idx === -1) {
+      demandas.push({ id: ++maxId, criado_por: 'Eduardo', ...g });
+      mudou = true;
+    } else {
+      // Corrige endereço se ficou como literal '${d.endereco}' por bug antigo
+      if (demandas[idx].endereco === '${d.endereco}' || demandas[idx].endereco === undefined) {
+        demandas[idx].endereco = g.endereco;
+        mudou = true;
+      }
+    }
   });
-  if (adicionou) saveData('demandas', demandas); // salva em localStorage E Firebase
+  if (mudou) saveData('demandas', demandas); // salva em localStorage E Firebase
 }
 let leads         = loadData('leads',         DEMO_LEADS);
 let contasReceber = loadData('receber',       DEMO_RECEBER);
@@ -3184,16 +3196,27 @@ function renderKaianGravacoes() {
     const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
     const cor = _kaianStatusCor(d.status);
     const dataFmt = _fmtData(d.prazo);
+    const enderecoHtml = d.endereco
+      ? `<div style="background:rgba(125,216,240,0.07);border:1px solid rgba(125,216,240,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+           <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📍 Endereço</div>
+           <div style="font-size:13px;color:var(--text)">${d.endereco}</div>
+         </div>` : '';
+    const roteiroHtml = (d.roteiro && d.roteiro !== 'Em andamento')
+      ? `<div style="background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.2);border-radius:8px;padding:10px 12px">
+           <div style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">📄 Roteiro</div>
+           <div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">${d.roteiro}</div>
+         </div>`
+      : `<div style="background:rgba(247,201,72,0.05);border:1px dashed rgba(247,201,72,0.25);border-radius:8px;padding:9px 12px;text-align:center;color:var(--yellow);font-size:12px;font-weight:600">📄 Roteiro em andamento</div>`;
     return `<div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
         <div>
           <div style="font-size:15px;font-weight:700;color:var(--text)">🎬 ${cli || d.titulo}</div>
-          ${dataFmt ? '<div style="font-size:13px;color:var(--accent);font-weight:600;margin-top:3px">📅 '+dataFmt+(d.desc?' às '+d.desc:'')+'</div>' : ''}
+          ${dataFmt ? `<div style="font-size:13px;color:var(--accent);font-weight:600;margin-top:3px">📅 ${dataFmt}${d.desc ? ' às ' + d.desc : ''}</div>` : ''}
         </div>
-        <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:'+cor+'22;color:'+cor+';border:1px solid '+cor+'44">${d.status}</span>
+        <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:${cor}22;color:${cor};border:1px solid ${cor}44">${d.status}</span>
       </div>
-      ${d.endereco ? '<div style="background:rgba(125,216,240,0.07);border:1px solid rgba(125,216,240,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📍 Endereço</div><div style="font-size:13px;color:var(--text)">${d.endereco}</div></div>' : ''}
-      ${d.roteiro && d.roteiro !== 'Em andamento' ? '<div style="background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.2);border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">📄 Roteiro</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">${d.roteiro}</div></div>' : '<div style="background:rgba(247,201,72,0.05);border:1px dashed rgba(247,201,72,0.25);border-radius:8px;padding:9px 12px;text-align:center;color:var(--yellow);font-size:12px;font-weight:600">📄 Roteiro em andamento</div>'}
+      ${enderecoHtml}
+      ${roteiroHtml}
       <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="margin-top:10px;font-size:11px;color:var(--text2)">✏️ Editar gravação</button>
     </div>`;
   }).join('');
@@ -3296,6 +3319,71 @@ function removerReel(demandaId, reelIdx) {
   d.reels.splice(reelIdx, 1);
   saveData('demandas', demandas);
   renderKaianEdicoes();
+}
+
+// ── Calendário de gravações de julho (exibido no Início para Kaian) ──
+function renderCalendarioKaian() {
+  const el = document.getElementById('inicio-cal-gravacoes');
+  if (!el) return;
+  el.style.display = '';
+
+  const ANO = 2026, MES = 6; // Julho = índice 6
+  const diasNoMes = 31;
+  const primeiroDia = new Date(ANO, MES, 1).getDay(); // 0=Dom
+  const hoje = new Date();
+  const diaHoje = (hoje.getFullYear()===ANO && hoje.getMonth()===MES) ? hoje.getDate() : -1;
+
+  // Coleta gravações com prazo em julho
+  const gravs = (demandas||[]).filter(d =>
+    (d.tipo==='Video'||d.tipo==='Audiovisual') && d.subtipo!=='Edicao' && d.prazo && d.prazo.startsWith('2026-07')
+  );
+  const porDia = {}; // dia → [{cli, status}]
+  gravs.forEach(d => {
+    const dia = parseInt(d.prazo.split('-')[2]);
+    const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || d.titulo);
+    if (!porDia[dia]) porDia[dia] = [];
+    porDia[dia].push({ cli, status: d.status, id: d.id });
+  });
+
+  const semanas = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2)">📅 Calendário de Gravações — Julho 2026</div>
+      <span style="font-size:11px;color:var(--accent);font-weight:600">${gravs.length} gravações</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px">
+      ${semanas.map(s=>`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text2);padding:4px 0;text-transform:uppercase">${s}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">`;
+
+  // Células vazias antes do dia 1
+  for (let i = 0; i < primeiroDia; i++) {
+    html += `<div style="min-height:52px"></div>`;
+  }
+
+  for (let dia = 1; dia <= diasNoMes; dia++) {
+    const temGrav = porDia[dia] && porDia[dia].length > 0;
+    const isHoje = dia === diaHoje;
+    const bgColor = temGrav ? 'rgba(125,216,240,0.15)' : isHoje ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)';
+    const borderColor = temGrav ? 'rgba(125,216,240,0.5)' : isHoje ? 'rgba(255,255,255,0.2)' : 'var(--border)';
+    const diaColor = temGrav ? 'var(--accent)' : isHoje ? 'var(--text)' : 'var(--text2)';
+    const gravNomes = temGrav ? porDia[dia].map(g=>`<div style="font-size:9px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${g.cli.split(' ')[0]}</div>`).join('') : '';
+    const onclick = temGrav ? `onclick="irParaKaian('grav')"` : '';
+    html += `<div ${onclick} style="min-height:52px;border:1px solid ${borderColor};border-radius:8px;padding:5px 6px;background:${bgColor};cursor:${temGrav?'pointer':'default'}">
+      <div style="font-size:12px;font-weight:700;color:${diaColor}">${dia}</div>
+      ${gravNomes}
+      ${temGrav?`<div style="width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:3px"></div>`:''}
+    </div>`;
+  }
+
+  html += `</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)">
+        <div style="width:10px;height:10px;border-radius:3px;background:rgba(125,216,240,0.4)"></div> Dia de gravação
+      </div>
+    </div>`;
+
+  el.innerHTML = html;
 }
 
 function abrirNovaGravacao() {
@@ -3606,7 +3694,8 @@ function excluirDemandaAtual() {
     demandas = demandas.filter(x=>x.id!==id);
     saveData('demandas', demandas);
     closeModal('modal-demanda');
-    renderDemandas();
+    try { renderDemandas(); } catch(e) {}
+    if (document.getElementById('page-kaian')?.classList.contains('active')) renderKaian();
     showToast('Demanda excluída.');
   }
 }
@@ -7198,6 +7287,10 @@ function fazerLogin() {
     return;
   }
   sessionStorage.setItem('coeso_login', JSON.stringify({ user, modo: cfg.modo, nome: cfg.nome, cliente: cfg.cliente||'' }));
+  // NÃO esconde login-screen aqui — só esconde quando o splash já está na tela (evita flash da página)
+  // Mostra splash imediatamente para cobrir a tela
+  const _splashImediato = document.getElementById('splash-boas-vindas');
+  if (_splashImediato) { _splashImediato.style.display = 'flex'; _splashImediato.style.opacity = '1'; }
   document.getElementById('login-screen').style.display = 'none';
   // Puxa dados mais recentes do Firebase antes de iniciar
   sincronizarDoFirebase().then(() => {
@@ -7238,14 +7331,16 @@ function falarBoasVindas(nome, modo) {
       utter.volume = 1;
       const voices   = window.speechSynthesis.getVoices();
       const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
-      if (ptVoices.length) {
-        if (feminino) {
-          const fem = ptVoices.find(v => /female|fem|woman|Luciana|francisca/i.test(v.name));
-          utter.voice = fem || ptVoices[0];
-        } else {
-          const masc = ptVoices.find(v => /male|man|Daniel|Eddy|Reed/i.test(v.name) && !/female/i.test(v.name));
-          utter.voice = masc || ptVoices[0];
-        }
+      if (feminino) {
+        const fem = ptVoices.find(v => /Luciana|francisca|female|fem|woman/i.test(v.name));
+        utter.voice = fem || ptVoices[0] || null;
+      } else {
+        // Tenta voz pt masculina; Safari não tem — usa voz en masculina (Daniel, Eddy, Alex)
+        const mascPt = ptVoices.find(v => /male|man|Eddy|Reed/i.test(v.name) && !/female|Luciana/i.test(v.name));
+        const mascAny = voices.find(v => /\bEddy\b|\bReed\b|\bDaniel\b|\bAlex\b|\bFred\b|\bRishi\b/i.test(v.name) && !/female|Luciana|Samantha|Karen|Victoria|Moira|Tessa/i.test(v.name));
+        utter.voice = mascPt || mascAny || null;
+        // Sem voz pt masculina → pitch mais baixo para soar grave
+        if (!mascPt) utter.pitch = 0.68;
       }
       window.speechSynthesis.speak(utter);
     };
@@ -7275,8 +7370,9 @@ function mostrarSplashBoasVindas(nome, modo) {
   setTimeout(() => { document.getElementById('splash-bv-logo').style.opacity = '1'; }, 150);
   setTimeout(() => {
     const txtEl = document.getElementById('splash-bv-txt');
-    const _cfgGen = COESO_USUARIOS[sessionStorage.getItem('coeso_user')||''] || {};
-    const genSuffix = _cfgGen.feminino !== undefined ? (_cfgGen.feminino ? 'bem-vinda' : 'bem-vindo') : (modo === 'colaborador' ? 'bem-vinda' : 'bem-vindo');
+    const _sessG2 = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+    const _cfgGen = COESO_USUARIOS[_sessG2.user||''] || {};
+    const genSuffix = (_cfgGen.feminino === true) ? 'bem-vinda' : 'bem-vindo';
     txtEl.style.opacity = '1';
     if (modo === 'cliente') {
       txtEl.innerHTML = `Seja bem-vindo, <b>safado</b>! 😄`;
@@ -7472,16 +7568,25 @@ function renderInicio() {
       <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('agenda')">Abrir agenda →</button>`;
   }}
 
-  // ── Notícias card ─────────────────────────────────────────
+  // ── Datas comemorativas e Notícias — escondido para Kaian ──
+  const datasCard = document.getElementById('inicio-datas-card');
+  if (datasCard) datasCard.style.display = isKaian ? 'none' : '';
   const notCard = document.getElementById('inicio-noticias-card');
   if (notCard) {
-    notCard.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2)">🌐 Fontes de Referência</div>
-      </div>
-      <div id="inicio-news-list"></div>`;
-    carregarNoticiasInicio();
+    if (isKaian) {
+      notCard.style.display = 'none';
+    } else {
+      notCard.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2)">🌐 Fontes de Referência</div>
+        </div>
+        <div id="inicio-news-list"></div>`;
+      carregarNoticiasInicio();
+    }
   }
+
+  // ── Calendário de gravações para Kaian ───────────────────
+  if (isKaian) renderCalendarioKaian();
 
   // ── Quick actions: esconde jobs p/ colaborador
   if (sess.modo !== 'admin') {
