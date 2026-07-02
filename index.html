@@ -398,25 +398,31 @@
     <span class="logo-edit-btn logo-admin-only" onclick="event.stopPropagation();openModal('modal-logo')">✏️ editar</span>
   </div>
 
-  <div class="nav-section">Principal</div>
-  <div class="nav-item" id="nav-kaian-item" style="display:none" onclick="goTo('kaian')">
+  <!-- Nav exclusivo do Kaian -->
+  <div class="nav-section nav-kaian-only" style="display:none">Videomaker</div>
+  <div class="nav-item nav-kaian-only" id="nav-kaian-grav" style="display:none" onclick="irParaKaian('grav')">
     <span class="icon">🎬</span><span>Gravações</span>
   </div>
-  <div class="nav-item" id="nav-inicio" onclick="goTo('inicio')">
+  <div class="nav-item nav-kaian-only" id="nav-kaian-ed" style="display:none" onclick="irParaKaian('ed')">
+    <span class="icon">✂️</span><span>Edições</span>
+  </div>
+
+  <div class="nav-section nav-kaian-hide">Principal</div>
+  <div class="nav-item nav-kaian-hide" id="nav-inicio" onclick="goTo('inicio')">
     <span class="icon">🏠</span><span>Início</span>
   </div>
-  <div class="nav-item" onclick="goTo('dashboard')">
+  <div class="nav-item nav-kaian-hide" onclick="goTo('dashboard')">
     <span class="icon">📊</span><span>Dashboard</span>
   </div>
-  <div class="nav-item" onclick="goTo('agenda')">
+  <div class="nav-item nav-kaian-hide" onclick="goTo('agenda')">
     <span class="icon">📅</span><span>Agenda</span>
   </div>
 
-  <div class="nav-section nav-negocio-section">Clientes</div>
-  <div class="nav-item nav-negocio-section" onclick="goTo('clientes')">
+  <div class="nav-section nav-negocio-section nav-kaian-hide">Clientes</div>
+  <div class="nav-item nav-negocio-section nav-kaian-hide" onclick="goTo('clientes')">
     <span class="icon">👥</span><span>Clientes</span>
   </div>
-  <div class="nav-item" onclick="goTo('demandas')">
+  <div class="nav-item nav-kaian-hide" onclick="goTo('demandas')">
     <span class="icon">📋</span><span>Demandas</span>
   </div>
 
@@ -2049,29 +2055,28 @@ let demandas      = loadData('demandas',      DEMO_DEMANDAS);
   if (alterou) { try { localStorage.setItem('coeso_demandas', JSON.stringify(demandas)); } catch(e){} }
 })();
 
-// Gravações do Kaian — adiciona se ainda não existirem
-(function adicionarGravacoes() {
+// Gravações/Edições do Kaian — chamada em _runInit() para sobreviver ao sync Firebase
+function garantirGravacoes() {
   const gravs = [
-    { titulo:'MENDES E BRITO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-06', clienteExterno:'Mendes e Brito', cliente:0, endereco:'Rua Vicente Linhares, 500, Salas 1902 e 1903, Aldeota, CEP 60.135-270, Fortaleza - CE', roteiro:'Em andamento', desc:'Gravação 06/07 às 09h' },
-    { titulo:'GRAVAÇÕES ACADEMIAS DE SUCESSO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-08', clienteExterno:'Academias de Sucesso', cliente:0, endereco:'A confirmar', roteiro:'Em andamento', desc:'Gravação 08/07 às 08h' },
-    { titulo:'FOCUS — GRAVAÇÃO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-10', clienteExterno:'Focus', cliente:0, endereco:'Av. Recreio, 1384 - Lagoa Redonda, Fortaleza - CE, 60831-600', roteiro:'Em andamento', desc:'Gravação 10/07 às 06h' },
-    { titulo:'SPOT — GRAVAÇÃO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-13', clienteExterno:'Spot', cliente:0, endereco:'R. Domingos Alves Ribeiro, 41 - Jangurussu, Fortaleza - CE, 60865-050', roteiro:'Em andamento', desc:'Gravação 13/07 às 06h' },
-    { titulo:'COMPASSO — GRAVAÇÃO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-14', clienteExterno:'Compasso', cliente:0, endereco:'R. da Assunção, 1580 - Fátima, Fortaleza - CE, 60050-135', roteiro:'Em andamento', desc:'Gravação 14/07 às 09h' },
-    { titulo:'CARLOS FERNANDES NUTRICIONISTA', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-16', clienteExterno:'Carlos Fernandes Nutricionista', cliente:0, endereco:'Rua Dr. Pergentino Maia, 1097 B - Messejana, Fortaleza - CE, 60840-045', roteiro:'Em andamento', desc:'Gravação 16/07 às 08h' },
-    { titulo:'TALISMÃ — GRAVAÇÃO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-17', clienteExterno:'Talismã', cliente:0, endereco:'R. Pedro I, 725 - Centro, Fortaleza - CE, 60035-100', roteiro:'Em andamento', desc:'Gravação 17/07 das 08h às 11h' },
-    // Edições
-    { titulo:'EDIÇÃO — MENDES E BRITO', tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-08', clienteExterno:'Mendes e Brito', cliente:0, desc:'Reels faltantes — entrega 08/07', reels:[] },
-    { titulo:'EDIÇÃO — SPOT', tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Spot', cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
-    { titulo:'EDIÇÃO — FOCUS', tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Focus', cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
+    { titulo:'GRAVAÇÃO — MENDES E BRITO 06/07',        tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-06', clienteExterno:'Mendes e Brito',              cliente:0, endereco:'Rua Vicente Linhares, 500, Salas 1902 e 1903 — Aldeota, Fortaleza - CE, 60135-270', roteiro:'Em andamento', desc:'09h' },
+    { titulo:'GRAVAÇÃO — ACADEMIAS DE SUCESSO 08/07',  tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-08', clienteExterno:'Academias de Sucesso',         cliente:0, endereco:'A confirmar', roteiro:'Em andamento', desc:'08h' },
+    { titulo:'GRAVAÇÃO — FOCUS 10/07',                 tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-10', clienteExterno:'Focus',                        cliente:0, endereco:'Av. Recreio, 1384 - Lagoa Redonda, Fortaleza - CE, 60831-600', roteiro:'Em andamento', desc:'06h' },
+    { titulo:'GRAVAÇÃO — SPOT 13/07',                  tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-13', clienteExterno:'Spot',                         cliente:0, endereco:'R. Domingos Alves Ribeiro, 41 - Jangurussu, Fortaleza - CE, 60865-050', roteiro:'Em andamento', desc:'06h' },
+    { titulo:'GRAVAÇÃO — COMPASSO 14/07',              tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-14', clienteExterno:'Compasso',                     cliente:0, endereco:'R. da Assunção, 1580 - Fátima, Fortaleza - CE, 60050-135', roteiro:'Em andamento', desc:'09h' },
+    { titulo:'GRAVAÇÃO — CARLOS FERNANDES 16/07',      tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-16', clienteExterno:'Carlos Fernandes Nutricionista',cliente:0, endereco:'Rua Dr. Pergentino Maia, 1097 B - Messejana, Fortaleza - CE, 60840-045', roteiro:'Em andamento', desc:'08h' },
+    { titulo:'GRAVAÇÃO — TALISMÃ 17/07',               tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-17', clienteExterno:'Talismã',                      cliente:0, endereco:'R. Pedro I, 725 - Centro, Fortaleza - CE, 60035-100', roteiro:'Em andamento', desc:'08h às 11h' },
+    { titulo:'EDIÇÃO — MENDES E BRITO',  tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-08', clienteExterno:'Mendes e Brito', cliente:0, desc:'Reels faltantes — entrega 08/07', reels:[] },
+    { titulo:'EDIÇÃO — SPOT',            tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Spot',           cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
+    { titulo:'EDIÇÃO — FOCUS',           tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Focus',          cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
   ];
-  let maxId = demandas.reduce((m,d) => Math.max(m, d.id||0), 0);
+  let maxId = (demandas||[]).reduce((m,d) => Math.max(m, d.id||0), 0);
   let adicionou = false;
   gravs.forEach(g => {
-    const existe = demandas.some(d => d.titulo === g.titulo && d.tipo === 'Audiovisual');
+    const existe = (demandas||[]).some(d => d.titulo === g.titulo);
     if (!existe) { demandas.push({ id: ++maxId, criado_por: 'Eduardo', ...g }); adicionou = true; }
   });
-  if (adicionou) { try { localStorage.setItem('coeso_demandas', JSON.stringify(demandas)); } catch(e){} }
-})();
+  if (adicionou) saveData('demandas', demandas); // salva em localStorage E Firebase
+}
 let leads         = loadData('leads',         DEMO_LEADS);
 let contasReceber = loadData('receber',       DEMO_RECEBER);
 let contasPagar   = loadData('pagar',         DEMO_PAGAR);
@@ -3096,6 +3101,16 @@ function renderKanbanDesign() {
 // ============================================================
 let _kaianTab = 'grav';
 
+function irParaKaian(tab) {
+  goTo('kaian');
+  setTimeout(() => switchKaianTab(tab), 50);
+  // Destaca nav ativo
+  ['grav','ed'].forEach(t => {
+    const b = document.getElementById('nav-kaian-'+t);
+    if (b) b.style.background = t===tab ? 'rgba(125,216,240,0.12)' : '';
+  });
+}
+
 function switchKaianTab(tab) {
   _kaianTab = tab;
   ['grav','ed'].forEach(t => {
@@ -3147,6 +3162,11 @@ function _kaianStatusCor(s) {
 }
 
 // ── TAB GRAVAÇÕES ──────────────────────────────────────────
+function _fmtData(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return d+'/'+m;
+}
 function renderKaianGravacoes() {
   const el = document.getElementById('kaian-tab-grav-content');
   if (!el) return;
@@ -3156,17 +3176,17 @@ function renderKaianGravacoes() {
   el.innerHTML = gravs.map(d => {
     const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
     const cor = _kaianStatusCor(d.status);
+    const dataFmt = _fmtData(d.prazo);
     return `<div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--text)">${d.titulo}</div>
-          ${cli ? '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+cli+'</div>' : ''}
+          <div style="font-size:15px;font-weight:700;color:var(--text)">🎬 ${cli || d.titulo}</div>
+          ${dataFmt ? '<div style="font-size:13px;color:var(--accent);font-weight:600;margin-top:3px">📅 '+dataFmt+(d.desc?' às '+d.desc:'')+'</div>' : ''}
         </div>
         <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:'+cor+'22;color:'+cor+';border:1px solid '+cor+'44">${d.status}</span>
       </div>
-      ${d.prazo ? '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">📅 <strong style="color:var(--text)">'+d.prazo+'</strong> · '+( d.desc||'' )+'</div>' : ''}
-      ${d.endereco ? '<div style="background:rgba(125,216,240,0.07);border:1px solid rgba(125,216,240,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📍 Local</div><div style="font-size:13px;color:var(--text)">${d.endereco}</div></div>' : ''}
-      ${d.roteiro ? '<div style="background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.2);border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">📄 Roteiro</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">${d.roteiro}</div></div>' : '<div style="background:rgba(139,143,168,0.07);border:1px dashed rgba(139,143,168,0.3);border-radius:8px;padding:9px 12px;text-align:center;color:var(--text2);font-size:12px">Roteiro ainda não adicionado</div>'}
+      ${d.endereco ? '<div style="background:rgba(125,216,240,0.07);border:1px solid rgba(125,216,240,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📍 Endereço</div><div style="font-size:13px;color:var(--text)">${d.endereco}</div></div>' : ''}
+      ${d.roteiro && d.roteiro !== 'Em andamento' ? '<div style="background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.2);border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">📄 Roteiro</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">${d.roteiro}</div></div>' : '<div style="background:rgba(247,201,72,0.05);border:1px dashed rgba(247,201,72,0.25);border-radius:8px;padding:9px 12px;text-align:center;color:var(--yellow);font-size:12px;font-weight:600">📄 Roteiro em andamento</div>'}
     </div>`;
   }).join('');
 }
@@ -3194,12 +3214,12 @@ function renderKaianEdicoes() {
     return `<div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--text)">✂️ ${d.titulo}</div>
-          ${cli ? '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+cli+'</div>' : ''}
+          <div style="font-size:15px;font-weight:700;color:var(--text)">✂️ ${cli || d.titulo}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">Edição de reels</div>
         </div>
         <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:'+cor+'22;color:'+cor+';border:1px solid '+cor+'44">${d.status}</span>
       </div>
-      ${d.prazo ? '<div style="font-size:12px;color:var(--text2);margin-bottom:12px">📅 Entrega: <strong style="color:var(--text)">'+d.prazo+'</strong></div>' : ''}
+      ${d.prazo ? '<div style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px">📅 Entrega: '+_fmtData(d.prazo)+'</div>' : ''}
       <!-- Barra de progresso -->
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
@@ -7036,6 +7056,7 @@ function _runInit() {
   reinitData();
   migrarDados();
   migrarPacotes();
+  garantirGravacoes(); // garante gravações/edições do Kaian mesmo após sync Firebase
   carregarLogoSalvo();
   finMesSel = mesAtualKey();
   gerarRecebimentosMes(mesAtualKey());
@@ -9040,18 +9061,15 @@ function aplicarModo(modo, viaLogin) {
     document.querySelectorAll('.nav-comercial,.nav-leads').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-intel-section').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-negocio-section').forEach(el => el.style.display = 'none');
-    // Kaian (videomaker): esconde abas extras e bloqueia páginas
+    // Kaian (videomaker): esconde tudo menos gravações/edições
     const _sessUser = JSON.parse(sessionStorage.getItem('coeso_login')||'{}').user || '';
     if (_sessUser === 'kaian') {
       document.querySelectorAll('.nav-kaian-hide').forEach(el => el.style.display = 'none');
-      // Mostrar link de Gravações no nav
-      const _navKaian = document.getElementById('nav-kaian-item');
-      if (_navKaian) _navKaian.style.display = '';
+      document.querySelectorAll('.nav-kaian-only').forEach(el => el.style.display = '');
       // Bloquear páginas não permitidas para Kaian
       const _origGoToK = window.goTo;
       window.goTo = function(page) {
-        const permK = ['inicio','kaian'];
-        if (!permK.includes(page)) { _origGoToK('kaian'); return; }
+        if (page !== 'kaian') { _origGoToK('kaian'); return; }
         _origGoToK(page);
       };
     }
