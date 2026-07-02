@@ -407,11 +407,11 @@
     <span class="icon">✂️</span><span>Edições</span>
   </div>
 
-  <div class="nav-section nav-kaian-hide">Principal</div>
-  <div class="nav-item nav-kaian-hide" id="nav-inicio" onclick="goTo('inicio')">
+  <div class="nav-section">Principal</div>
+  <div class="nav-item" id="nav-inicio" onclick="goTo('inicio')">
     <span class="icon">🏠</span><span>Início</span>
   </div>
-  <div class="nav-item nav-kaian-hide" onclick="goTo('dashboard')">
+  <div class="nav-item" onclick="goTo('dashboard')">
     <span class="icon">📊</span><span>Dashboard</span>
   </div>
   <div class="nav-item nav-kaian-hide" onclick="goTo('agenda')">
@@ -437,8 +437,8 @@
     <span class="icon">🌱</span><span>Leads</span>
   </div>
 
-  <div class="nav-section">Resultados</div>
-  <div class="nav-item" onclick="goTo('instagram')">
+  <div class="nav-section nav-kaian-hide">Resultados</div>
+  <div class="nav-item nav-kaian-hide" onclick="goTo('instagram')">
     <span class="icon">📱</span><span>Instagram</span>
   </div>
   <div class="nav-item nav-kaian-hide" onclick="goTo('trafego')">
@@ -3170,9 +3170,15 @@ function _fmtData(iso) {
 function renderKaianGravacoes() {
   const el = document.getElementById('kaian-tab-grav-content');
   if (!el) return;
+  const _sessG = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const isAdminG = _sessG.modo === 'admin';
   const gravs = (demandas||[]).filter(d => (d.tipo==='Video'||d.tipo==='Audiovisual') && d.subtipo !== 'Edicao')
     .sort((a,b) => (a.prazo||'').localeCompare(b.prazo||''));
-  if (!gravs.length) { el.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">Nenhuma gravação cadastrada ainda.</div>'; return; }
+  if (!gravs.length) {
+    el.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">Nenhuma gravação cadastrada.' +
+      (isAdminG ? '<br><br><button class="btn btn-primary btn-sm" onclick="abrirNovaGravacao()">+ Nova gravação</button>' : '') + '</div>';
+    return;
+  }
   el.innerHTML = gravs.map(d => {
     const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
     const cor = _kaianStatusCor(d.status);
@@ -3187,8 +3193,12 @@ function renderKaianGravacoes() {
       </div>
       ${d.endereco ? '<div style="background:rgba(125,216,240,0.07);border:1px solid rgba(125,216,240,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📍 Endereço</div><div style="font-size:13px;color:var(--text)">${d.endereco}</div></div>' : ''}
       ${d.roteiro && d.roteiro !== 'Em andamento' ? '<div style="background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.2);border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">📄 Roteiro</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">${d.roteiro}</div></div>' : '<div style="background:rgba(247,201,72,0.05);border:1px dashed rgba(247,201,72,0.25);border-radius:8px;padding:9px 12px;text-align:center;color:var(--yellow);font-size:12px;font-weight:600">📄 Roteiro em andamento</div>'}
+      ${isAdminG ? '<button class="btn btn-ghost btn-sm" onclick="editarDemanda('+d.id+')" style="margin-top:10px;font-size:11px;color:var(--text2)">✏️ Editar gravação</button>' : ''}
     </div>`;
   }).join('');
+  if (isAdminG) {
+    el.innerHTML += '<div style="text-align:center;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="abrirNovaGravacao()" style="font-size:12px">+ Nova gravação</button></div>';
+  }
 }
 
 // ── TAB EDIÇÕES ────────────────────────────────────────────
@@ -3285,6 +3295,26 @@ function removerReel(demandaId, reelIdx) {
   d.reels.splice(reelIdx, 1);
   saveData('demandas', demandas);
   renderKaianEdicoes();
+}
+
+function abrirNovaGravacao() {
+  document.getElementById('dem-modal-title').textContent = 'Nova Gravação';
+  document.getElementById('dem-id').value = '';
+  document.getElementById('dem-titulo').value = '';
+  document.getElementById('dem-tipo').value = 'Audiovisual';
+  document.getElementById('dem-status').value = 'Briefing';
+  document.getElementById('dem-prioridade').value = 'Alta';
+  document.getElementById('dem-responsavel').value = 'Kaian';
+  document.getElementById('dem-prazo').value = '';
+  document.getElementById('dem-desc').value = '';
+  document.getElementById('dem-endereco').value = '';
+  document.getElementById('dem-roteiro').value = '';
+  document.getElementById('dem-excluir-btn').style.display = 'none';
+  delete document.getElementById('dem-tipo').dataset.subtipo;
+  document.getElementById('dem-tipo').dataset.subtipo = 'Gravacao';
+  toggleDemAvFields();
+  refreshClienteSelect();
+  openModal('modal-demanda');
 }
 
 function abrirNovaEdicao() {
@@ -3561,6 +3591,9 @@ function editarDemanda(id) {
   }
   document.getElementById('dem-endereco').value = d.endereco || '';
   document.getElementById('dem-roteiro').value = d.roteiro || '';
+  // Preserva subtipo (Gravacao / Edicao)
+  if (d.subtipo) document.getElementById('dem-tipo').dataset.subtipo = d.subtipo;
+  else delete document.getElementById('dem-tipo').dataset.subtipo;
   toggleDemAvFields();
   openModal('modal-demanda');
 }
@@ -3615,6 +3648,8 @@ function salvarDemanda() {
   saveData('demandas', demandas);
   closeModal('modal-demanda');
   renderDemandas();
+  // Se a página do Kaian estiver ativa, re-renderiza
+  if (document.getElementById('page-kaian')?.classList.contains('active')) renderKaian();
 }
 
 function excluirDemanda(id) {
@@ -9066,10 +9101,11 @@ function aplicarModo(modo, viaLogin) {
     if (_sessUser === 'kaian') {
       document.querySelectorAll('.nav-kaian-hide').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.nav-kaian-only').forEach(el => el.style.display = '');
-      // Bloquear páginas não permitidas para Kaian
+      // Kaian pode acessar: início, dashboard e sua página
       const _origGoToK = window.goTo;
       window.goTo = function(page) {
-        if (page !== 'kaian') { _origGoToK('kaian'); return; }
+        const _permitidas = ['inicio','dashboard','kaian'];
+        if (!_permitidas.includes(page)) { _origGoToK('kaian'); return; }
         _origGoToK(page);
       };
     }
