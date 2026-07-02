@@ -2069,9 +2069,7 @@ function garantirGravacoes() {
     { titulo:'GRAVAÇÃO — COMPASSO 14/07',              tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-14', clienteExterno:'Compasso',                     cliente:0, endereco:'R. da Assunção, 1580 - Fátima, Fortaleza - CE, 60050-135', roteiro:'Em andamento', desc:'09h' },
     { titulo:'GRAVAÇÃO — CARLOS FERNANDES 16/07',      tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-16', clienteExterno:'Carlos Fernandes Nutricionista',cliente:0, endereco:'Rua Dr. Pergentino Maia, 1097 B - Messejana, Fortaleza - CE, 60840-045', roteiro:'Em andamento', desc:'08h' },
     { titulo:'GRAVAÇÃO — TALISMÃ 17/07',               tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-17', clienteExterno:'Talismã',                      cliente:0, endereco:'R. Pedro I, 725 - Centro, Fortaleza - CE, 60035-100', roteiro:'Em andamento', desc:'08h às 11h' },
-    { titulo:'EDIÇÃO — MENDES E BRITO',  tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-08', clienteExterno:'Mendes e Brito', cliente:0, desc:'Reels faltantes — entrega 08/07', reels:[] },
-    { titulo:'EDIÇÃO — SPOT',            tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Spot',           cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
-    { titulo:'EDIÇÃO — FOCUS',           tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Focus',          cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
+    // Edições não são garantidas automaticamente — gerenciadas pelo Kaian/admin
   ];
   let maxId = (demandas||[]).reduce((m,d) => Math.max(m, d.id||0), 0);
   let mudou = false;
@@ -2724,10 +2722,10 @@ function refreshClienteSelect() {
   const sel = document.getElementById('demanda-cliente-sel');
   if (!sel) return;
   sel.innerHTML = clientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('') +
-    '<option value="0">➕ Outro / Externo...</option>';
+    '<option value="-1">➕ Outro / Externo...</option>';
 }
 function toggleDemClienteExterno() {
-  const mostrar = document.getElementById('demanda-cliente-sel').value === '0';
+  const mostrar = document.getElementById('demanda-cliente-sel').value === '-1';
   document.getElementById('dem-externo-wrap').style.display = mostrar ? '' : 'none';
   if (mostrar) document.getElementById('dem-cliente-externo').focus();
 }
@@ -3171,7 +3169,11 @@ function renderKaian() {
 }
 
 function _kaianStatusCor(s) {
-  return {'Briefing':'#8b8fa8','Em andamento':'#3dd68c','Em revisão':'#6c8cff','Aguardando aprovação':'#f7c948','Concluído':'#aee8f5'}[s] || '#8b8fa8';
+  return {
+    'Briefing':'#8b8fa8','Em andamento':'#3dd68c','Em revisão':'#6c8cff',
+    'Aguardando aprovação':'#f7c948','Concluído':'#aee8f5',
+    'Gravado':'#ff9f43','Decupagem':'#a29bfe'
+  }[s] || '#8b8fa8';
 }
 
 // ── TAB GRAVAÇÕES ──────────────────────────────────────────
@@ -3192,7 +3194,9 @@ function renderKaianGravacoes() {
       (isAdminG ? '<br><br><button class="btn btn-primary btn-sm" onclick="abrirNovaGravacao()">+ Nova gravação</button>' : '') + '</div>';
     return;
   }
-  el.innerHTML = gravs.map(d => {
+  // Botão adicionar — visível para todos
+  el.innerHTML = '<div style="text-align:center;margin-bottom:14px"><button class="btn btn-primary" onclick="abrirNovaGravacao()" style="font-size:13px;padding:10px 24px">🎬 Adicionar Gravação</button></div>';
+  el.innerHTML += gravs.map(d => {
     const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
     const cor = _kaianStatusCor(d.status);
     const dataFmt = _fmtData(d.prazo);
@@ -3220,96 +3224,121 @@ function renderKaianGravacoes() {
       <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="margin-top:10px;font-size:11px;color:var(--text2)">✏️ Editar gravação</button>
     </div>`;
   }).join('');
-  if (isAdminG) {
-    el.innerHTML += '<div style="text-align:center;margin-top:8px"><button class="btn btn-primary btn-sm" onclick="abrirNovaGravacao()" style="font-size:12px">+ Nova gravação</button></div>';
-  }
 }
 
 // ── TAB EDIÇÕES ────────────────────────────────────────────
 function renderKaianEdicoes() {
   const el = document.getElementById('kaian-tab-ed-content');
   if (!el) return;
-  const _sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const _sess  = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
   const isAdmin = _sess.modo === 'admin';
+  // Ordena por prazo (data de entrega)
   const edicoes = (demandas||[]).filter(d => d.subtipo === 'Edicao')
-    .sort((a,b) => (a.prazo||'').localeCompare(b.prazo||''));
+    .sort((a,b) => (a.prazo||'9999').localeCompare(b.prazo||'9999'));
+  // Botão adicionar — topo, visível para todos
+  const btnAddEd = '<div style="text-align:center;margin-bottom:14px"><button class="btn btn-primary" onclick="abrirNovaEdicao()" style="font-size:13px;padding:10px 24px">✂️ Adicionar Edição</button></div>';
+
   if (!edicoes.length) {
-    el.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">Nenhuma edição cadastrada ainda.' + (isAdmin ? '<br><br><button class="btn btn-primary btn-sm" onclick="abrirNovaEdicao()">+ Criar primeira edição</button>' : '') + '</div>';
+    el.innerHTML = btnAddEd + '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">Nenhuma edição cadastrada ainda.</div>';
     return;
   }
-  el.innerHTML = edicoes.map(d => {
-    const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
-    const reels = d.reels || [];
-    const total = reels.length;
+  const mesAtual = new Date().toISOString().slice(0,7); // ex: '2026-07'
+  const mesNome  = new Date().toLocaleString('pt-BR',{month:'long'}); // 'julho'
+
+  el.innerHTML = btnAddEd + edicoes.map(d => {
+    const cli    = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || d.titulo);
+    const reels  = d.reels || [];
+    const total  = reels.length;
     const feitos = reels.filter(r=>r.feito).length;
-    const pct = total > 0 ? Math.round(feitos/total*100) : 0;
-    const cor = _kaianStatusCor(d.status);
+    const feitos_mes = reels.filter(r=>r.feito && (r.mes||'').startsWith(mesAtual)).length;
+    const pct    = total > 0 ? Math.round(feitos/total*100) : 0;
+    const cor    = _kaianStatusCor(d.status);
     const barCor = pct===100 ? '#3dd68c' : pct>50 ? '#6c8cff' : '#f7c948';
-    return `<div class="card" style="margin-bottom:14px">
+
+    // Lista de reels ordenada por prazo que o Kaian adicionou
+    const reelsList = reels.map((r,i) => `
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:8px;
+        background:${r.feito?'rgba(61,214,140,0.07)':'rgba(255,255,255,0.02)'};
+        border:1px solid ${r.feito?'rgba(61,214,140,0.25)':'var(--border)'};margin-bottom:5px">
+        <input type="checkbox" ${r.feito?'checked':''} onchange="toggleReel(${d.id},${i},this.checked)"
+          style="width:17px;height:17px;accent-color:#3dd68c;cursor:pointer;flex-shrink:0">
+        <span style="font-size:13px;flex:1;${r.feito?'text-decoration:line-through;color:var(--text2)':'color:var(--text)'}">${r.nome}</span>
+        ${r.feito && r.mes ? `<span style="font-size:10px;color:var(--text2)">${r.mes.replace('-','/')}</span>` : ''}
+        <button onclick="removerReel(${d.id},${i})" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:0 3px;line-height:1" title="Remover">×</button>
+      </label>`).join('');
+
+    return `<div class="card" style="margin-bottom:16px">
+      <!-- Cabeçalho -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--text)">✂️ ${cli || d.titulo}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">Edição de reels</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)">✂️ ${cli}</div>
+          ${d.prazo ? `<div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:3px">📅 Entrega: ${_fmtData(d.prazo)}</div>` : ''}
         </div>
-        <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:'+cor+'22;color:'+cor+';border:1px solid '+cor+'44">${d.status}</span>
+        <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:${cor}22;color:${cor};border:1px solid ${cor}44">${d.status}</span>
       </div>
-      ${d.prazo ? '<div style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px">📅 Entrega: '+_fmtData(d.prazo)+'</div>' : ''}
-      <!-- Barra de progresso -->
-      <div style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Progresso — Reels</span>
+
+      <!-- Progresso -->
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Reels</span>
           <span style="font-size:12px;font-weight:700;color:${barCor}">${feitos}/${total} (${pct}%)</span>
         </div>
-        <div style="height:8px;background:var(--surface2);border-radius:99px;overflow:hidden">
+        <div style="height:7px;background:var(--surface2);border-radius:99px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:${barCor};border-radius:99px;transition:width .4s"></div>
         </div>
+        ${feitos_mes > 0 ? `<div style="font-size:11px;color:#3dd68c;margin-top:5px;font-weight:600">✓ ${feitos_mes} reel${feitos_mes>1?'s':''} concluído${feitos_mes>1?'s':''} em ${mesNome}</div>` : ''}
       </div>
+
       <!-- Lista de reels -->
-      <div style="display:flex;flex-direction:column;gap:6px">
-        ${reels.length === 0 ? '<div style="color:var(--text2);font-size:12px;font-style:italic">Nenhum reel adicionado ainda.</div>' :
-          reels.map((r,i) => `
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:7px 10px;border-radius:8px;background:${r.feito?'rgba(61,214,140,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${r.feito?'rgba(61,214,140,0.25)':'var(--border)'}">
-            <input type="checkbox" ${r.feito?'checked':''} onchange="toggleReel(${d.id},${i},this.checked)"
-              style="width:16px;height:16px;accent-color:#3dd68c;cursor:pointer;flex-shrink:0">
-            <span style="font-size:13px;color:var(--text);${r.feito?'text-decoration:line-through;color:var(--text2)':''};flex:1">${r.nome}</span>
-            ${isAdmin ? '<button onclick="removerReel('+d.id+','+i+')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px" title="Remover">✕</button>' : ''}
-          </label>`).join('')}
+      <div style="margin-bottom:10px">
+        ${reels.length === 0
+          ? '<div style="color:var(--text2);font-size:12px;font-style:italic;padding:6px 0">Nenhum reel adicionado ainda. Adicione abaixo ↓</div>'
+          : reelsList}
       </div>
-      <!-- Admin: adicionar reel -->
-      ${isAdmin ? `
-      <div style="margin-top:10px;display:flex;gap:8px">
-        <input id="reel-input-${d.id}" class="form-input" placeholder="Nome do reel..." style="flex:1;padding:7px 10px;font-size:12px" onkeydown="if(event.key==='Enter')adicionarReel(${d.id})">
-        <button class="btn btn-ghost btn-sm" onclick="adicionarReel(${d.id})" style="white-space:nowrap">+ Reel</button>
-      </div>` : ''}
-      <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="margin-top:8px;font-size:11px;color:var(--text2)">✏️ Editar edição</button>
+
+      <!-- Adicionar reel (Kaian e admin) -->
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="reel-input-${d.id}" class="form-input" placeholder="Nome do reel (ex: Reel 1 — Produto)..."
+          style="flex:1;padding:8px 10px;font-size:12px"
+          onkeydown="if(event.key==='Enter')adicionarReel(${d.id})">
+        <button class="btn btn-primary btn-sm" onclick="adicionarReel(${d.id})" style="font-size:12px;white-space:nowrap">+ Reel</button>
+      </div>
+
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="font-size:11px;color:var(--text2)">✏️ Editar</button>
+        ${total > 0 && feitos_mes > 0 ? `<span style="font-size:10px;color:var(--text2);margin-left:auto">Produção ${mesNome}: <b style="color:#3dd68c">${feitos_mes}</b></span>` : ''}
+      </div>
     </div>`;
   }).join('');
+
 }
 
 function toggleReel(demandaId, reelIdx, feito) {
   const d = demandas.find(x=>x.id===demandaId);
-  if (!d || !d.reels) return;
+  if (!d || !d.reels || !d.reels[reelIdx]) return;
   d.reels[reelIdx].feito = feito;
+  d.reels[reelIdx].mes   = feito ? new Date().toISOString().slice(0,7) : null;
   // Atualiza status automaticamente
-  const total = d.reels.length;
+  const total   = d.reels.length;
   const feitosN = d.reels.filter(r=>r.feito).length;
   if (feitosN === total && total > 0) d.status = 'Concluído';
-  else if (feitosN > 0) d.status = 'Em andamento';
-  else d.status = 'Briefing';
+  else if (feitosN > 0)               d.status = 'Em andamento';
+  else                                 d.status = 'Gravado';
   saveData('demandas', demandas);
   renderKaianEdicoes();
 }
 
 function adicionarReel(demandaId) {
   const input = document.getElementById('reel-input-'+demandaId);
-  const nome = input?.value.trim();
-  if (!nome) return;
+  const nome  = input?.value.trim();
+  if (!nome) { if(input) input.focus(); return; }
   const d = demandas.find(x=>x.id===demandaId);
   if (!d) return;
   if (!d.reels) d.reels = [];
-  d.reels.push({ nome, feito: false });
+  d.reels.push({ nome, feito: false, mes: null });
   saveData('demandas', demandas);
   input.value = '';
+  input.focus();
   renderKaianEdicoes();
 }
 
@@ -3427,10 +3456,27 @@ function abrirNovaEdicao() {
 }
 
 function toggleDemAvFields() {
-  const tipo = document.getElementById('dem-tipo')?.value || '';
-  const show = ['Video','Audiovisual'].includes(tipo);
+  const tipoEl  = document.getElementById('dem-tipo');
+  const tipo    = tipoEl?.value || '';
+  const subtipo = tipoEl?.dataset.subtipo || '';
+  // Campos de endereço/roteiro só aparecem para Gravações, não para Edições
+  const showAv  = ['Video','Audiovisual'].includes(tipo) && subtipo !== 'Edicao';
   const el = document.getElementById('dem-av-fields');
-  if (el) el.style.display = show ? '' : 'none';
+  if (el) el.style.display = showAv ? '' : 'none';
+
+  // Opções de status variam por subtipo
+  const statusSel = document.getElementById('dem-status');
+  if (!statusSel) return;
+  const atual = statusSel.value;
+  let opcoes;
+  if (subtipo === 'Edicao') {
+    opcoes = ['Gravado','Decupagem','Em andamento','Em revisão','Aguardando aprovação','Concluído'];
+  } else if (subtipo === 'Gravacao') {
+    opcoes = ['Briefing','Em andamento','Concluído'];
+  } else {
+    opcoes = ['Briefing','Em andamento','Em revisão','Aguardando aprovação','Concluído'];
+  }
+  statusSel.innerHTML = opcoes.map(o => `<option${o===atual?' selected':''}>${o}</option>`).join('');
 }
 
 function renderKanbanAudiovisual() {
@@ -3670,11 +3716,11 @@ function editarDemanda(id) {
   refreshClienteSelect();
   const sel = document.getElementById('demanda-cliente-sel');
   if (d.clienteExterno) {
-    sel.value = '0';
+    sel.value = '-1';
     document.getElementById('dem-externo-wrap').style.display = '';
     document.getElementById('dem-cliente-externo').value = d.clienteExterno;
   } else {
-    sel.value = d.cliente;
+    sel.value = String(d.cliente);
     document.getElementById('dem-externo-wrap').style.display = 'none';
     document.getElementById('dem-cliente-externo').value = '';
   }
@@ -3708,9 +3754,10 @@ function filtrarDemandas(q) {
 function salvarDemanda() {
   const titulo = document.getElementById('dem-titulo').value.trim();
   const selVal = document.getElementById('demanda-cliente-sel').value;
-  const clienteId = parseInt(selVal);
-  const clienteExterno = clienteId === 0 ? (document.getElementById('dem-cliente-externo').value.trim() || 'Externo') : '';
-  if (!titulo || (!clienteId && !clienteExterno)) { alert('Preencha título e cliente.'); return; }
+  const isExterno = selVal === '-1';
+  const clienteId = isExterno ? 0 : parseInt(selVal);
+  const clienteExterno = isExterno ? (document.getElementById('dem-cliente-externo').value.trim() || 'Externo') : '';
+  if (!titulo || (isExterno && !clienteExterno) || (!isExterno && !clienteId)) { alert('Preencha título e cliente.'); return; }
   const editId = parseInt(document.getElementById('dem-id').value);
   const _sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
   const _criador = _sess.nome || 'Eduardo';
