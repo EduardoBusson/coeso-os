@@ -409,8 +409,8 @@
     <span class="icon">📅</span><span>Agenda</span>
   </div>
 
-  <div class="nav-section">Clientes</div>
-  <div class="nav-item" onclick="goTo('clientes')">
+  <div class="nav-section nav-negocio-section">Clientes</div>
+  <div class="nav-item nav-negocio-section" onclick="goTo('clientes')">
     <span class="icon">👥</span><span>Clientes</span>
   </div>
   <div class="nav-item" onclick="goTo('demandas')">
@@ -1949,9 +1949,23 @@ function loadData(key, fallback) {
 
 function saveData(key, data) {
   try { localStorage.setItem('coeso_' + key, JSON.stringify(data)); } catch(e) {}
-  // Salva no Realtime Database em background
   _db.ref('dados/' + key).set(JSON.stringify(data))
     .catch(e => console.warn('Firebase write error:', e));
+}
+
+// Puxa todos os dados do Firebase para o localStorage antes de iniciar
+async function sincronizarDoFirebase() {
+  try {
+    const snap = await _db.ref('dados').once('value');
+    const todos = snap.val();
+    if (!todos) return;
+    Object.entries(todos).forEach(([key, val]) => {
+      try { localStorage.setItem('coeso_' + key, typeof val === 'string' ? val : JSON.stringify(val)); } catch(e) {}
+    });
+    console.log('✅ Dados sincronizados do Firebase.');
+  } catch(e) {
+    console.warn('Firebase sync error:', e);
+  }
 }
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id||0)) + 1 : 1; }
 
@@ -6812,7 +6826,10 @@ function fazerLogin() {
   }
   sessionStorage.setItem('coeso_login', JSON.stringify({ user, modo: cfg.modo, nome: cfg.nome, cliente: cfg.cliente||'' }));
   document.getElementById('login-screen').style.display = 'none';
-  mostrarSplashBoasVindas(cfg.nome, cfg.modo);
+  // Puxa dados mais recentes do Firebase antes de iniciar
+  sincronizarDoFirebase().then(() => {
+    mostrarSplashBoasVindas(cfg.nome, cfg.modo);
+  });
 }
 
 function fazerLogout() {
@@ -7931,15 +7948,24 @@ function _tabInstagram(clienteNome) {
     posts_mes:'—', reels_views:'—', contas_alcancadas:'—', saves:'—',
     ultimo_post:'—', melhor_post:'—'
   });
+  const igConfig = loadData('ig_config_'+clienteNome, { token:'', igId:'' });
+  const conectado = !!(igConfig.token && igConfig.igId);
+
   return `
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-    <div style="font-size:14px;font-weight:700">📸 Instagram da Focus</div>
-    <button onclick="abrirEditarIG('${clienteNome}')" style="font-size:11px;background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:5px 12px;cursor:pointer">✏️ Atualizar dados</button>
+    <div style="font-size:14px;font-weight:700">📸 Instagram — ${clienteNome}</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="abrirConfigurarIG('${clienteNome}')" style="font-size:11px;background:none;border:1px solid ${conectado?'#3dd68c':'var(--border)'};color:${conectado?'#3dd68c':'var(--text2)'};border-radius:8px;padding:5px 12px;cursor:pointer">${conectado?'🟢 Conectado':'🔗 Conectar API'}</button>
+      ${conectado?`<button onclick="buscarDadosIG('${clienteNome}')" class="btn btn-primary" style="font-size:11px">🔄 Atualizar</button>`:''}
+      <button onclick="abrirEditarIG('${clienteNome}')" style="font-size:11px;background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:5px 12px;cursor:pointer">✏️ Manual</button>
+    </div>
   </div>
-  <!-- Aviso API -->
-  <div style="background:#f7c94822;border:1px solid #f7c94844;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#f7c948">
-    💡 <b>Integração automática:</b> Para atualização automática dos dados do Instagram é necessário configurar a Meta Graph API com uma conta Business/Creator. Por ora, atualize manualmente clicando em "Atualizar dados".
-  </div>
+  <!-- Status conexão -->
+  ${!conectado ? `<div style="background:#f7c94822;border:1px solid #f7c94844;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#f7c948">
+    💡 Clique em <b>Conectar API</b> para vincular o Instagram automaticamente via Meta Graph API.
+  </div>` : `<div style="background:#3dd68c22;border:1px solid #3dd68c44;border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#3dd68c">
+    ✅ Instagram conectado via API. Clique em "Atualizar" para buscar os dados mais recentes.
+  </div>`}
   <!-- Métricas IG -->
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px">
     ${[
@@ -7969,6 +7995,142 @@ function _tabInstagram(clienteNome) {
       <div style="font-size:13px;font-weight:600">${ig.melhor_post||'—'}</div>
     </div>
   </div>`;
+}
+
+function abrirConfigurarIG(clienteNome) {
+  const igConfig = loadData('ig_config_'+clienteNome, { token:'', igId:'' });
+  const modal = document.createElement('div');
+  modal.id = 'modal-ig-config';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:520px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700">🔗 Conectar Instagram — ${clienteNome}</div>
+        <button onclick="document.getElementById('modal-ig-config').remove()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        <b>Como obter o token:</b><br>
+        1. Acesse <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--accent)">developers.facebook.com/tools/explorer</a><br>
+        2. Selecione o app da Coeso<br>
+        3. Selecione a Página do Facebook da ${clienteNome}<br>
+        4. Marque: <code>instagram_basic</code>, <code>instagram_manage_insights</code>, <code>pages_read_engagement</code><br>
+        5. Clique em "Gerar token de acesso" e cole abaixo
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Access Token</label>
+          <textarea id="ig-config-token" class="form-input" rows="3" placeholder="Cole o token aqui..." style="font-size:11px;font-family:monospace">${igConfig.token||''}</textarea>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Instagram Business Account ID <span style="font-size:10px">(deixe em branco para buscar automaticamente)</span></label>
+          <input id="ig-config-id" class="form-input" placeholder="Ex: 17841400000000000" value="${igConfig.igId||''}" style="font-size:12px;font-family:monospace">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="document.getElementById('modal-ig-config').remove()" class="btn btn-ghost" style="flex:1">Cancelar</button>
+        <button onclick="salvarConfigurarIG('${clienteNome}')" class="btn btn-primary" style="flex:1">🔗 Conectar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function salvarConfigurarIG(clienteNome) {
+  const token = document.getElementById('ig-config-token')?.value.trim();
+  let igId   = document.getElementById('ig-config-id')?.value.trim();
+  if (!token) { showToast('Cole o token primeiro'); return; }
+
+  // Se não tem igId, busca automaticamente via API
+  if (!igId) {
+    showToast('🔍 Buscando conta do Instagram...');
+    try {
+      // Busca páginas do usuário
+      const pagesRes = await fetch(`https://graph.facebook.com/v18.0/me/accounts?access_token=${token}`);
+      const pagesData = await pagesRes.json();
+      if (pagesData.error) throw new Error(pagesData.error.message);
+      // Para cada página, busca IG vinculado
+      for (const page of (pagesData.data||[])) {
+        const igRes = await fetch(`https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${token}`);
+        const igData = await igRes.json();
+        if (igData.instagram_business_account?.id) {
+          igId = igData.instagram_business_account.id;
+          break;
+        }
+      }
+    } catch(e) {
+      showToast('❌ Erro: ' + e.message);
+      return;
+    }
+  }
+
+  if (!igId) { showToast('Não encontrei conta do Instagram vinculada. Cole o ID manualmente.'); return; }
+
+  saveData('ig_config_'+clienteNome, { token, igId });
+  document.getElementById('modal-ig-config')?.remove();
+  showToast('✅ Instagram conectado! Buscando dados...');
+  await buscarDadosIG(clienteNome);
+}
+
+async function buscarDadosIG(clienteNome) {
+  const igConfig = loadData('ig_config_'+clienteNome, { token:'', igId:'' });
+  if (!igConfig.token || !igConfig.igId) { showToast('Configure a API primeiro'); return; }
+  const { token, igId } = igConfig;
+
+  try {
+    showToast('🔄 Buscando dados do Instagram...');
+
+    // Básico: seguidores, posts
+    const basicRes = await fetch(`https://graph.facebook.com/v18.0/${igId}?fields=followers_count,media_count,name,username&access_token=${token}`);
+    const basic = await basicRes.json();
+    if (basic.error) throw new Error(basic.error.message);
+
+    // Insights: alcance, impressões (últimos 7 dias)
+    const hoje = Math.floor(Date.now()/1000);
+    const ha7  = hoje - 7*24*3600;
+    const insRes = await fetch(`https://graph.facebook.com/v18.0/${igId}/insights?metric=impressions,reach,profile_views&period=day&since=${ha7}&until=${hoje}&access_token=${token}`);
+    const insData = await insRes.json();
+
+    let impressoes = 0, alcance = 0, profileViews = 0;
+    (insData.data||[]).forEach(metric => {
+      const total = (metric.values||[]).reduce((s,v)=>s+(v.value||0),0);
+      if (metric.name==='impressions')   impressoes  += total;
+      if (metric.name==='reach')         alcance     += total;
+      if (metric.name==='profile_views') profileViews+= total;
+    });
+
+    // Últimos posts do mês
+    const mesInicio = Math.floor(new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()/1000);
+    const mediaRes = await fetch(`https://graph.facebook.com/v18.0/${igId}/media?fields=timestamp,media_type,like_count,comments_count&since=${mesInicio}&access_token=${token}&limit=50`);
+    const mediaData = await mediaRes.json();
+    const posts = (mediaData.data||[]);
+    const postsMes = posts.length;
+    const reelsMes = posts.filter(p=>p.media_type==='VIDEO').length;
+    const totalLikes = posts.reduce((s,p)=>s+(p.like_count||0),0);
+    const totalComments = posts.reduce((s,p)=>s+(p.comments_count||0),0);
+    const engPct = basic.followers_count > 0 ? ((totalLikes+totalComments)/(postsMes||1)/basic.followers_count*100).toFixed(2)+'%' : '—';
+
+    const ultimoPost = posts.length > 0 ? new Date(posts[0].timestamp).toLocaleDateString('pt-BR') : '—';
+
+    // Salva dados
+    const ig = {
+      seguidores:        basic.followers_count?.toLocaleString('pt-BR') || '—',
+      alcance7d:         alcance > 0 ? alcance.toLocaleString('pt-BR') : '—',
+      impressoes:        impressoes > 0 ? impressoes.toLocaleString('pt-BR') : '—',
+      engajamento:       engPct,
+      posts_mes:         postsMes || '—',
+      reels_views:       reelsMes || '—',
+      contas_alcancadas: alcance > 0 ? alcance.toLocaleString('pt-BR') : '—',
+      saves:             '—',
+      ultimo_post:       ultimoPost,
+      melhor_post:       '—',
+      atualizado:        new Date().toLocaleString('pt-BR'),
+    };
+    saveData('ig_'+clienteNome, ig);
+    showToast('✅ Dados do Instagram atualizados!');
+    renderPortalTab('instagram', clienteNome);
+  } catch(e) {
+    showToast('❌ Erro na API: ' + e.message);
+    console.error(e);
+  }
 }
 
 function abrirEditarIG(clienteNome) {

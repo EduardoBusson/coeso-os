@@ -1949,9 +1949,23 @@ function loadData(key, fallback) {
 
 function saveData(key, data) {
   try { localStorage.setItem('coeso_' + key, JSON.stringify(data)); } catch(e) {}
-  // Salva no Realtime Database em background
   _db.ref('dados/' + key).set(JSON.stringify(data))
     .catch(e => console.warn('Firebase write error:', e));
+}
+
+// Puxa todos os dados do Firebase para o localStorage antes de iniciar
+async function sincronizarDoFirebase() {
+  try {
+    const snap = await _db.ref('dados').once('value');
+    const todos = snap.val();
+    if (!todos) return;
+    Object.entries(todos).forEach(([key, val]) => {
+      try { localStorage.setItem('coeso_' + key, typeof val === 'string' ? val : JSON.stringify(val)); } catch(e) {}
+    });
+    console.log('✅ Dados sincronizados do Firebase.');
+  } catch(e) {
+    console.warn('Firebase sync error:', e);
+  }
 }
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id||0)) + 1 : 1; }
 
@@ -6812,7 +6826,10 @@ function fazerLogin() {
   }
   sessionStorage.setItem('coeso_login', JSON.stringify({ user, modo: cfg.modo, nome: cfg.nome, cliente: cfg.cliente||'' }));
   document.getElementById('login-screen').style.display = 'none';
-  mostrarSplashBoasVindas(cfg.nome, cfg.modo);
+  // Puxa dados mais recentes do Firebase antes de iniciar
+  sincronizarDoFirebase().then(() => {
+    mostrarSplashBoasVindas(cfg.nome, cfg.modo);
+  });
 }
 
 function fazerLogout() {
