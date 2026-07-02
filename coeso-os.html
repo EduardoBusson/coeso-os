@@ -7901,15 +7901,18 @@ function renderPortalCliente() {
 
   const activeTab = sessionStorage.getItem('portal_tab') || 'visaogeral';
 
+  const _sessPortal = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const _isAdminPortal = _sessPortal.modo === 'admin';
+
   const TABS = [
     { id:'visaogeral',   label:'Visão Geral' },
+    { id:'plano',        label:'Plano de Ação' },
     { id:'calendario',   label:'Calendário' },
     { id:'aprovacao',    label:'Aprovações' },
-    { id:'biblioteca',   label:'Biblioteca' },
     { id:'solicitacoes', label:'Solicitações' },
     { id:'instagram',    label:'Instagram' },
     { id:'oportunidades',label:'Oportunidades' },
-    { id:'score',        label:'Score' },
+    ...(_isAdminPortal ? [{ id:'score', label:'Score' }] : []),
     { id:'relatorio',    label:'Relatório' },
   ];
 
@@ -7961,9 +7964,9 @@ function renderPortalTab(tabId, clienteNome) {
   if (!el) return;
   switch(tabId) {
     case 'visaogeral':    el.innerHTML = _tabVisaoGeral(clienteNome); break;
+    case 'plano':         el.innerHTML = _tabPlano(clienteNome); break;
     case 'calendario':    el.innerHTML = _tabCalendario(clienteNome); break;
     case 'aprovacao':     el.innerHTML = _tabAprovacao(clienteNome); break;
-    case 'biblioteca':    el.innerHTML = _tabBiblioteca(clienteNome); break;
     case 'solicitacoes':  el.innerHTML = _tabSolicitacoes(clienteNome); _bindSolicitacoes(clienteNome); break;
     case 'instagram':     el.innerHTML = _tabInstagram(clienteNome); break;
     case 'oportunidades': el.innerHTML = _tabOportunidades(clienteNome); break;
@@ -8020,6 +8023,7 @@ function _tabVisaoGeral(clienteNome) {
   const allAprov = loadData('aprov_'+clienteNome, []);
   const sol = loadData('sol_'+clienteNome, []);
   const solPend = sol.filter(s=>s.status!=='Finalizado');
+  const isAdminView = (JSON.parse(sessionStorage.getItem('coeso_login')||'{}')).modo === 'admin';
   const score = _calcScore(clienteNome);
   const scoreR = 32;
   const scoreCirc = (2*Math.PI*scoreR).toFixed(2);
@@ -8117,8 +8121,8 @@ function _tabVisaoGeral(clienteNome) {
           <button onclick="switchPortalTab('plano')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:8px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:600">Ver plano →</button>
         </div>
       </div>
-      <!-- Score mini no hero -->
-      <div style="text-align:center;flex-shrink:0">
+      <!-- Score mini no hero (admin only) -->
+      ${isAdminView ? `<div style="text-align:center;flex-shrink:0">
         <div style="font-size:9px;color:#475569;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">Score</div>
         <div style="position:relative;width:76px;height:76px;margin:0 auto">
           <svg width="76" height="76" viewBox="0 0 76 76">
@@ -8133,7 +8137,7 @@ function _tabVisaoGeral(clienteNome) {
         </div>
         <div style="font-size:11px;color:${scoreColor};font-weight:600;margin-top:6px">${scoreLabel}</div>
         <button onclick="switchPortalTab('score')" style="margin-top:8px;background:none;border:1px solid rgba(255,255,255,.08);color:#475569;border-radius:7px;padding:4px 10px;cursor:pointer;font-size:10px">detalhes</button>
-      </div>
+      </div>` : ''}
     </div>
   </div>
 
@@ -8290,6 +8294,120 @@ function _tabVisaoGeral(clienteNome) {
       <button onclick="switchPortalTab('solicitacoes')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:9px;padding:9px 16px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">+ Nova solicitação</button>
     </div>
   </div>`;
+}
+
+// ── TAB: PLANO DE AÇÃO ─────────────────────────────────────
+function _tabPlano(clienteNome) {
+  const sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const isAdmin = sess.modo === 'admin';
+  const planosAcao = loadData('planos_acao', {});
+  const plano = planosAcao[clienteNome];
+
+  if (!plano) {
+    return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:340px;text-align:center;gap:16px">
+      <div style="width:56px;height:56px;background:rgba(59,130,246,.1);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px">📋</div>
+      <div>
+        <div style="font-size:17px;font-weight:700;color:#F1F5F9;margin-bottom:6px">Nenhum plano criado</div>
+        <div style="font-size:13px;color:#475569">O plano de ação para ${clienteNome} ainda não foi configurado.</div>
+      </div>
+      ${isAdmin ? `<button onclick="abrirPlanoAcao('${clienteNome}')" style="background:#3B82F6;border:none;color:#fff;border-radius:9px;padding:10px 22px;cursor:pointer;font-size:13px;font-weight:600">+ Criar plano</button>` : ''}
+    </div>`;
+  }
+
+  const setores = plano.setores || [];
+  const todosItens = setores.flatMap(s => s.itens||[]);
+  const feitos = todosItens.filter(i => (typeof i === 'object' ? i.feito : false)).length;
+  const total = todosItens.length;
+  const prog = total > 0 ? Math.round((feitos/total)*100) : 0;
+
+  const statusColor = { 'Concluído':'#10B981','Em andamento':'#3B82F6','Não iniciado':'#475569','Pausado':'#F59E0B' };
+
+  const setoresHtml = setores.map((s, si) => {
+    const sitens = s.itens || [];
+    const sFeitos = sitens.filter(i => (typeof i === 'object' ? i.feito : false)).length;
+    const sTotal = sitens.length;
+    const sProg = sTotal > 0 ? Math.round((sFeitos/sTotal)*100) : 0;
+    const sColor = statusColor[s.status] || '#475569';
+
+    const itensHtml = sitens.map((item, ii) => {
+      const texto = typeof item === 'object' ? item.texto : item;
+      const feito = typeof item === 'object' ? !!item.feito : false;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        ${isAdmin
+          ? `<input type="checkbox" ${feito?'checked':''} onchange="togglePlanoItem('${clienteNome}',${si},${ii})"
+              style="width:16px;height:16px;accent-color:#3B82F6;cursor:pointer;flex-shrink:0">`
+          : `<div style="width:16px;height:16px;border-radius:4px;border:1.5px solid ${feito?'#3B82F6':'rgba(255,255,255,.15)'};background:${feito?'#3B82F6':'transparent'};flex-shrink:0;display:flex;align-items:center;justify-content:center">${feito?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>`
+        }
+        <span style="font-size:13px;color:${feito?'#475569':'#CBD5E1'};text-decoration:${feito?'line-through':'none'};flex:1">${texto}</span>
+      </div>`;
+    }).join('');
+
+    return `<div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 22px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:14px;font-weight:700;color:#F1F5F9">${s.nome}</div>
+          <span style="font-size:10px;font-weight:600;color:${sColor};background:${sColor}18;border:1px solid ${sColor}30;border-radius:5px;padding:2px 8px">${s.status||'Não iniciado'}</span>
+        </div>
+        <div style="font-size:12px;color:#475569">${sFeitos}/${sTotal} itens</div>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-bottom:14px;overflow:hidden">
+        <div style="height:100%;width:${sProg}%;background:${sColor};border-radius:2px;transition:width .4s"></div>
+      </div>
+      ${itensHtml}
+    </div>`;
+  }).join('');
+
+  return `
+  <div style="max-width:860px">
+    <!-- Cabeçalho do plano -->
+    <div style="background:linear-gradient(135deg,#0F1A2E 0%,#0B1220 100%);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px 28px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+        <div style="flex:1">
+          <div style="font-size:11px;color:#475569;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px">Plano de Ação</div>
+          <div style="font-size:22px;font-weight:800;color:#F1F5F9;letter-spacing:-.5px;margin-bottom:8px">${plano.titulo||'Plano sem título'}</div>
+          ${plano.descricao ? `<div style="font-size:13px;color:#64748B;line-height:1.6">${plano.descricao}</div>` : ''}
+        </div>
+        ${isAdmin ? `<button onclick="abrirPlanoAcao('${clienteNome}')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:9px;padding:9px 18px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0">✏️ Editar plano</button>` : ''}
+      </div>
+      <!-- Progresso geral -->
+      <div style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:12px;color:#64748B;font-weight:600">Progresso geral</span>
+          <span style="font-size:14px;font-weight:800;color:#F1F5F9">${prog}%</span>
+        </div>
+        <div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,#3B82F6,#60A5FA);border-radius:4px;transition:width .6s ease"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <span style="font-size:11px;color:#475569">${feitos} de ${total} tarefas concluídas</span>
+          <span style="font-size:11px;color:${prog===100?'#10B981':'#475569'}">${prog===100?'✓ Concluído':'Em andamento'}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Setores -->
+    ${setores.length === 0
+      ? `<div style="text-align:center;padding:40px;color:#475569;font-size:14px">Nenhum setor configurado no plano.</div>`
+      : setoresHtml
+    }
+  </div>`;
+}
+
+function togglePlanoItem(clienteNome, setorIdx, itemIdx) {
+  const planosAcao = loadData('planos_acao', {});
+  if (!planosAcao[clienteNome]) return;
+  const setor = planosAcao[clienteNome].setores[setorIdx];
+  if (!setor) return;
+  const item = setor.itens[itemIdx];
+  if (typeof item === 'object') {
+    item.feito = !item.feito;
+  } else {
+    setor.itens[itemIdx] = { texto: item, feito: true };
+  }
+  saveData('planos_acao', planosAcao);
+  // Re-render somente o conteúdo da aba sem rebuildar o header
+  const el = document.getElementById('portal-tab-content');
+  if (el) el.innerHTML = _tabPlano(clienteNome);
 }
 
 // ── TAB 2: CALENDÁRIO ──────────────────────────────────────
@@ -9451,10 +9569,28 @@ function salvarPlanoAcao(clienteNome) {
     if (nome) setores.push({ nome, status, itens });
   });
   if (!planosAcao) planosAcao = {};
+  // Preserve existing feito state for items that still exist (match by text)
+  const existingSetores = (planosAcao[clienteNome]?.setores)||[];
+  setores.forEach((setor, si) => {
+    const exSetor = existingSetores[si];
+    setor.itens = setor.itens.map((item, ii) => {
+      const exItem = exSetor?.itens?.[ii];
+      if (exItem && typeof exItem === 'object' && exItem.texto === item.texto) {
+        return { texto: item.texto, feito: exItem.feito };
+      }
+      return item;
+    });
+  });
   planosAcao[clienteNome] = { titulo, descricao, setores };
   saveData('planos_acao', planosAcao);
   document.getElementById('modal-plano-acao-wrap')?.remove();
   showToast('✅ Plano de ação salvo!');
+  // Refresh plano tab if currently active
+  const activeTab = sessionStorage.getItem('portal_tab');
+  if (activeTab === 'plano') {
+    const el = document.getElementById('portal-tab-content');
+    if (el) el.innerHTML = _tabPlano(clienteNome);
+  }
 }
 
 function aplicarModo(modo, viaLogin) {
