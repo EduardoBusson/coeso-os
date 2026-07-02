@@ -398,24 +398,25 @@
     <span class="logo-edit-btn logo-admin-only" onclick="event.stopPropagation();openModal('modal-logo')">✏️ editar</span>
   </div>
 
-  <!-- Nav exclusivo do Kaian -->
+  <!-- Principal — Início visível para todos incluindo Kaian -->
+  <div class="nav-section">Principal</div>
+  <div class="nav-item" id="nav-inicio" onclick="goTo('inicio')">
+    <span class="icon">🏠</span><span>Início</span>
+  </div>
+  <div class="nav-item nav-kaian-hide" onclick="goTo('dashboard')">
+    <span class="icon">📊</span><span>Dashboard</span>
+  </div>
+  <div class="nav-item nav-kaian-hide" onclick="goTo('agenda')">
+    <span class="icon">📅</span><span>Agenda</span>
+  </div>
+
+  <!-- Nav exclusivo do Kaian — aparece depois do Início -->
   <div class="nav-section nav-kaian-only" style="display:none">Videomaker</div>
   <div class="nav-item nav-kaian-only" id="nav-kaian-grav" style="display:none" onclick="irParaKaian('grav')">
     <span class="icon">🎬</span><span>Gravações</span>
   </div>
   <div class="nav-item nav-kaian-only" id="nav-kaian-ed" style="display:none" onclick="irParaKaian('ed')">
     <span class="icon">✂️</span><span>Edições</span>
-  </div>
-
-  <div class="nav-section">Principal</div>
-  <div class="nav-item" id="nav-inicio" onclick="goTo('inicio')">
-    <span class="icon">🏠</span><span>Início</span>
-  </div>
-  <div class="nav-item" onclick="goTo('dashboard')">
-    <span class="icon">📊</span><span>Dashboard</span>
-  </div>
-  <div class="nav-item nav-kaian-hide" onclick="goTo('agenda')">
-    <span class="icon">📅</span><span>Agenda</span>
   </div>
 
   <div class="nav-section nav-negocio-section nav-kaian-hide">Clientes</div>
@@ -3193,11 +3194,11 @@ function renderKaianGravacoes() {
       </div>
       ${d.endereco ? '<div style="background:rgba(125,216,240,0.07);border:1px solid rgba(125,216,240,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📍 Endereço</div><div style="font-size:13px;color:var(--text)">${d.endereco}</div></div>' : ''}
       ${d.roteiro && d.roteiro !== 'Em andamento' ? '<div style="background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.2);border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">📄 Roteiro</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">${d.roteiro}</div></div>' : '<div style="background:rgba(247,201,72,0.05);border:1px dashed rgba(247,201,72,0.25);border-radius:8px;padding:9px 12px;text-align:center;color:var(--yellow);font-size:12px;font-weight:600">📄 Roteiro em andamento</div>'}
-      ${isAdminG ? '<button class="btn btn-ghost btn-sm" onclick="editarDemanda('+d.id+')" style="margin-top:10px;font-size:11px;color:var(--text2)">✏️ Editar gravação</button>' : ''}
+      <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="margin-top:10px;font-size:11px;color:var(--text2)">✏️ Editar gravação</button>
     </div>`;
   }).join('');
   if (isAdminG) {
-    el.innerHTML += '<div style="text-align:center;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="abrirNovaGravacao()" style="font-size:12px">+ Nova gravação</button></div>';
+    el.innerHTML += '<div style="text-align:center;margin-top:8px"><button class="btn btn-primary btn-sm" onclick="abrirNovaGravacao()" style="font-size:12px">+ Nova gravação</button></div>';
   }
 }
 
@@ -3257,7 +3258,7 @@ function renderKaianEdicoes() {
         <input id="reel-input-${d.id}" class="form-input" placeholder="Nome do reel..." style="flex:1;padding:7px 10px;font-size:12px" onkeydown="if(event.key==='Enter')adicionarReel(${d.id})">
         <button class="btn btn-ghost btn-sm" onclick="adicionarReel(${d.id})" style="white-space:nowrap">+ Reel</button>
       </div>` : ''}
-      ${isAdmin ? '<button class="btn btn-ghost btn-sm" onclick="editarDemanda('+d.id+')" style="margin-top:8px;font-size:11px;color:var(--text2)">✏️ Editar detalhes</button>' : ''}
+      <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="margin-top:8px;font-size:11px;color:var(--text2)">✏️ Editar edição</button>
     </div>`;
   }).join('');
 }
@@ -7328,6 +7329,7 @@ function renderInicio() {
   const perfil = getPerfil();
   const sess   = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
   const modo   = sess.modo || 'admin';
+  const isKaian = sess.user === 'kaian';
 
   // ── Saudação ────────────────────────────────────────────
   const hora = new Date().getHours();
@@ -7357,9 +7359,11 @@ function renderInicio() {
 
   const statsRow = document.getElementById('inicio-stats-row');
   if (statsRow) {
-    // stats
+    // stats — para Kaian filtra só as dele (audiovisual)
     const jobsAbertos = (jobsExtras||[]).filter(j=>j.status&&j.status!=='Pago'&&j.status!=='Entregue');
-    const demandasPend= (demandas||[]).filter(d=>d.status&&d.status!=='Concluído');
+    const demandasPend= isKaian
+      ? (demandas||[]).filter(d=>d.status&&d.status!=='Concluído'&&(d.tipo==='Video'||d.tipo==='Audiovisual'))
+      : (demandas||[]).filter(d=>d.status&&d.status!=='Concluído');
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const em7  = new Date(hoje); em7.setDate(em7.getDate()+7);
     const eventosProx = (eventos||[]).filter(ev=>{
@@ -7382,16 +7386,16 @@ function renderInicio() {
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"></iframe>
       </div>
-      <div class="card" style="text-align:center;padding:20px 12px;cursor:pointer" onclick="goTo('demandas')">
+      <div class="card" style="text-align:center;padding:20px 12px;cursor:pointer" onclick="${isKaian?'irParaKaian(\'grav\')':'goTo(\'demandas\')'}">
         <div style="font-size:36px;font-weight:800;color:#3dd68c">${demandasPend.length}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:4px">Demandas pendentes</div>
-        <div style="font-size:11px;color:#3dd68c;margin-top:6px">→ ver demandas</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">${isKaian?'Gravações &amp; Edições':'Demandas pendentes'}</div>
+        <div style="font-size:11px;color:#3dd68c;margin-top:6px">→ ${isKaian?'ver gravações':'ver demandas'}</div>
       </div>`;
   }
 
-  // ── Jobs card ────────────────────────────────────────────
+  // ── Jobs card — escondido para Kaian ────────────────────
   const jobsCard = document.getElementById('inicio-jobs-card');
-  if (jobsCard) {
+  if (jobsCard) { if (isKaian) { jobsCard.style.display='none'; } else {
     const meus = (jobsExtras||[]).filter(j=>j.status&&j.status!=='Pago'&&j.status!=='Entregue')
       .sort((a,b)=>(a.entrega||'').localeCompare(b.entrega||'')).slice(0,5);
     const statusCor = {
@@ -7411,13 +7415,13 @@ function renderInicio() {
             <span style="font-size:10px;color:${statusCor[j.status]||'#8b8fa8'};white-space:nowrap">${j.status}</span>
           </div>`).join('')}
       <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('financeiro')">Ver todos os jobs →</button>`;
-  }
+  }}
 
   // ── Demandas card ────────────────────────────────────────
   const demCard = document.getElementById('inicio-demandas-card');
   if (demCard) {
     const recentes = (demandas||[])
-      .filter(d=>d.status&&d.status!=='Concluído')
+      .filter(d=>d.status&&d.status!=='Concluído'&&(!isKaian||(d.tipo==='Video'||d.tipo==='Audiovisual')))
       .slice(-4).reverse();
     const priorCor = { Alta:'#ff5a72', Media:'#f7c948', Normal:'#3dd68c', Baixa:'#8b8fa8' };
     demCard.innerHTML = `
@@ -7437,9 +7441,9 @@ function renderInicio() {
       <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('demandas')">Ver todas →</button>`;
   }
 
-  // ── Eventos card ─────────────────────────────────────────
+  // ── Eventos card — escondido para Kaian ──────────────────
   const evCard = document.getElementById('inicio-eventos-card');
-  if (evCard) {
+  if (evCard) { if (isKaian) { evCard.style.display='none'; } else {
     const hoje2 = new Date(); hoje2.setHours(0,0,0,0);
     const prox = (eventos||[]).filter(ev=>ev.data&&new Date(ev.data+'T00:00:00')>=hoje2)
       .sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5);
@@ -7466,7 +7470,7 @@ function renderInicio() {
             <div style="font-size:12px;color:var(--text1);line-height:1.5">${partes.join(' · ')}</div>
           </div>`;}).join('')}
       <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px;font-size:11px" onclick="goTo('agenda')">Abrir agenda →</button>`;
-  }
+  }}
 
   // ── Notícias card ─────────────────────────────────────────
   const notCard = document.getElementById('inicio-noticias-card');
@@ -7496,11 +7500,15 @@ function renderInicio() {
       'Aguardando aprovação':'#f7c948',
       'Concluído':'#aee8f5'
     };
+    // Para Kaian: filtra só demandas audiovisuais dele
+    const _demandasChart = isKaian
+      ? (demandas||[]).filter(d=>d.tipo==='Video'||d.tipo==='Audiovisual')
+      : (demandas||[]);
     const _counts = {};
     _statusCols.forEach(s => { _counts[s] = 0; });
-    (demandas||[]).forEach(d => { if (d.status && _counts[d.status] !== undefined) _counts[d.status]++; });
-    const _total  = (demandas||[]).length;
-    const _abertas = (demandas||[]).filter(d => d.status !== 'Concluído').length;
+    _demandasChart.forEach(d => { if (d.status && _counts[d.status] !== undefined) _counts[d.status]++; });
+    const _total  = _demandasChart.length;
+    const _abertas = _demandasChart.filter(d => d.status !== 'Concluído').length;
 
     chartCard.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
@@ -9101,10 +9109,10 @@ function aplicarModo(modo, viaLogin) {
     if (_sessUser === 'kaian') {
       document.querySelectorAll('.nav-kaian-hide').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.nav-kaian-only').forEach(el => el.style.display = '');
-      // Kaian pode acessar: início, dashboard e sua página
+      // Kaian pode acessar: início e sua página (gravações/edições)
       const _origGoToK = window.goTo;
       window.goTo = function(page) {
-        const _permitidas = ['inicio','dashboard','kaian'];
+        const _permitidas = ['inicio','kaian'];
         if (!_permitidas.includes(page)) { _origGoToK('kaian'); return; }
         _origGoToK(page);
       };
