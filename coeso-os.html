@@ -399,6 +399,9 @@
   </div>
 
   <div class="nav-section">Principal</div>
+  <div class="nav-item" id="nav-kaian-item" style="display:none" onclick="goTo('kaian')">
+    <span class="icon">🎬</span><span>Gravações</span>
+  </div>
   <div class="nav-item" id="nav-inicio" onclick="goTo('inicio')">
     <span class="icon">🏠</span><span>Início</span>
   </div>
@@ -432,10 +435,10 @@
   <div class="nav-item" onclick="goTo('instagram')">
     <span class="icon">📱</span><span>Instagram</span>
   </div>
-  <div class="nav-item" onclick="goTo('trafego')">
+  <div class="nav-item nav-kaian-hide" onclick="goTo('trafego')">
     <span class="icon">📡</span><span>Tráfego</span>
   </div>
-  <div class="nav-item" onclick="goTo('benchmarking')">
+  <div class="nav-item nav-kaian-hide" onclick="goTo('benchmarking')">
     <span class="icon">🔍</span><span>Benchmarking</span>
   </div>
 
@@ -464,17 +467,17 @@
         <div id="sidebar-user-role" style="font-size:10px;color:var(--text2)">Administrador</div>
       </div>
     </div>
-    <div class="nav-item" onclick="goTo('processos')">
+    <div class="nav-item nav-kaian-hide" onclick="goTo('processos')">
       <span class="icon">⚙️</span><span>Processos</span>
     </div>
-    <div class="nav-item" onclick="exportarBackup()" title="Exportar todos os dados como JSON">
+    <div class="nav-item nav-kaian-hide" onclick="exportarBackup()" title="Exportar todos os dados como JSON">
       <span class="icon">💾</span><span>Backup dados</span>
     </div>
-    <label class="nav-item" style="cursor:pointer" title="Restaurar dados de backup">
+    <label class="nav-item nav-kaian-hide" style="cursor:pointer" title="Restaurar dados de backup">
       <span class="icon">📥</span><span>Restaurar</span>
       <input type="file" accept=".json" style="display:none" onchange="importarBackup(event)">
     </label>
-    <div class="nav-item" onclick="sincronizarFirebase()" title="Enviar todos os dados locais para o Firebase">
+    <div class="nav-item nav-kaian-hide" onclick="sincronizarFirebase()" title="Enviar todos os dados locais para o Firebase">
       <span class="icon">☁️</span><span>Sync Firebase</span>
     </div>
     <div class="nav-item" onclick="fazerLogout()" style="color:#ff5a72;margin-top:4px" title="Sair da conta">
@@ -542,6 +545,32 @@
     </div>
   </div>
 
+
+  <!-- ===== PÁGINA KAIAN (VIDEOMAKER) ===== -->
+  <div class="page" id="page-kaian">
+    <div style="max-width:800px;margin:0 auto">
+      <!-- Header -->
+      <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:var(--text)">🎬 Videomaker</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:3px">Suas gravações e edições</div>
+        </div>
+        <div id="kaian-admin-btn" style="display:none">
+          <button class="btn btn-primary btn-sm" onclick="abrirNovaEdicao()">+ Nova edição</button>
+        </div>
+      </div>
+      <!-- Tabs -->
+      <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0">
+        <button id="kaian-tab-grav" onclick="switchKaianTab('grav')"
+          style="padding:8px 18px;border:none;border-bottom:2px solid var(--accent);background:none;color:var(--text);font-weight:600;cursor:pointer;font-size:13px">🎬 Gravações</button>
+        <button id="kaian-tab-ed" onclick="switchKaianTab('ed')"
+          style="padding:8px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text2);font-weight:500;cursor:pointer;font-size:13px">✂️ Edições</button>
+      </div>
+      <!-- Content -->
+      <div id="kaian-tab-grav-content"></div>
+      <div id="kaian-tab-ed-content" style="display:none"></div>
+    </div>
+  </div>
 
   <!-- ===== PORTAL DO CLIENTE ===== -->
   <div class="page" id="page-cliente">
@@ -1284,15 +1313,15 @@
         </div>
       </div>
       <div class="form-group"><label class="form-label">Tipo</label>
-        <select class="form-input" id="dem-tipo">
-          <option>Social media</option><option>Tráfego pago</option><option>Design</option><option>Video</option><option>Site</option><option>Outros</option>
+        <select class="form-input" id="dem-tipo" onchange="toggleDemAvFields()">
+          <option>Social media</option><option>Tráfego pago</option><option>Design</option><option>Video</option><option>Audiovisual</option><option>Site</option><option>Outros</option>
         </select>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Status</label>
         <select class="form-input" id="dem-status">
-          <option>Briefing</option><option>Em produção</option><option>Em revisão</option><option>Aguardando aprovação</option><option>Concluído</option>
+          <option>Briefing</option><option>Em andamento</option><option>Em revisão</option><option>Aguardando aprovação</option><option>Concluído</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Prioridade</label>
@@ -1306,6 +1335,12 @@
       <div class="form-group"><label class="form-label">Prazo</label><input class="form-input" id="dem-prazo" type="date"></div>
     </div>
     <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-input" id="dem-desc" rows="3" placeholder="Descreva a demanda..."></textarea></div>
+    <!-- Campos audiovisual — aparece só p/ Video/Audiovisual -->
+    <div id="dem-av-fields" style="display:none;background:rgba(125,216,240,0.06);border:1px solid rgba(125,216,240,0.2);border-radius:10px;padding:14px;margin-top:4px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">🎬 Informações da gravação</div>
+      <div class="form-group" style="margin-bottom:10px"><label class="form-label">Endereço / Local da gravação</label><input class="form-input" id="dem-endereco" placeholder="Ex: Rua das Flores, 123 — São Paulo"></div>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">Roteiro / Briefing</label><textarea class="form-input" id="dem-roteiro" rows="4" placeholder="Cole o roteiro ou briefing aqui..."></textarea></div>
+    </div>
     <div style="display:flex;justify-content:space-between;gap:8px;margin-top:8px">
       <div style="display:flex;flex-direction:column;gap:2px">
         <button class="btn btn-ghost btn-sm" id="dem-excluir-btn" style="color:var(--red);display:none" onclick="excluirDemandaAtual()">🗑 Excluir</button>
@@ -1999,6 +2034,37 @@ const DEMO_OPORTUNIDADES = [
 // Live arrays (loaded from localStorage, fall back to demo on first run)
 let clientes      = loadData('clientes',      DEMO_CLIENTES);
 let demandas      = loadData('demandas',      DEMO_DEMANDAS);
+
+// Migração: renomeia "Em produção" → "Em andamento" em demandas existentes
+(function migrarStatusDemandas() {
+  let alterou = false;
+  demandas.forEach(d => { if (d.status === 'Em produção') { d.status = 'Em andamento'; alterou = true; } });
+  if (alterou) { try { localStorage.setItem('coeso_demandas', JSON.stringify(demandas)); } catch(e){} }
+})();
+
+// Gravações do Kaian — adiciona se ainda não existirem
+(function adicionarGravacoes() {
+  const gravs = [
+    { titulo:'MENDES E BRITO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-06', clienteExterno:'Mendes e Brito', cliente:0, endereco:'Rua Vicente Linhares, 500, Salas 1902 e 1903, Aldeota, CEP 60.135-270, Fortaleza - CE', roteiro:'Em andamento', desc:'Gravação 06/07 às 09h' },
+    { titulo:'GRAVAÇÕES ACADEMIAS DE SUCESSO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-08', clienteExterno:'Academias de Sucesso', cliente:0, endereco:'A confirmar', roteiro:'Em andamento', desc:'Gravação 08/07 às 08h' },
+    { titulo:'FOCUS — GRAVAÇÃO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-10', clienteExterno:'Focus', cliente:0, endereco:'Av. Recreio, 1384 - Lagoa Redonda, Fortaleza - CE, 60831-600', roteiro:'Em andamento', desc:'Gravação 10/07 às 06h' },
+    { titulo:'SPOT — GRAVAÇÃO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-13', clienteExterno:'Spot', cliente:0, endereco:'R. Domingos Alves Ribeiro, 41 - Jangurussu, Fortaleza - CE, 60865-050', roteiro:'Em andamento', desc:'Gravação 13/07 às 06h' },
+    { titulo:'COMPASSO — GRAVAÇÃO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-14', clienteExterno:'Compasso', cliente:0, endereco:'R. da Assunção, 1580 - Fátima, Fortaleza - CE, 60050-135', roteiro:'Em andamento', desc:'Gravação 14/07 às 09h' },
+    { titulo:'CARLOS FERNANDES NUTRICIONISTA', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-16', clienteExterno:'Carlos Fernandes Nutricionista', cliente:0, endereco:'Rua Dr. Pergentino Maia, 1097 B - Messejana, Fortaleza - CE, 60840-045', roteiro:'Em andamento', desc:'Gravação 16/07 às 08h' },
+    { titulo:'TALISMÃ — GRAVAÇÃO', tipo:'Audiovisual', status:'Briefing', prioridade:'Alta', prazo:'2026-07-17', clienteExterno:'Talismã', cliente:0, endereco:'R. Pedro I, 725 - Centro, Fortaleza - CE, 60035-100', roteiro:'Em andamento', desc:'Gravação 17/07 das 08h às 11h' },
+    // Edições
+    { titulo:'EDIÇÃO — MENDES E BRITO', tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-08', clienteExterno:'Mendes e Brito', cliente:0, desc:'Reels faltantes — entrega 08/07', reels:[] },
+    { titulo:'EDIÇÃO — SPOT', tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Spot', cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
+    { titulo:'EDIÇÃO — FOCUS', tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Focus', cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
+  ];
+  let maxId = demandas.reduce((m,d) => Math.max(m, d.id||0), 0);
+  let adicionou = false;
+  gravs.forEach(g => {
+    const existe = demandas.some(d => d.titulo === g.titulo && d.tipo === 'Audiovisual');
+    if (!existe) { demandas.push({ id: ++maxId, criado_por: 'Eduardo', ...g }); adicionou = true; }
+  });
+  if (adicionou) { try { localStorage.setItem('coeso_demandas', JSON.stringify(demandas)); } catch(e){} }
+})();
 let leads         = loadData('leads',         DEMO_LEADS);
 let contasReceber = loadData('receber',       DEMO_RECEBER);
 let contasPagar   = loadData('pagar',         DEMO_PAGAR);
@@ -2186,6 +2252,7 @@ function renderPage(page) {
   if (page === 'financeiro') renderFinanceiro();
   if (page === 'comercial') renderComercial();
   if (page === 'leads') renderLeads();
+  if (page === 'kaian')        renderKaian();
   if (page === 'instagram')    renderInstagram();
   if (page === 'trafego')      renderTrafego();
   if (page === 'processos')    renderProcessos();
@@ -2218,7 +2285,7 @@ function renderDashboard() {
   document.getElementById('dash-leads-sub').textContent = potencialLeads ? '↑ R$ '+formatNum(potencialLeads)+' potencial' : 'Nenhum lead cadastrado';
   document.getElementById('dash-jobs').textContent = jobsAbertos.length;
   if (jobsAbertos.length) {
-    const emProd = jobsAbertos.filter(j=>j.status==='Em produção').length;
+    const emProd = jobsAbertos.filter(j=>j.status==='Em andamento').length;
     const emRev  = jobsAbertos.filter(j=>j.status==='Em revisão').length;
     const partes = [];
     if (emProd) partes.push(emProd + ' em produção');
@@ -2431,7 +2498,7 @@ function renderChartDemandas() {
   const el = document.getElementById('chartDemandas');
   if (!el) return;
   if (el._chart) { try { el._chart.destroy(); } catch(e){} }
-  const statuses = ['Briefing','Em produção','Em revisão','Aguardando aprovação','Concluído'];
+  const statuses = ['Briefing','Em andamento','Em revisão','Aguardando aprovação','Concluído'];
   const cores    = ['#8b8fa8','#3dd68c','#6c8cff','#f7c948','#aee8f5'];
   const counts   = statuses.map(s => (demandas||[]).filter(d=>d.status===s).length);
   const total    = counts.reduce((a,b)=>a+b,0);
@@ -2988,8 +3055,8 @@ function confirmarExclusaoCliente(id) {
 // ============================================================
 // DEMANDAS
 // ============================================================
-const statusCols = ['Briefing','Em produção','Em revisão','Aguardando aprovação','Concluído'];
-const statusColors = {'Briefing':'var(--text2)','Em produção':'var(--accent)','Em revisão':'var(--blue)','Aguardando aprovação':'var(--yellow)','Concluído':'var(--green)'};
+const statusCols = ['Briefing','Em andamento','Em revisão','Aguardando aprovação','Concluído'];
+const statusColors = {'Briefing':'var(--text2)','Em andamento':'var(--accent)','Em revisão':'var(--blue)','Aguardando aprovação':'var(--yellow)','Concluído':'var(--green)'};
 
 function renderDemandas() {
   renderKanban('kanban-geral', demandas);
@@ -3017,8 +3084,189 @@ function renderKanbanDesign() {
   renderKanban('kanban-design', demandas.filter(d => d.tipo === 'Design'));
 }
 
+// ============================================================
+// KAIAN — VIEW VIDEOMAKER
+// ============================================================
+let _kaianTab = 'grav';
+
+function switchKaianTab(tab) {
+  _kaianTab = tab;
+  const tabs = ['grav','ed'];
+  tabs.forEach(t => {
+    const btn = document.getElementById('kaian-tab-'+t);
+    const cnt = document.getElementById('kaian-tab-'+t+'-content');
+    if (btn) { btn.style.borderBottomColor = t===tab ? 'var(--accent)' : 'transparent'; btn.style.color = t===tab ? 'var(--text)' : 'var(--text2)'; btn.style.fontWeight = t===tab ? '600' : '500'; }
+    if (cnt) cnt.style.display = t===tab ? '' : 'none';
+  });
+  if (tab === 'grav') renderKaianGravacoes();
+  if (tab === 'ed')   renderKaianEdicoes();
+}
+
+function renderKaian() {
+  // Mostra botão admin só para administrador
+  const _sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const adminBtn = document.getElementById('kaian-admin-btn');
+  if (adminBtn) adminBtn.style.display = _sess.modo === 'admin' ? '' : 'none';
+  switchKaianTab(_kaianTab);
+}
+
+function _kaianStatusCor(s) {
+  return {'Briefing':'#8b8fa8','Em andamento':'#3dd68c','Em revisão':'#6c8cff','Aguardando aprovação':'#f7c948','Concluído':'#aee8f5'}[s] || '#8b8fa8';
+}
+
+// ── TAB GRAVAÇÕES ──────────────────────────────────────────
+function renderKaianGravacoes() {
+  const el = document.getElementById('kaian-tab-grav-content');
+  if (!el) return;
+  const gravs = (demandas||[]).filter(d => (d.tipo==='Video'||d.tipo==='Audiovisual') && d.subtipo !== 'Edicao')
+    .sort((a,b) => (a.prazo||'').localeCompare(b.prazo||''));
+  if (!gravs.length) { el.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">Nenhuma gravação cadastrada ainda.</div>'; return; }
+  el.innerHTML = gravs.map(d => {
+    const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
+    const cor = _kaianStatusCor(d.status);
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">${d.titulo}</div>
+          ${cli ? '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+cli+'</div>' : ''}
+        </div>
+        <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:'+cor+'22;color:'+cor+';border:1px solid '+cor+'44">${d.status}</span>
+      </div>
+      ${d.prazo ? '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">📅 <strong style="color:var(--text)">'+d.prazo+'</strong> · '+( d.desc||'' )+'</div>' : ''}
+      ${d.endereco ? '<div style="background:rgba(125,216,240,0.07);border:1px solid rgba(125,216,240,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📍 Local</div><div style="font-size:13px;color:var(--text)">${d.endereco}</div></div>' : ''}
+      ${d.roteiro ? '<div style="background:rgba(247,201,72,0.07);border:1px solid rgba(247,201,72,0.2);border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">📄 Roteiro</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">${d.roteiro}</div></div>' : '<div style="background:rgba(139,143,168,0.07);border:1px dashed rgba(139,143,168,0.3);border-radius:8px;padding:9px 12px;text-align:center;color:var(--text2);font-size:12px">Roteiro ainda não adicionado</div>'}
+    </div>`;
+  }).join('');
+}
+
+// ── TAB EDIÇÕES ────────────────────────────────────────────
+function renderKaianEdicoes() {
+  const el = document.getElementById('kaian-tab-ed-content');
+  if (!el) return;
+  const _sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const isAdmin = _sess.modo === 'admin';
+  const edicoes = (demandas||[]).filter(d => d.subtipo === 'Edicao')
+    .sort((a,b) => (a.prazo||'').localeCompare(b.prazo||''));
+  if (!edicoes.length) {
+    el.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">Nenhuma edição cadastrada ainda.' + (isAdmin ? '<br><br><button class="btn btn-primary btn-sm" onclick="abrirNovaEdicao()">+ Criar primeira edição</button>' : '') + '</div>';
+    return;
+  }
+  el.innerHTML = edicoes.map(d => {
+    const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
+    const reels = d.reels || [];
+    const total = reels.length;
+    const feitos = reels.filter(r=>r.feito).length;
+    const pct = total > 0 ? Math.round(feitos/total*100) : 0;
+    const cor = _kaianStatusCor(d.status);
+    const barCor = pct===100 ? '#3dd68c' : pct>50 ? '#6c8cff' : '#f7c948';
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">✂️ ${d.titulo}</div>
+          ${cli ? '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+cli+'</div>' : ''}
+        </div>
+        <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:'+cor+'22;color:'+cor+';border:1px solid '+cor+'44">${d.status}</span>
+      </div>
+      ${d.prazo ? '<div style="font-size:12px;color:var(--text2);margin-bottom:12px">📅 Entrega: <strong style="color:var(--text)">'+d.prazo+'</strong></div>' : ''}
+      <!-- Barra de progresso -->
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Progresso — Reels</span>
+          <span style="font-size:12px;font-weight:700;color:${barCor}">${feitos}/${total} (${pct}%)</span>
+        </div>
+        <div style="height:8px;background:var(--surface2);border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${barCor};border-radius:99px;transition:width .4s"></div>
+        </div>
+      </div>
+      <!-- Lista de reels -->
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${reels.length === 0 ? '<div style="color:var(--text2);font-size:12px;font-style:italic">Nenhum reel adicionado ainda.</div>' :
+          reels.map((r,i) => `
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:7px 10px;border-radius:8px;background:${r.feito?'rgba(61,214,140,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${r.feito?'rgba(61,214,140,0.25)':'var(--border)'}">
+            <input type="checkbox" ${r.feito?'checked':''} onchange="toggleReel(${d.id},${i},this.checked)"
+              style="width:16px;height:16px;accent-color:#3dd68c;cursor:pointer;flex-shrink:0">
+            <span style="font-size:13px;color:var(--text);${r.feito?'text-decoration:line-through;color:var(--text2)':''};flex:1">${r.nome}</span>
+            ${isAdmin ? '<button onclick="removerReel('+d.id+','+i+')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px" title="Remover">✕</button>' : ''}
+          </label>`).join('')}
+      </div>
+      <!-- Admin: adicionar reel -->
+      ${isAdmin ? `
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <input id="reel-input-${d.id}" class="form-input" placeholder="Nome do reel..." style="flex:1;padding:7px 10px;font-size:12px" onkeydown="if(event.key==='Enter')adicionarReel(${d.id})">
+        <button class="btn btn-ghost btn-sm" onclick="adicionarReel(${d.id})" style="white-space:nowrap">+ Reel</button>
+      </div>` : ''}
+      ${isAdmin ? '<button class="btn btn-ghost btn-sm" onclick="editarDemanda('+d.id+')" style="margin-top:8px;font-size:11px;color:var(--text2)">✏️ Editar detalhes</button>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleReel(demandaId, reelIdx, feito) {
+  const d = demandas.find(x=>x.id===demandaId);
+  if (!d || !d.reels) return;
+  d.reels[reelIdx].feito = feito;
+  // Atualiza status automaticamente
+  const total = d.reels.length;
+  const feitosN = d.reels.filter(r=>r.feito).length;
+  if (feitosN === total && total > 0) d.status = 'Concluído';
+  else if (feitosN > 0) d.status = 'Em andamento';
+  else d.status = 'Briefing';
+  saveData('demandas', demandas);
+  renderKaianEdicoes();
+}
+
+function adicionarReel(demandaId) {
+  const input = document.getElementById('reel-input-'+demandaId);
+  const nome = input?.value.trim();
+  if (!nome) return;
+  const d = demandas.find(x=>x.id===demandaId);
+  if (!d) return;
+  if (!d.reels) d.reels = [];
+  d.reels.push({ nome, feito: false });
+  saveData('demandas', demandas);
+  input.value = '';
+  renderKaianEdicoes();
+}
+
+function removerReel(demandaId, reelIdx) {
+  const d = demandas.find(x=>x.id===demandaId);
+  if (!d || !d.reels) return;
+  d.reels.splice(reelIdx, 1);
+  saveData('demandas', demandas);
+  renderKaianEdicoes();
+}
+
+function abrirNovaEdicao() {
+  document.getElementById('dem-modal-title').textContent = 'Nova Edição';
+  document.getElementById('dem-id').value = '';
+  document.getElementById('dem-titulo').value = '';
+  document.getElementById('dem-tipo').value = 'Audiovisual';
+  document.getElementById('dem-status').value = 'Briefing';
+  document.getElementById('dem-prioridade').value = 'Alta';
+  document.getElementById('dem-responsavel').value = 'Kaian';
+  document.getElementById('dem-prazo').value = '';
+  document.getElementById('dem-desc').value = '';
+  document.getElementById('dem-endereco').value = '';
+  document.getElementById('dem-roteiro').value = '';
+  document.getElementById('dem-excluir-btn').style.display = 'none';
+  toggleDemAvFields();
+  refreshClienteSelect();
+  // Marca internamente como edição
+  document.getElementById('dem-tipo').dataset.subtipo = 'Edicao';
+  openModal('modal-demanda');
+}
+
+function toggleDemAvFields() {
+  const tipo = document.getElementById('dem-tipo')?.value || '';
+  const show = ['Video','Audiovisual'].includes(tipo);
+  const el = document.getElementById('dem-av-fields');
+  if (el) el.style.display = show ? '' : 'none';
+}
+
 function renderKanbanAudiovisual() {
-  renderKanban('kanban-audiovisual', demandas.filter(d => d.tipo === 'Video'));
+  // Adiciona ícone para diferenciar gravações de edições no kanban
+  const avDems = (demandas||[]).filter(d => d.tipo === 'Video' || d.tipo === 'Audiovisual')
+    .map(d => ({ ...d, titulo: (d.subtipo==='Edicao'?'✂️ ':'🎬 ') + d.titulo }));
+  renderKanban('kanban-audiovisual', avDems);
 }
 
 // ============================================================
@@ -3169,7 +3417,10 @@ function abrirNovaDemanda() {
   document.getElementById('dem-responsavel').value = '';
   document.getElementById('dem-prazo').value = '';
   document.getElementById('dem-desc').value = '';
+  document.getElementById('dem-endereco').value = '';
+  document.getElementById('dem-roteiro').value = '';
   document.getElementById('dem-excluir-btn').style.display = 'none';
+  toggleDemAvFields();
   refreshClienteSelect();
   openModal('modal-demanda');
 }
@@ -3256,6 +3507,9 @@ function editarDemanda(id) {
     document.getElementById('dem-externo-wrap').style.display = 'none';
     document.getElementById('dem-cliente-externo').value = '';
   }
+  document.getElementById('dem-endereco').value = d.endereco || '';
+  document.getElementById('dem-roteiro').value = d.roteiro || '';
+  toggleDemAvFields();
   openModal('modal-demanda');
 }
 
@@ -3285,14 +3539,18 @@ function salvarDemanda() {
   const editId = parseInt(document.getElementById('dem-id').value);
   const _sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
   const _criador = _sess.nome || 'Eduardo';
+  const tipo = document.getElementById('dem-tipo').value;
   const dados = {
     titulo, cliente: clienteId, clienteExterno,
-    tipo:        document.getElementById('dem-tipo').value,
+    tipo,
     status:      document.getElementById('dem-status').value,
     prioridade:  document.getElementById('dem-prioridade').value,
     responsavel: document.getElementById('dem-responsavel').value.trim(),
     prazo:       document.getElementById('dem-prazo').value,
     desc:        document.getElementById('dem-desc').value.trim(),
+    endereco:    ['Video','Audiovisual'].includes(tipo) ? document.getElementById('dem-endereco').value.trim() : undefined,
+    roteiro:     ['Video','Audiovisual'].includes(tipo) ? document.getElementById('dem-roteiro').value.trim() : undefined,
+    subtipo:     document.getElementById('dem-tipo').dataset.subtipo || undefined,
   };
   if (editId) {
     const idx = demandas.findIndex(d=>d.id===editId);
@@ -4852,7 +5110,7 @@ function badgeStatus(s) {
   const map = {
     'Ativo':'badge-green','Inativo':'badge-gray','Permuta':'badge-purple',
     'Pago':'badge-green','Pendente':'badge-yellow','Atrasado':'badge-red',
-    'Briefing':'badge-gray','Em produção':'badge-purple','Em revisão':'badge-blue',
+    'Briefing':'badge-gray','Em andamento':'badge-purple','Em revisão':'badge-blue',
     'Aguardando aprovação':'badge-yellow','Concluído':'badge-green',
   };
   return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
@@ -6424,10 +6682,10 @@ function migrarDados() {
   if (_migV < 2) {
     if (!Array.isArray(demandas)) demandas = [];
     const _demandasFocus = [
-      { titulo:'ROTEIROS JULHO',          clienteExterno:'Focus', cliente:0, tipo:'Audiovisual',     status:'Em produção', prioridade:'Alta',  prazo:'2026-06-26', desc:'Roteiros de julho — prazo de entrega 26/06', criado_por:'Eduardo' },
-      { titulo:'GRAVAÇÃO 28/06',          clienteExterno:'Focus', cliente:0, tipo:'Audiovisual',     status:'Em produção', prioridade:'Alta',  prazo:'2026-06-28', desc:'Gravação a ser realizada em 28/06 (Kayan)', criado_por:'Eduardo' },
+      { titulo:'ROTEIROS JULHO',          clienteExterno:'Focus', cliente:0, tipo:'Audiovisual',     status:'Em andamento', prioridade:'Alta',  prazo:'2026-06-26', desc:'Roteiros de julho — prazo de entrega 26/06', criado_por:'Eduardo' },
+      { titulo:'GRAVAÇÃO 28/06',          clienteExterno:'Focus', cliente:0, tipo:'Audiovisual',     status:'Em andamento', prioridade:'Alta',  prazo:'2026-06-28', desc:'Gravação a ser realizada em 28/06 (Kayan)', criado_por:'Eduardo' },
       { titulo:'HORÁRIO FUNCIONAMENTO COPA DO MUNDO', clienteExterno:'Focus', cliente:0, tipo:'Direção de Arte', status:'Aguardando', prioridade:'Média', prazo:'', desc:'Aguardando cliente fornecer os dados', criado_por:'Eduardo' },
-      { titulo:'CRIATIVOS JULHO',         clienteExterno:'Focus', cliente:0, tipo:'Direção de Arte', status:'Em produção', prioridade:'Alta',  prazo:'2026-06-29', desc:'Criativos de julho — prazo de entrega 29/06', criado_por:'Eduardo' },
+      { titulo:'CRIATIVOS JULHO',         clienteExterno:'Focus', cliente:0, tipo:'Direção de Arte', status:'Em andamento', prioridade:'Alta',  prazo:'2026-06-29', desc:'Criativos de julho — prazo de entrega 29/06', criado_por:'Eduardo' },
     ];
     _demandasFocus.forEach(d => {
       const existe = demandas.some(x => x.titulo === d.titulo && x.clienteExterno === 'Focus');
@@ -6761,7 +7019,7 @@ function _runInit() {
       const e2 = document.getElementById('sidebar-user-role');
       const e3 = document.getElementById('sidebar-user-avatar');
       if (e1) e1.textContent = _sessInit.nome.split(' ')[0];
-      if (e2) e2.textContent = _sessInit.modo==='admin'?'Administrador':'Colaboradora';
+      if (e2) { const _pf = getPerfil(); e2.textContent = _pf.cargo || (_sessInit.modo==='admin'?'Administrador':'Colaborador'); }
       if (e3) e3.textContent = _sessInit.nome[0].toUpperCase();
     }, 50);
   }
@@ -6835,8 +7093,8 @@ function _runInit() {
 // Para alterar senhas, edite os campos abaixo:
 const COESO_USUARIOS = {
   'eduardo': { senha: 'coeso2026',  modo: 'admin',       nome: 'Eduardo' },
-  'liz':     { senha: '123567815',  modo: 'colaborador',  nome: 'Liz'     },
-  'kaian':   { senha: 'kaian123',   modo: 'colaborador',  nome: 'Kaian'   },
+  'liz':     { senha: '123567815',  modo: 'colaborador',  nome: 'Liz',   feminino: true  },
+  'kaian':   { senha: 'kaian123',   modo: 'colaborador',  nome: 'Kaian', feminino: false },
   'focus':   { senha: 'focus2026',  modo: 'cliente',      nome: 'Focus',  cliente: 'Focus' },
 };
 
@@ -6866,43 +7124,47 @@ function fazerLogout() {
 
 function falarBoasVindas(nome, modo) {
   try {
-    const feminino = modo === 'colaborador';
-    const cliente  = modo === 'cliente';
+    window.speechSynthesis.cancel();
+    // Recupera config do usuário do sessionStorage (cfg não está em escopo aqui)
+    const _sessU = JSON.parse(sessionStorage.getItem('coeso_login')||'{}').user || '';
+    const _cfgU  = (typeof COESO_USUARIOS !== 'undefined' && COESO_USUARIOS[_sessU]) || {};
+    const feminino = _cfgU.feminino !== undefined ? _cfgU.feminino : false;
+
+    // Textos estilo elegante / JARVIS
     let texto;
-    if (cliente) {
-      texto = `Seja bem-vindo, safado!`;
+    if (modo === 'cliente') {
+      texto = `Bem-vindo ao portal. Bom trabalho.`;
     } else if (feminino) {
-      texto = `Oi ${nome}, seja bem-vinda!`;
+      texto = `Acesso confirmado. Bem-vinda, ${nome}. Sistemas prontos.`;
     } else {
-      texto = `Oi ${nome}, seja bem-vindo!`;
+      texto = `Acesso confirmado. Bem-vindo, ${nome}. Sistemas prontos.`;
     }
 
     const falar = () => {
-      const utter = new SpeechSynthesisUtterance(texto);
-      utter.lang    = 'pt-BR';
-      utter.rate    = 1.15;   // mais rápido
-      utter.pitch   = feminino ? 1.2 : (cliente ? 1.1 : 1.0);
-      utter.volume  = 1;      // volume máximo
-      const voices  = window.speechSynthesis.getVoices();
-      const ptVoices= voices.filter(v => v.lang.startsWith('pt'));
-      if (ptVoices.length) {
-        const femVoice = ptVoices.find(v => /female|fem|woman|Luciana|francisca/i.test(v.name));
-        utter.voice = (feminino && femVoice) ? femVoice : ptVoices[0];
-      }
       window.speechSynthesis.cancel();
+      const utter  = new SpeechSynthesisUtterance(texto);
+      utter.lang   = 'pt-BR';
+      utter.rate   = 0.88;
+      utter.pitch  = feminino ? 1.05 : 0.78;
+      utter.volume = 1;
+      const voices   = window.speechSynthesis.getVoices();
+      const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
+      if (ptVoices.length) {
+        if (feminino) {
+          const fem = ptVoices.find(v => /female|fem|woman|Luciana|francisca/i.test(v.name));
+          utter.voice = fem || ptVoices[0];
+        } else {
+          const masc = ptVoices.find(v => /male|man|Daniel|Eddy|Reed/i.test(v.name) && !/female/i.test(v.name));
+          utter.voice = masc || ptVoices[0];
+        }
+      }
       window.speechSynthesis.speak(utter);
     };
 
-    // Mobile unlock: toca silêncio antes para liberar AudioContext no iOS
-    const silentAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-    silentAudio.play().catch(()=>{});
-
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      falar();
+    if (window.speechSynthesis.getVoices().length > 0) {
+      setTimeout(falar, 300);
     } else {
-      window.speechSynthesis.onvoiceschanged = () => falar();
-      setTimeout(falar, 400); // fallback
+      window.speechSynthesis.onvoiceschanged = () => setTimeout(falar, 200);
     }
   } catch(e) {}
 }
@@ -6924,7 +7186,8 @@ function mostrarSplashBoasVindas(nome, modo) {
   setTimeout(() => { document.getElementById('splash-bv-logo').style.opacity = '1'; }, 150);
   setTimeout(() => {
     const txtEl = document.getElementById('splash-bv-txt');
-    const genSuffix = modo === 'colaborador' ? 'bem-vinda' : 'bem-vindo';
+    const _cfgGen = COESO_USUARIOS[sessionStorage.getItem('coeso_user')||''] || {};
+    const genSuffix = _cfgGen.feminino !== undefined ? (_cfgGen.feminino ? 'bem-vinda' : 'bem-vindo') : (modo === 'colaborador' ? 'bem-vinda' : 'bem-vindo');
     txtEl.style.opacity = '1';
     if (modo === 'cliente') {
       txtEl.innerHTML = `Seja bem-vindo, <b>safado</b>! 😄`;
@@ -6955,6 +7218,7 @@ function getPerfil() {
   const defaults = {
     eduardo: { nome: 'Eduardo Busson', cargo: 'Administrador', foto: null },
     liz:     { nome: 'Liz',            cargo: 'Colaboradora',  foto: null },
+    kaian:   { nome: 'Kaian',          cargo: 'Colaborador',   foto: null },
   };
   return { user, ...( defaults[user]||{nome:user,cargo:'Colaborador',foto:null} ), ...(perfis[user]||{}) };
 }
@@ -7043,7 +7307,7 @@ function renderInicio() {
     const meus = (jobsExtras||[]).filter(j=>j.status&&j.status!=='Pago'&&j.status!=='Entregue')
       .sort((a,b)=>(a.entrega||'').localeCompare(b.entrega||'')).slice(0,5);
     const statusCor = {
-      'Em produção':'#3dd68c','Em revisão':'#f7c948','Aguardando':'#6c8cff',
+      'Em andamento':'#3dd68c','Em revisão':'#f7c948','Aguardando':'#6c8cff',
       'Aprovado':'#aee8f5','Pendente':'#8b8fa8'
     };
     jobsCard.innerHTML = `
@@ -7136,10 +7400,10 @@ function renderInicio() {
   // ── Gráfico de progresso das demandas ─────────────────────
   const chartCard = document.getElementById('inicio-demandas-chart-card');
   if (chartCard) {
-    const _statusCols  = ['Briefing','Em produção','Em revisão','Aguardando aprovação','Concluído'];
+    const _statusCols  = ['Briefing','Em andamento','Em revisão','Aguardando aprovação','Concluído'];
     const _statusCores = {
       'Briefing':'#8b8fa8',
-      'Em produção':'#3dd68c',
+      'Em andamento':'#3dd68c',
       'Em revisão':'#6c8cff',
       'Aguardando aprovação':'#f7c948',
       'Concluído':'#aee8f5'
@@ -7215,10 +7479,8 @@ function carregarNoticiasInicio() {
   if (!el) return;
 
   const SITES = [
-    { url:'https://nossomeio.com.br',         domain:'nossomeio.com.br',        label:'Nosso Meio',         cor:'#f7c948' },
-    { url:'https://www.meioemensagem.com.br', domain:'meioemensagem.com.br',     label:'Meio & Mensagem',    cor:'#6c8cff' },
-    { url:'https://oglobo.globo.com',         domain:'oglobo.globo.com',         label:'O Globo',            cor:'#3dd68c' },
-    { url:'https://mundodomarketing.com.br',  domain:'mundodomarketing.com.br',  label:'Mundo do Marketing', cor:'#ff9f43' },
+    { url:'https://nossomeio.com.br',        domain:'nossomeio.com.br',       label:'Nosso Meio',         cor:'#f7c948' },
+    { url:'https://mundodomarketing.com.br', domain:'mundodomarketing.com.br', label:'Mundo do Marketing', cor:'#ff9f43' },
   ];
 
   el.innerHTML = SITES.map((s,i) => `
@@ -7490,7 +7752,7 @@ function _tabVisaoGeral(clienteNome) {
   const sol = loadData('sol_'+clienteNome, []);
   const solPend = sol.filter(s=>s.status!=='Finalizado');
 
-  const DEM_COR = {'Em produção':'#3dd68c','Em revisão':'#f7c948','Pendente':'#8b8fa8','Aprovado':'#6c8cff','Aguardando':'#ff9f43'};
+  const DEM_COR = {'Em andamento':'#3dd68c','Em revisão':'#f7c948','Pendente':'#8b8fa8','Aprovado':'#6c8cff','Aguardando':'#ff9f43'};
 
   return `
   <!-- Métricas rápidas -->
@@ -7575,8 +7837,8 @@ function _tabCalendario(clienteNome) {
 
   const TIPOS = ['Feed','Reels','Stories','Carrossel','Campanha','Aviso'];
   const TIPO_COR = {Feed:'#6c8cff',Reels:'#ff9f43',Stories:'#3dd68c',Carrossel:'#f7c948',Campanha:'#ff5a72',Aviso:'#aee8f5'};
-  const STATUS_CAL = ['Planejado','Em produção','Aguardando arte','Aprovado','Publicado'];
-  const STATUS_COR_CAL = {Planejado:'#8b8fa8','Em produção':'#f7c948','Aguardando arte':'#ff9f43',Aprovado:'#6c8cff',Publicado:'#3dd68c'};
+  const STATUS_CAL = ['Planejado','Em andamento','Aguardando arte','Aprovado','Publicado'];
+  const STATUS_COR_CAL = {Planejado:'#8b8fa8','Em andamento':'#f7c948','Aguardando arte':'#ff9f43',Aprovado:'#6c8cff',Publicado:'#3dd68c'};
 
   const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mes];
   const diasMes = new Date(ano, mes+1, 0).getDate();
@@ -7669,7 +7931,7 @@ function navCalMes(dir) {
 
 function _abrirItemCal(item) {
   const TIPO_COR = {Feed:'#6c8cff',Reels:'#ff9f43',Stories:'#3dd68c',Carrossel:'#f7c948',Campanha:'#ff5a72',Aviso:'#aee8f5'};
-  const STATUS_COR_CAL = {Planejado:'#8b8fa8','Em produção':'#f7c948','Aguardando arte':'#ff9f43',Aprovado:'#6c8cff',Publicado:'#3dd68c'};
+  const STATUS_COR_CAL = {Planejado:'#8b8fa8','Em andamento':'#f7c948','Aguardando arte':'#ff9f43',Aprovado:'#6c8cff',Publicado:'#3dd68c'};
   const cor = TIPO_COR[item.tipo]||'#8b8fa8';
   const scorCor = STATUS_COR_CAL[item.status]||'#8b8fa8';
   const modal = document.createElement('div');
@@ -7715,7 +7977,7 @@ function abrirNovoConteudo(clienteNome) {
         <input id="nc-objetivo" class="form-input" placeholder="Objetivo (ex: captar leads, engajamento)">
         <textarea id="nc-legenda" class="form-input" rows="3" placeholder="Legenda sugerida..."></textarea>
         <select id="nc-status" class="form-input">
-          <option>Planejado</option><option>Em produção</option><option>Aguardando arte</option><option>Aprovado</option><option>Publicado</option>
+          <option>Planejado</option><option>Em andamento</option><option>Aguardando arte</option><option>Aprovado</option><option>Publicado</option>
         </select>
       </div>
       <div style="display:flex;gap:10px;margin-top:16px">
@@ -7932,8 +8194,8 @@ function removerItemBib(clienteNome, cat, idx) {
 function _tabSolicitacoes(clienteNome) {
   const sol = loadData('sol_'+clienteNome, []);
   const CATS = ['Arte','Vídeo','Copywriting','Estratégia','Campanha','Outro'];
-  const STATUS_S = ['Recebido','Em produção','Em revisão','Aprovado','Finalizado'];
-  const STATUS_COR_S = {Recebido:'#8b8fa8','Em produção':'#f7c948','Em revisão':'#ff9f43',Aprovado:'#6c8cff',Finalizado:'#3dd68c'};
+  const STATUS_S = ['Recebido','Em andamento','Em revisão','Aprovado','Finalizado'];
+  const STATUS_COR_S = {Recebido:'#8b8fa8','Em andamento':'#f7c948','Em revisão':'#ff9f43',Aprovado:'#6c8cff',Finalizado:'#3dd68c'};
   const filterStatus = sessionStorage.getItem('sol_filter')||'todas';
 
   const filtradas = filterStatus==='todas' ? sol : sol.filter(s=>s.status===filterStatus);
@@ -7958,7 +8220,7 @@ function _tabSolicitacoes(clienteNome) {
        </div>`
     : filtradas.map((s,idx)=>{
         const cor = STATUS_COR_S[s.status]||'#8b8fa8';
-        const steps = ['Recebido','Em produção','Em revisão','Aprovado','Finalizado'];
+        const steps = ['Recebido','Em andamento','Em revisão','Aprovado','Finalizado'];
         const stepIdx = steps.indexOf(s.status);
         return `
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:12px;border-left:4px solid ${cor}">
@@ -8746,6 +9008,21 @@ function aplicarModo(modo, viaLogin) {
     document.querySelectorAll('.nav-comercial,.nav-leads').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-intel-section').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-negocio-section').forEach(el => el.style.display = 'none');
+    // Kaian (videomaker): esconde abas extras e bloqueia páginas
+    const _sessUser = JSON.parse(sessionStorage.getItem('coeso_login')||'{}').user || '';
+    if (_sessUser === 'kaian') {
+      document.querySelectorAll('.nav-kaian-hide').forEach(el => el.style.display = 'none');
+      // Mostrar link de Gravações no nav
+      const _navKaian = document.getElementById('nav-kaian-item');
+      if (_navKaian) _navKaian.style.display = '';
+      // Bloquear páginas não permitidas para Kaian
+      const _origGoToK = window.goTo;
+      window.goTo = function(page) {
+        const permK = ['inicio','kaian'];
+        if (!permK.includes(page)) { _origGoToK('kaian'); return; }
+        _origGoToK(page);
+      };
+    }
     const origGoTo = window.goTo;
     window.goTo = function(page) {
       const bloqueadas = ['financeiro','comercial','leads','intel-rent','intel-upsell','intel-exec','intel-health','intel-ia'];
@@ -8778,7 +9055,7 @@ function aplicarModo(modo, viaLogin) {
     const el2 = document.getElementById('sidebar-user-role');
     const el3 = document.getElementById('sidebar-user-avatar');
     if (el1) el1.textContent = _sessS.nome.split(' ')[0];
-    if (el2) el2.textContent = _sessS.modo==='admin'?'Administrador':'Colaboradora';
+    if (el2) { const _pf2 = getPerfil(); el2.textContent = _pf2.cargo || (_sessS.modo==='admin'?'Administrador':'Colaborador'); }
     if (el3) el3.textContent = _sessS.nome[0].toUpperCase();
   }
   _runInit();
@@ -8788,6 +9065,9 @@ function aplicarModo(modo, viaLogin) {
       const pg = document.getElementById('page-cliente');
       if (pg) pg.classList.add('active');
       setTimeout(() => renderPortalCliente(), 50);
+    } else if (_sessS.user === 'kaian') {
+      goTo('kaian');
+      setTimeout(() => renderKaian(), 50);
     } else {
       goTo('inicio');
       setTimeout(() => renderInicio(), 50);
