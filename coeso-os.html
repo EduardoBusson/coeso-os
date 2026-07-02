@@ -7934,7 +7934,7 @@ function renderPortalCliente() {
     </nav>
 
     <!-- CONTENT -->
-    <main style="padding:32px 28px;max-width:1100px;margin:0 auto">
+    <main style="padding:28px 24px;max-width:1760px;margin:0 auto;width:95%">
       <div id="portal-tab-content"></div>
     </main>
   </div>`;
@@ -7990,152 +7990,304 @@ function _tabVisaoGeral(clienteNome) {
     alcance_semanal:{valor:'—',meta:'',  label:'Alcance Semanal'},
     engajamento:    {valor:'—',meta:'5%',label:'Engajamento'},
     seguidores_fb:  {valor:'—',meta:'', label:'Seguidores FB'},
-    visitas_site:   {valor:'—',meta:'', label:'Visitas Site/mês'},
+    visitas_site:   {valor:'—',meta:'', label:'Visitas/mês'},
     leads_mes:      {valor:'—',meta:'', label:'Leads/mês'},
   });
   const cal = loadData('cal_'+clienteNome, []);
   const agora = new Date();
-  const semana = cal.filter(c=>{
+  const mesAtual = agora.getMonth();
+  const anoAtual = agora.getFullYear();
+
+  // Próximas 14 dias
+  const proximas = cal.filter(c=>{
     const d = new Date(c.data);
     const diff = (d - agora)/(1000*60*60*24);
-    return diff >= 0 && diff <= 7;
-  });
+    return diff >= -1 && diff <= 14;
+  }).sort((a,b)=>new Date(a.data)-new Date(b.data));
+
+  // Posts publicados últimos 30 dias
+  const ult30 = new Date(agora.getTime()-30*24*3600000);
+  const publicados = cal.filter(c=>c.status==='Publicado' && new Date(c.data)>=ult30)
+    .sort((a,b)=>new Date(b.data)-new Date(a.data));
+
+  // Posts este mês
+  const postsMes = cal.filter(c=>{
+    const d = new Date(c.data);
+    return c.status==='Publicado' && d.getMonth()===mesAtual && d.getFullYear()===anoAtual;
+  }).length;
+
   const aguardAprov = loadData('aprov_'+clienteNome, []).filter(a=>a.status==='Aguardando');
+  const allAprov = loadData('aprov_'+clienteNome, []);
   const sol = loadData('sol_'+clienteNome, []);
   const solPend = sol.filter(s=>s.status!=='Finalizado');
   const score = _calcScore(clienteNome);
-  const scoreCirc = 2 * Math.PI * 38;
-  const scoreOffset = scoreCirc * (1 - score / 100);
-  const scoreColor = score >= 70 ? '#22C55E' : score >= 40 ? '#F59E0B' : '#EF4444';
-  const scoreLabel = score >= 70 ? 'Excelente' : score >= 50 ? 'Bom' : 'Melhorando';
+  const scoreR = 32;
+  const scoreCirc = (2*Math.PI*scoreR).toFixed(2);
+  const scoreOff  = (2*Math.PI*scoreR*(1-score/100)).toFixed(2);
+  const scoreColor = score>=70?'#10B981':score>=40?'#F59E0B':'#EF4444';
+  const scoreLabel = score>=70?'Excelente':score>=50?'Bom':'Em crescimento';
+  const statusAtual = demandasCli.filter(d=>d.status==='Em andamento').length;
 
-  const DEM_COR = {
-    'Em andamento':'#22C55E','Em revisão':'#F59E0B','Pendente':'#94A3B8',
-    'Aprovado':'#3B82F6','Aguardando':'#F97316','Briefing':'#8B5CF6',
-    'Aguardando aprovação':'#F59E0B','Concluído':'#22C55E'
-  };
-  const TIPO_COR = {Feed:'#3B82F6',Reels:'#F97316',Stories:'#22C55E',Carrossel:'#F59E0B',Campanha:'#EF4444',Aviso:'#94A3B8'};
+  const TIPO_COR = {Feed:'#3B82F6',Reels:'#F97316',Stories:'#10B981',Carrossel:'#F59E0B',Campanha:'#EF4444',Aviso:'#94A3B8'};
+  const DEM_COR  = {'Em andamento':'#10B981','Em revisão':'#F59E0B','Pendente':'#94A3B8','Aprovado':'#3B82F6','Aguardando':'#F97316','Briefing':'#8B5CF6','Aguardando aprovação':'#F59E0B','Concluído':'#10B981'};
+
+  // Helpers
+  function relDate(d){
+    const diff=Math.round((agora-d)/(1000*60*60*24));
+    if(diff===0)return'Hoje';if(diff===1)return'Ontem';
+    if(diff<=7)return diff+'d atrás';
+    return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  }
+  function daysFromNow(d){
+    return Math.round((d-agora)/(1000*60*60*24));
+  }
+
+  // Activity feed: agrega múltiplas fontes
+  const atividades = [];
+  publicados.forEach(c=>atividades.push({icon:'✅',cor:'#10B981',titulo:'Publicado',desc:c.titulo||'Post',data:new Date(c.data),label:c.tipo||'Post'}));
+  demandasCli.filter(d=>d.status==='Em andamento').forEach(d=>atividades.push({icon:'⚡',cor:'#3B82F6',titulo:'Em produção',desc:d.titulo||'Demanda',data:new Date(d.criado||agora),label:d.tipo||'Demanda'}));
+  aguardAprov.forEach(a=>atividades.push({icon:'👁️',cor:'#F59E0B',titulo:'Aguarda aprovação',desc:a.titulo||a.tipo||'Conteúdo',data:new Date(a.criado||agora),label:'Aprovação'}));
+  demandasCli.filter(d=>d.status==='Em revisão').forEach(d=>atividades.push({icon:'🔍',cor:'#8B5CF6',titulo:'Em revisão',desc:d.titulo||'Demanda',data:new Date(d.criado||agora),label:'Revisão'}));
+  atividades.sort((a,b)=>b.data-a.data);
+
+  // Metas do mês
+  const aprovadosCt = allAprov.filter(a=>a.status==='Aprovado').length;
+  const metasMes = [
+    {label:'Posts publicados', pct:Math.min(100,Math.round(postsMes/12*100)), val:postsMes, meta:12, cor:'#10B981'},
+    {label:'Plano de Ação',    pct:prog, val:feitos, meta:todosItens.length||'—', cor:'#3B82F6'},
+    {label:'Aprovações ok',    pct:Math.min(100,Math.round(aprovadosCt/10*100)), val:aprovadosCt, meta:10, cor:'#8B5CF6'},
+  ];
+
+  // Conquistas
+  const conquistas = [];
+  if(postsMes>=12) conquistas.push({icon:'🏆',label:'12 posts/mês'});
+  if(score>=70)    conquistas.push({icon:'⭐',label:'Score excelente'});
+  if(feitos>=5)    conquistas.push({icon:'🎯',label:feitos+' tarefas'});
+  if(publicados.length>0) conquistas.push({icon:'📱',label:'Presença ativa'});
+  if(sol.length>=3) conquistas.push({icon:'💬',label:'Engajado'});
+  if(conquistas.length===0) conquistas.push({icon:'🌱',label:'Crescendo'});
+
+  // Insights inteligentes
+  const insights = [];
+  if(aguardAprov.length>0) insights.push({cor:'#F59E0B',icon:'⚡',texto:aguardAprov.length+' conteúdo'+(aguardAprov.length>1?'s':'')+(aguardAprov.length>1?' aguardam':' aguarda')+' sua aprovação — cada aprovação acelera a publicação.'});
+  if(postsMes<8) insights.push({cor:'#3B82F6',icon:'📈',texto:'Você publicou '+postsMes+' posts este mês. Aumentar a frequência amplia o alcance orgânico.'});
+  if(prog>0&&prog<100) insights.push({cor:'#10B981',icon:'🚀',texto:'Plano de ação '+prog+'% concluído — '+(todosItens.length-feitos)+' etapa'+(todosItens.length-feitos>1?'s':'')+' até seu objetivo.'});
+  if(solPend.length>0) insights.push({cor:'#8B5CF6',icon:'💬',texto:solPend.length+' solicitaç'+(solPend.length>1?'ões':'ão')+' pendente'+(solPend.length>1?'s':'')+'. Nossa equipe está analisando.'});
+  if(insights.length===0) insights.push({cor:'#10B981',icon:'✨',texto:'Tudo em ordem! A equipe Coeso segue produzindo conteúdo estratégico para você.'});
 
   return `
-  <!-- HERO: PLANO DE AÇÃO -->
-  <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:28px 32px;margin-bottom:18px">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap">
+  <style>
+    @keyframes _pulse{0%,100%{opacity:1}50%{opacity:.35}}
+    .cv-live{animation:_pulse 2s infinite}
+    @keyframes _fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    .cv-f1{animation:_fadeup .35s ease both}
+    .cv-f2{animation:_fadeup .45s .05s ease both}
+    .cv-f3{animation:_fadeup .45s .1s ease both}
+    .cv-f4{animation:_fadeup .45s .15s ease both}
+    .cv-link:hover{color:#F1F5F9!important}
+  </style>
+
+  <!-- ═══ HERO STRIP ═══ -->
+  <div class="cv-f1" style="background:linear-gradient(130deg,#0E1F3A 0%,#0B1628 55%,#0B1220 100%);border:1px solid rgba(59,130,246,.14);border-radius:20px;padding:26px 32px 24px;margin-bottom:14px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(59,130,246,.1) 0%,transparent 65%);pointer-events:none"></div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:28px;align-items:start">
       <div>
-        <div style="font-size:10px;color:#3B82F6;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Plano de Ação</div>
-        <div style="font-size:22px;font-weight:700;color:#F1F5F9;letter-spacing:-.3px">${plano.titulo||'Crescimento Orgânico'}</div>
-        ${plano.descricao ? `<div style="font-size:13px;color:#64748B;margin-top:6px;line-height:1.5">${plano.descricao}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="cv-live" style="width:7px;height:7px;border-radius:50%;background:#10B981;flex-shrink:0"></div>
+          <span style="font-size:12px;color:#10B981;font-weight:600">Equipe Coeso em ação</span>
+          ${statusAtual>0?'<span style="background:rgba(59,130,246,.14);color:#3B82F6;font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px">'+statusAtual+' em produção</span>':''}
+          ${aguardAprov.length>0?'<span onclick="switchPortalTab(\'aprovacao\')" style="background:rgba(245,158,11,.12);color:#F59E0B;font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;cursor:pointer;border:1px solid rgba(245,158,11,.2)">'+aguardAprov.length+' aguardando aprovação →</span>':''}
+        </div>
+        <div style="font-size:24px;font-weight:800;color:#F1F5F9;letter-spacing:-.5px;margin-bottom:5px">${plano.titulo||clienteNome+' — Estratégia Ativa'}</div>
+        ${plano.descricao?'<div style="font-size:13px;color:#64748B;margin-bottom:14px;line-height:1.5;max-width:580px">'+plano.descricao+'</div>':'<div style="margin-bottom:14px"></div>'}
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;font-size:13px;color:#94A3B8">
+          <span><b style="color:#F1F5F9">${prog}%</b> do plano</span>
+          <span style="color:rgba(255,255,255,.12)">·</span>
+          <span><b style="color:#F1F5F9">${postsMes}</b> posts este mês</span>
+          <span style="color:rgba(255,255,255,.12)">·</span>
+          <span><b style="color:#F1F5F9">${demandasCli.length}</b> demandas ativas</span>
+          <span style="color:rgba(255,255,255,.12)">·</span>
+          <span><b style="color:#F1F5F9">${publicados.length}</b> publicados/30d</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;max-width:380px;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,#3B82F6,#60A5FA);border-radius:2px"></div>
+          </div>
+          <span style="font-size:11px;color:#475569">${feitos}/${todosItens.length} tarefas</span>
+          <button onclick="switchPortalTab('plano')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:8px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:600">Ver plano →</button>
+        </div>
       </div>
-      <button onclick="switchPortalTab('plano')" style="background:#3B82F6;border:none;color:#fff;padding:10px 20px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0">Continuar →</button>
-    </div>
-    <div style="background:rgba(255,255,255,0.05);height:5px;border-radius:3px;overflow:hidden;margin-bottom:10px">
-      <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,#3B82F6,#60A5FA);border-radius:3px;transition:width .6s ease"></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:#64748B;flex-wrap:wrap">
-      <span><b style="color:#F1F5F9;font-weight:700">${prog}%</b> concluído</span>
-      <span style="color:rgba(255,255,255,0.15)">·</span>
-      <span><b style="color:#F1F5F9;font-weight:700">${feitos}</b> de ${todosItens.length} tarefas</span>
-      ${plano.prazo ? `<span style="color:rgba(255,255,255,0.15)">·</span><span>Prazo: <b style="color:#F59E0B;font-weight:600">${plano.prazo}</b></span>` : ''}
+      <!-- Score mini no hero -->
+      <div style="text-align:center;flex-shrink:0">
+        <div style="font-size:9px;color:#475569;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">Score</div>
+        <div style="position:relative;width:76px;height:76px;margin:0 auto">
+          <svg width="76" height="76" viewBox="0 0 76 76">
+            <circle cx="38" cy="38" r="${scoreR}" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="7"/>
+            <circle cx="38" cy="38" r="${scoreR}" fill="none" stroke="${scoreColor}" stroke-width="7"
+              stroke-dasharray="${scoreCirc}" stroke-dashoffset="${scoreOff}"
+              stroke-linecap="round" transform="rotate(-90 38 38)"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+            <span style="font-size:19px;font-weight:800;color:#F1F5F9">${score}</span>
+          </div>
+        </div>
+        <div style="font-size:11px;color:${scoreColor};font-weight:600;margin-top:6px">${scoreLabel}</div>
+        <button onclick="switchPortalTab('score')" style="margin-top:8px;background:none;border:1px solid rgba(255,255,255,.08);color:#475569;border-radius:7px;padding:4px 10px;cursor:pointer;font-size:10px">detalhes</button>
+      </div>
     </div>
   </div>
 
-  <!-- METRICS ROW -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px">
+  <!-- ═══ TRÊS COLUNAS PRINCIPAIS ═══ -->
+  <div class="cv-f2" style="display:grid;grid-template-columns:2.2fr 1.6fr 1.2fr;gap:13px;margin-bottom:13px">
+
+    <!-- COL 1: FEED DE ATIVIDADES -->
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px 22px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Atividade da Equipe</div>
+        <div style="font-size:10px;color:#475569">últimos 30 dias</div>
+      </div>
+      ${atividades.length===0?`
+        <div style="text-align:center;padding:48px 20px">
+          <div style="font-size:30px;margin-bottom:12px;opacity:.25">📡</div>
+          <div style="font-size:13px;color:#94A3B8;font-weight:600;margin-bottom:5px">Nenhuma atividade ainda</div>
+          <div style="font-size:12px;color:#475569">As ações da equipe aparecerão aqui</div>
+        </div>`:`
+      <div>
+        ${atividades.slice(0,9).map((a,i,arr)=>`
+        <div style="display:flex;gap:11px;padding:9px 0;${i<arr.length-1?'border-bottom:1px solid rgba(255,255,255,.04)':''}">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:2px">
+            <div style="width:26px;height:26px;border-radius:50%;background:${a.cor}14;display:flex;align-items:center;justify-content:center;font-size:11px">${a.icon}</div>
+            ${i<arr.length-1?'<div style="width:1px;flex:1;min-height:6px;background:rgba(255,255,255,.04);margin-top:3px"></div>':''}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;color:#64748B;margin-bottom:1px">${a.titulo}</div>
+            <div style="font-size:13px;color:#E2E8F0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.desc}</div>
+          </div>
+          <div style="flex-shrink:0;text-align:right;padding-top:2px">
+            <div style="font-size:10px;color:${a.cor};background:${a.cor}12;padding:2px 7px;border-radius:99px;font-weight:600;margin-bottom:3px">${a.label}</div>
+            <div style="font-size:10px;color:#475569">${relDate(a.data)}</div>
+          </div>
+        </div>`).join('')}
+      </div>`}
+    </div>
+
+    <!-- COL 2: PRÓXIMAS ENTREGAS + DEMANDAS -->
+    <div style="display:flex;flex-direction:column;gap:13px">
+      <!-- Próximas entregas -->
+      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px 22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Próximas Entregas</div>
+          <button onclick="switchPortalTab('calendario')" style="background:none;border:none;color:#3B82F6;font-size:11px;cursor:pointer;font-weight:600;padding:0">Calendário →</button>
+        </div>
+        ${proximas.length===0?`<div style="font-size:12px;color:#475569;text-align:center;padding:18px 0;line-height:1.6">Nenhuma entrega nos<br>próximos 14 dias</div>`:
+          proximas.slice(0,5).map(c=>{
+            const cor=TIPO_COR[c.tipo]||'#64748B';
+            const dt=new Date(c.data);
+            const dl=daysFromNow(dt);
+            const dlTxt=dl===0?'Hoje':dl===1?'Amanhã':dl+'d';
+            const dlCor=dl===0?'#10B981':dl<=3?'#F59E0B':'#475569';
+            return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+
+              '<div style="width:34px;text-align:center;flex-shrink:0">'+
+                '<div style="font-size:15px;font-weight:800;color:#F1F5F9;line-height:1">'+dt.getDate()+'</div>'+
+                '<div style="font-size:9px;color:#475569;text-transform:uppercase">'+dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')+'</div>'+
+              '</div>'+
+              '<div style="flex:1;min-width:0">'+
+                '<div style="font-size:12px;color:#E2E8F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">'+(c.titulo||'Sem título')+'</div>'+
+                '<div style="font-size:10px;color:'+cor+';font-weight:600;margin-top:2px">'+(c.tipo||'Post')+'</div>'+
+              '</div>'+
+              '<div style="font-size:10px;font-weight:700;color:'+dlCor+';flex-shrink:0">'+dlTxt+'</div>'+
+            '</div>';
+          }).join('')}
+      </div>
+
+      <!-- Demandas -->
+      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px 22px;flex:1">
+        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px">Demandas Ativas</div>
+        ${demandasCli.length===0?`<div style="font-size:12px;color:#475569;text-align:center;padding:14px 0">Nenhuma demanda ativa ✓</div>`:
+          demandasCli.slice(0,6).map(d=>{
+            const cor=DEM_COR[d.status]||'#475569';
+            return '<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">'+
+              '<div style="width:5px;height:5px;border-radius:50%;background:'+cor+';flex-shrink:0"></div>'+
+              '<div style="flex:1;font-size:12px;color:#E2E8F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(d.titulo||d.texto||'Demanda')+'</div>'+
+              '<div style="font-size:10px;font-weight:600;color:'+cor+';background:'+cor+'14;padding:2px 8px;border-radius:99px;white-space:nowrap">'+d.status+'</div>'+
+            '</div>';
+          }).join('')}
+        ${demandasCli.length>6?'<div style="font-size:11px;color:#475569;text-align:center;margin-top:10px">+'+( demandasCli.length-6)+' demandas</div>':''}
+      </div>
+    </div>
+
+    <!-- COL 3: METAS + CONQUISTAS + INSIGHTS -->
+    <div style="display:flex;flex-direction:column;gap:13px">
+      <!-- Metas do mês -->
+      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px 22px">
+        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px">Metas do Mês</div>
+        ${metasMes.map(m=>`
+        <div style="margin-bottom:13px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:11px;color:#94A3B8">${m.label}</span>
+            <span style="font-size:11px;font-weight:700;color:#F1F5F9">${m.val}${m.meta!=='—'?'/'+m.meta:''}</span>
+          </div>
+          <div style="height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${m.pct}%;background:${m.cor};border-radius:2px"></div>
+          </div>
+        </div>`).join('')}
+      </div>
+
+      <!-- Conquistas -->
+      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px 22px">
+        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:12px">Conquistas</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          ${conquistas.map(c=>`
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px">
+            <span style="font-size:14px">${c.icon}</span>
+            <span style="font-size:12px;color:#94A3B8;font-weight:500">${c.label}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Insights -->
+      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px 22px;flex:1">
+        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:12px">Insights</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          ${insights.map(ins=>`
+          <div style="padding:10px 12px;background:${ins.cor}08;border:1px solid ${ins.cor}18;border-left:3px solid ${ins.cor};border-radius:9px;display:flex;gap:9px;align-items:flex-start">
+            <span style="font-size:13px;flex-shrink:0;margin-top:1px">${ins.icon}</span>
+            <span style="font-size:11px;color:#94A3B8;line-height:1.55">${ins.texto}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MÉTRICAS ROW ═══ -->
+  <div class="cv-f3" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:13px">
     ${Object.entries(metricas).map(([k,m])=>`
-    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px 14px">
-      <div style="font-size:9px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px">${m.label}</div>
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:15px 14px">
+      <div style="font-size:9px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:7px">${m.label}</div>
       <div style="font-size:22px;font-weight:800;color:#F1F5F9;letter-spacing:-.5px">${m.valor}</div>
-      ${m.meta ? `<div style="font-size:10px;color:#22C55E;margin-top:5px;font-weight:500">↑ meta ${m.meta}</div>` : '<div style="height:15px"></div>'}
+      ${m.meta?`<div style="font-size:10px;color:#10B981;margin-top:5px;font-weight:500">↑ meta ${m.meta}</div>`:'<div style="height:15px"></div>'}
     </div>`).join('')}
-    <div style="background:#0F1A2E;border:1px dashed rgba(255,255,255,0.1);border-radius:12px;padding:16px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px" onclick="abrirEditarMetricas('${clienteNome}')">
+    <div onclick="abrirEditarMetricas('${clienteNome}')" style="background:#0F1A2E;border:1px dashed rgba(255,255,255,.09);border-radius:12px;padding:15px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
       <div style="font-size:18px;color:#475569">✏️</div>
       <div style="font-size:10px;color:#475569;text-align:center;line-height:1.4">Atualizar métricas</div>
     </div>
   </div>
 
-  <!-- CONTEÚDO + SCORE -->
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px">
-    <!-- Conteúdos da semana -->
-    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:22px 24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Conteúdo da Semana</div>
-        <button onclick="switchPortalTab('calendario')" style="background:none;border:none;color:#3B82F6;font-size:11px;cursor:pointer;font-weight:600;padding:0">Ver tudo →</button>
+  <!-- ═══ APROVAÇÕES + SOLICITAÇÕES (bottom strip) ═══ -->
+  <div class="cv-f4" style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+    <div onclick="switchPortalTab('aprovacao')" style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 22px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div>
+        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px">Aprovações Pendentes</div>
+        <div style="font-size:28px;font-weight:800;color:${aguardAprov.length>0?'#F59E0B':'#10B981'};letter-spacing:-1px">${aguardAprov.length}</div>
       </div>
-      ${semana.length===0 ? `
-        <div style="text-align:center;padding:36px 20px">
-          <div style="font-size:28px;margin-bottom:12px;opacity:.3">📋</div>
-          <div style="font-size:13px;color:#E2E8F0;font-weight:600;margin-bottom:6px">Nenhum conteúdo agendado</div>
-          <div style="font-size:12px;color:#475569;line-height:1.5">Sua equipe ainda não agendou<br>nada esta semana</div>
-        </div>` :
-        semana.slice(0,5).map(c=>{
-          const cor = TIPO_COR[c.tipo]||'#64748B';
-          const dt = new Date(c.data);
-          return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)">' +
-            '<span style="font-size:10px;font-weight:700;color:' + cor + ';background:' + cor + '18;border-radius:5px;padding:3px 7px;white-space:nowrap">' + (c.tipo||'Post') + '</span>' +
-            '<span style="flex:1;font-size:13px;color:#E2E8F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (c.titulo||'Sem título') + '</span>' +
-            '<span style="font-size:11px;color:#475569;flex-shrink:0">' + dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + '</span>' +
-            '</div>';
-        }).join('')
-      }
+      ${aguardAprov.length>0?'<div style="background:#F59E0B14;border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px 16px;font-size:12px;color:#F59E0B;font-weight:600;white-space:nowrap">Aprovar agora →</div>':'<div style="font-size:12px;color:#10B981;font-weight:600">Tudo em dia ✓</div>'}
     </div>
-
-    <!-- Score circular -->
-    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
-      <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:20px">Score Coeso</div>
-      <div style="position:relative;width:100px;height:100px;margin-bottom:14px">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/>
-          <circle cx="50" cy="50" r="38" fill="none" stroke="${scoreColor}" stroke-width="8"
-            stroke-dasharray="${scoreCirc.toFixed(2)}" stroke-dashoffset="${scoreOffset.toFixed(2)}"
-            stroke-linecap="round" transform="rotate(-90 50 50)"/>
-        </svg>
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
-          <span style="font-size:26px;font-weight:800;color:#F1F5F9;letter-spacing:-1px">${score}</span>
-        </div>
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div>
+        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px">Solicitações</div>
+        <div style="font-size:28px;font-weight:800;color:#3B82F6;letter-spacing:-1px">${solPend.length}</div>
       </div>
-      <div style="font-size:13px;color:${scoreColor};font-weight:600;margin-bottom:4px">${scoreLabel}</div>
-      <div style="font-size:11px;color:#475569;margin-bottom:16px">de 100 pontos</div>
-      <button onclick="switchPortalTab('score')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#64748B;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:500">Ver detalhes →</button>
-    </div>
-  </div>
-
-  <!-- DEMANDAS + APROVAÇÕES + SOLICITAÇÕES -->
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
-    <!-- Demandas: Linear style -->
-    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:22px 24px">
-      <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:16px">Demandas em Andamento</div>
-      ${demandasCli.length===0 ? `
-        <div style="font-size:13px;color:#475569;padding:24px 0;text-align:center">Nenhuma demanda ativa ✓</div>` :
-        demandasCli.slice(0,7).map(d=>{
-          const cor = DEM_COR[d.status]||'#475569';
-          return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)">' +
-            '<div style="width:6px;height:6px;border-radius:50%;background:' + cor + ';flex-shrink:0"></div>' +
-            '<div style="flex:1;font-size:13px;color:#E2E8F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (d.titulo||d.texto||'Demanda') + '</div>' +
-            '<div style="font-size:10px;font-weight:600;color:' + cor + ';background:' + cor + '18;padding:2px 9px;border-radius:99px;white-space:nowrap;flex-shrink:0">' + d.status + '</div>' +
-            '</div>';
-        }).join('')
-      }
-      ${demandasCli.length>7 ? `<div style="font-size:12px;color:#475569;margin-top:12px;text-align:center">+${demandasCli.length-7} demandas</div>` : ''}
-    </div>
-
-    <!-- Aprovações + Solicitações empilhadas -->
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px;cursor:pointer" onclick="switchPortalTab('aprovacao')">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Aprovações</div>
-          ${aguardAprov.length > 0 ? '<span style="background:#F59E0B1A;color:#F59E0B;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700">' + aguardAprov.length + ' pendente' + (aguardAprov.length>1?'s':'') + '</span>' : '<span style="background:#22C55E1A;color:#22C55E;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600">em dia ✓</span>'}
-        </div>
-        <div style="font-size:32px;font-weight:800;color:${aguardAprov.length>0?'#F59E0B':'#22C55E'};letter-spacing:-1px;margin-bottom:4px">${aguardAprov.length}</div>
-        <div style="font-size:11px;color:#475569">aguardando → ver</div>
-      </div>
-
-      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Solicitações</div>
-          ${solPend.length > 0 ? '<span style="background:#3B82F61A;color:#3B82F6;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700">' + solPend.length + '</span>' : ''}
-        </div>
-        <div style="font-size:32px;font-weight:800;color:#3B82F6;letter-spacing:-1px;margin-bottom:12px">${solPend.length}</div>
-        <button onclick="switchPortalTab('solicitacoes')" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#64748B;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:11px;width:100%;font-weight:500">+ Nova solicitação</button>
-      </div>
+      <button onclick="switchPortalTab('solicitacoes')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:9px;padding:9px 16px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">+ Nova solicitação</button>
     </div>
   </div>`;
 }
