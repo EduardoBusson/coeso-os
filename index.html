@@ -2430,16 +2430,38 @@ function renderChartReceita() {
 function renderChartDemandas() {
   const el = document.getElementById('chartDemandas');
   if (!el) return;
-  if (el._chart) el._chart.destroy();
+  if (el._chart) { try { el._chart.destroy(); } catch(e){} }
   const statuses = ['Briefing','Em produção','Em revisão','Aguardando aprovação','Concluído'];
-  const counts = statuses.map(s => demandas.filter(d=>d.status===s).length);
+  const cores    = ['#8b8fa8','#3dd68c','#6c8cff','#f7c948','#aee8f5'];
+  const counts   = statuses.map(s => (demandas||[]).filter(d=>d.status===s).length);
+  const total    = counts.reduce((a,b)=>a+b,0);
+  if (total === 0) {
+    el.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text2);font-size:13px">Sem demandas cadastradas</div>';
+    return;
+  }
   el._chart = new Chart(el, {
-    type: 'doughnut',
+    type: 'pie',
     data: {
       labels: statuses,
-      datasets: [{ data: counts, backgroundColor: ['#f7c948','#ff9f43','#7dd8f0','#ff5a72','#3dd68c'], borderWidth:0 }]
+      datasets: [{ data: counts, backgroundColor: cores, borderColor: '#0e1f35', borderWidth: 2 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{color:'#8b8fa8',font:{size:11},boxWidth:12}}} }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: '#c4c9d8', font: { size: 11 }, boxWidth: 12, padding: 10,
+            filter: (item) => counts[item.index] > 0
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} demanda${ctx.parsed!==1?'s':''}`
+          }
+        }
+      }
+    }
   });
 }
 
@@ -6814,6 +6836,7 @@ function _runInit() {
 const COESO_USUARIOS = {
   'eduardo': { senha: 'coeso2026',  modo: 'admin',       nome: 'Eduardo' },
   'liz':     { senha: '123567815',  modo: 'colaborador',  nome: 'Liz'     },
+  'kaian':   { senha: 'kaian123',   modo: 'colaborador',  nome: 'Kaian'   },
   'focus':   { senha: 'focus2026',  modo: 'cliente',      nome: 'Focus',  cliente: 'Focus' },
 };
 
