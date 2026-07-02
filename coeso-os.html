@@ -2069,9 +2069,7 @@ function garantirGravacoes() {
     { titulo:'GRAVAÇÃO — COMPASSO 14/07',              tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-14', clienteExterno:'Compasso',                     cliente:0, endereco:'R. da Assunção, 1580 - Fátima, Fortaleza - CE, 60050-135', roteiro:'Em andamento', desc:'09h' },
     { titulo:'GRAVAÇÃO — CARLOS FERNANDES 16/07',      tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-16', clienteExterno:'Carlos Fernandes Nutricionista',cliente:0, endereco:'Rua Dr. Pergentino Maia, 1097 B - Messejana, Fortaleza - CE, 60840-045', roteiro:'Em andamento', desc:'08h' },
     { titulo:'GRAVAÇÃO — TALISMÃ 17/07',               tipo:'Audiovisual', subtipo:'Gravacao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-17', clienteExterno:'Talismã',                      cliente:0, endereco:'R. Pedro I, 725 - Centro, Fortaleza - CE, 60035-100', roteiro:'Em andamento', desc:'08h às 11h' },
-    { titulo:'EDIÇÃO — MENDES E BRITO',  tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-08', clienteExterno:'Mendes e Brito', cliente:0, desc:'Reels faltantes — entrega 08/07', reels:[] },
-    { titulo:'EDIÇÃO — SPOT',            tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Spot',           cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
-    { titulo:'EDIÇÃO — FOCUS',           tipo:'Audiovisual', subtipo:'Edicao', status:'Briefing', prioridade:'Alta', prazo:'2026-07-03', clienteExterno:'Focus',          cliente:0, desc:'Reels faltantes — entrega 03/07', reels:[] },
+    // Edições não são garantidas automaticamente — gerenciadas pelo Kaian/admin
   ];
   let maxId = (demandas||[]).reduce((m,d) => Math.max(m, d.id||0), 0);
   let mudou = false;
@@ -2724,10 +2722,10 @@ function refreshClienteSelect() {
   const sel = document.getElementById('demanda-cliente-sel');
   if (!sel) return;
   sel.innerHTML = clientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('') +
-    '<option value="0">➕ Outro / Externo...</option>';
+    '<option value="-1">➕ Outro / Externo...</option>';
 }
 function toggleDemClienteExterno() {
-  const mostrar = document.getElementById('demanda-cliente-sel').value === '0';
+  const mostrar = document.getElementById('demanda-cliente-sel').value === '-1';
   document.getElementById('dem-externo-wrap').style.display = mostrar ? '' : 'none';
   if (mostrar) document.getElementById('dem-cliente-externo').focus();
 }
@@ -3171,7 +3169,11 @@ function renderKaian() {
 }
 
 function _kaianStatusCor(s) {
-  return {'Briefing':'#8b8fa8','Em andamento':'#3dd68c','Em revisão':'#6c8cff','Aguardando aprovação':'#f7c948','Concluído':'#aee8f5'}[s] || '#8b8fa8';
+  return {
+    'Briefing':'#8b8fa8','Em andamento':'#3dd68c','Em revisão':'#6c8cff',
+    'Aguardando aprovação':'#f7c948','Concluído':'#aee8f5',
+    'Gravado':'#ff9f43','Decupagem':'#a29bfe'
+  }[s] || '#8b8fa8';
 }
 
 // ── TAB GRAVAÇÕES ──────────────────────────────────────────
@@ -3192,7 +3194,9 @@ function renderKaianGravacoes() {
       (isAdminG ? '<br><br><button class="btn btn-primary btn-sm" onclick="abrirNovaGravacao()">+ Nova gravação</button>' : '') + '</div>';
     return;
   }
-  el.innerHTML = gravs.map(d => {
+  // Botão adicionar — visível para todos
+  el.innerHTML = '<div style="text-align:center;margin-bottom:14px"><button class="btn btn-primary" onclick="abrirNovaGravacao()" style="font-size:13px;padding:10px 24px">🎬 Adicionar Gravação</button></div>';
+  el.innerHTML += gravs.map(d => {
     const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
     const cor = _kaianStatusCor(d.status);
     const dataFmt = _fmtData(d.prazo);
@@ -3220,96 +3224,121 @@ function renderKaianGravacoes() {
       <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="margin-top:10px;font-size:11px;color:var(--text2)">✏️ Editar gravação</button>
     </div>`;
   }).join('');
-  if (isAdminG) {
-    el.innerHTML += '<div style="text-align:center;margin-top:8px"><button class="btn btn-primary btn-sm" onclick="abrirNovaGravacao()" style="font-size:12px">+ Nova gravação</button></div>';
-  }
 }
 
 // ── TAB EDIÇÕES ────────────────────────────────────────────
 function renderKaianEdicoes() {
   const el = document.getElementById('kaian-tab-ed-content');
   if (!el) return;
-  const _sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
+  const _sess  = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
   const isAdmin = _sess.modo === 'admin';
+  // Ordena por prazo (data de entrega)
   const edicoes = (demandas||[]).filter(d => d.subtipo === 'Edicao')
-    .sort((a,b) => (a.prazo||'').localeCompare(b.prazo||''));
+    .sort((a,b) => (a.prazo||'9999').localeCompare(b.prazo||'9999'));
+  // Botão adicionar — topo, visível para todos
+  const btnAddEd = '<div style="text-align:center;margin-bottom:14px"><button class="btn btn-primary" onclick="abrirNovaEdicao()" style="font-size:13px;padding:10px 24px">✂️ Adicionar Edição</button></div>';
+
   if (!edicoes.length) {
-    el.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">Nenhuma edição cadastrada ainda.' + (isAdmin ? '<br><br><button class="btn btn-primary btn-sm" onclick="abrirNovaEdicao()">+ Criar primeira edição</button>' : '') + '</div>';
+    el.innerHTML = btnAddEd + '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">Nenhuma edição cadastrada ainda.</div>';
     return;
   }
-  el.innerHTML = edicoes.map(d => {
-    const cli = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || '');
-    const reels = d.reels || [];
-    const total = reels.length;
+  const mesAtual = new Date().toISOString().slice(0,7); // ex: '2026-07'
+  const mesNome  = new Date().toLocaleString('pt-BR',{month:'long'}); // 'julho'
+
+  el.innerHTML = btnAddEd + edicoes.map(d => {
+    const cli    = d.clienteExterno || (clientes.find(c=>c.id===d.cliente)?.nome || d.titulo);
+    const reels  = d.reels || [];
+    const total  = reels.length;
     const feitos = reels.filter(r=>r.feito).length;
-    const pct = total > 0 ? Math.round(feitos/total*100) : 0;
-    const cor = _kaianStatusCor(d.status);
+    const feitos_mes = reels.filter(r=>r.feito && (r.mes||'').startsWith(mesAtual)).length;
+    const pct    = total > 0 ? Math.round(feitos/total*100) : 0;
+    const cor    = _kaianStatusCor(d.status);
     const barCor = pct===100 ? '#3dd68c' : pct>50 ? '#6c8cff' : '#f7c948';
-    return `<div class="card" style="margin-bottom:14px">
+
+    // Lista de reels ordenada por prazo que o Kaian adicionou
+    const reelsList = reels.map((r,i) => `
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:8px;
+        background:${r.feito?'rgba(61,214,140,0.07)':'rgba(255,255,255,0.02)'};
+        border:1px solid ${r.feito?'rgba(61,214,140,0.25)':'var(--border)'};margin-bottom:5px">
+        <input type="checkbox" ${r.feito?'checked':''} onchange="toggleReel(${d.id},${i},this.checked)"
+          style="width:17px;height:17px;accent-color:#3dd68c;cursor:pointer;flex-shrink:0">
+        <span style="font-size:13px;flex:1;${r.feito?'text-decoration:line-through;color:var(--text2)':'color:var(--text)'}">${r.nome}</span>
+        ${r.feito && r.mes ? `<span style="font-size:10px;color:var(--text2)">${r.mes.replace('-','/')}</span>` : ''}
+        <button onclick="removerReel(${d.id},${i})" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:0 3px;line-height:1" title="Remover">×</button>
+      </label>`).join('');
+
+    return `<div class="card" style="margin-bottom:16px">
+      <!-- Cabeçalho -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--text)">✂️ ${cli || d.titulo}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">Edição de reels</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)">✂️ ${cli}</div>
+          ${d.prazo ? `<div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:3px">📅 Entrega: ${_fmtData(d.prazo)}</div>` : ''}
         </div>
-        <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:'+cor+'22;color:'+cor+';border:1px solid '+cor+'44">${d.status}</span>
+        <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:${cor}22;color:${cor};border:1px solid ${cor}44">${d.status}</span>
       </div>
-      ${d.prazo ? '<div style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px">📅 Entrega: '+_fmtData(d.prazo)+'</div>' : ''}
-      <!-- Barra de progresso -->
-      <div style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Progresso — Reels</span>
+
+      <!-- Progresso -->
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Reels</span>
           <span style="font-size:12px;font-weight:700;color:${barCor}">${feitos}/${total} (${pct}%)</span>
         </div>
-        <div style="height:8px;background:var(--surface2);border-radius:99px;overflow:hidden">
+        <div style="height:7px;background:var(--surface2);border-radius:99px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:${barCor};border-radius:99px;transition:width .4s"></div>
         </div>
+        ${feitos_mes > 0 ? `<div style="font-size:11px;color:#3dd68c;margin-top:5px;font-weight:600">✓ ${feitos_mes} reel${feitos_mes>1?'s':''} concluído${feitos_mes>1?'s':''} em ${mesNome}</div>` : ''}
       </div>
+
       <!-- Lista de reels -->
-      <div style="display:flex;flex-direction:column;gap:6px">
-        ${reels.length === 0 ? '<div style="color:var(--text2);font-size:12px;font-style:italic">Nenhum reel adicionado ainda.</div>' :
-          reels.map((r,i) => `
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:7px 10px;border-radius:8px;background:${r.feito?'rgba(61,214,140,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${r.feito?'rgba(61,214,140,0.25)':'var(--border)'}">
-            <input type="checkbox" ${r.feito?'checked':''} onchange="toggleReel(${d.id},${i},this.checked)"
-              style="width:16px;height:16px;accent-color:#3dd68c;cursor:pointer;flex-shrink:0">
-            <span style="font-size:13px;color:var(--text);${r.feito?'text-decoration:line-through;color:var(--text2)':''};flex:1">${r.nome}</span>
-            ${isAdmin ? '<button onclick="removerReel('+d.id+','+i+')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px" title="Remover">✕</button>' : ''}
-          </label>`).join('')}
+      <div style="margin-bottom:10px">
+        ${reels.length === 0
+          ? '<div style="color:var(--text2);font-size:12px;font-style:italic;padding:6px 0">Nenhum reel adicionado ainda. Adicione abaixo ↓</div>'
+          : reelsList}
       </div>
-      <!-- Admin: adicionar reel -->
-      ${isAdmin ? `
-      <div style="margin-top:10px;display:flex;gap:8px">
-        <input id="reel-input-${d.id}" class="form-input" placeholder="Nome do reel..." style="flex:1;padding:7px 10px;font-size:12px" onkeydown="if(event.key==='Enter')adicionarReel(${d.id})">
-        <button class="btn btn-ghost btn-sm" onclick="adicionarReel(${d.id})" style="white-space:nowrap">+ Reel</button>
-      </div>` : ''}
-      <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="margin-top:8px;font-size:11px;color:var(--text2)">✏️ Editar edição</button>
+
+      <!-- Adicionar reel (Kaian e admin) -->
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="reel-input-${d.id}" class="form-input" placeholder="Nome do reel (ex: Reel 1 — Produto)..."
+          style="flex:1;padding:8px 10px;font-size:12px"
+          onkeydown="if(event.key==='Enter')adicionarReel(${d.id})">
+        <button class="btn btn-primary btn-sm" onclick="adicionarReel(${d.id})" style="font-size:12px;white-space:nowrap">+ Reel</button>
+      </div>
+
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="editarDemanda(${d.id})" style="font-size:11px;color:var(--text2)">✏️ Editar</button>
+        ${total > 0 && feitos_mes > 0 ? `<span style="font-size:10px;color:var(--text2);margin-left:auto">Produção ${mesNome}: <b style="color:#3dd68c">${feitos_mes}</b></span>` : ''}
+      </div>
     </div>`;
   }).join('');
+
 }
 
 function toggleReel(demandaId, reelIdx, feito) {
   const d = demandas.find(x=>x.id===demandaId);
-  if (!d || !d.reels) return;
+  if (!d || !d.reels || !d.reels[reelIdx]) return;
   d.reels[reelIdx].feito = feito;
+  d.reels[reelIdx].mes   = feito ? new Date().toISOString().slice(0,7) : null;
   // Atualiza status automaticamente
-  const total = d.reels.length;
+  const total   = d.reels.length;
   const feitosN = d.reels.filter(r=>r.feito).length;
   if (feitosN === total && total > 0) d.status = 'Concluído';
-  else if (feitosN > 0) d.status = 'Em andamento';
-  else d.status = 'Briefing';
+  else if (feitosN > 0)               d.status = 'Em andamento';
+  else                                 d.status = 'Gravado';
   saveData('demandas', demandas);
   renderKaianEdicoes();
 }
 
 function adicionarReel(demandaId) {
   const input = document.getElementById('reel-input-'+demandaId);
-  const nome = input?.value.trim();
-  if (!nome) return;
+  const nome  = input?.value.trim();
+  if (!nome) { if(input) input.focus(); return; }
   const d = demandas.find(x=>x.id===demandaId);
   if (!d) return;
   if (!d.reels) d.reels = [];
-  d.reels.push({ nome, feito: false });
+  d.reels.push({ nome, feito: false, mes: null });
   saveData('demandas', demandas);
   input.value = '';
+  input.focus();
   renderKaianEdicoes();
 }
 
@@ -3427,10 +3456,27 @@ function abrirNovaEdicao() {
 }
 
 function toggleDemAvFields() {
-  const tipo = document.getElementById('dem-tipo')?.value || '';
-  const show = ['Video','Audiovisual'].includes(tipo);
+  const tipoEl  = document.getElementById('dem-tipo');
+  const tipo    = tipoEl?.value || '';
+  const subtipo = tipoEl?.dataset.subtipo || '';
+  // Campos de endereço/roteiro só aparecem para Gravações, não para Edições
+  const showAv  = ['Video','Audiovisual'].includes(tipo) && subtipo !== 'Edicao';
   const el = document.getElementById('dem-av-fields');
-  if (el) el.style.display = show ? '' : 'none';
+  if (el) el.style.display = showAv ? '' : 'none';
+
+  // Opções de status variam por subtipo
+  const statusSel = document.getElementById('dem-status');
+  if (!statusSel) return;
+  const atual = statusSel.value;
+  let opcoes;
+  if (subtipo === 'Edicao') {
+    opcoes = ['Gravado','Decupagem','Em andamento','Em revisão','Aguardando aprovação','Concluído'];
+  } else if (subtipo === 'Gravacao') {
+    opcoes = ['Briefing','Em andamento','Concluído'];
+  } else {
+    opcoes = ['Briefing','Em andamento','Em revisão','Aguardando aprovação','Concluído'];
+  }
+  statusSel.innerHTML = opcoes.map(o => `<option${o===atual?' selected':''}>${o}</option>`).join('');
 }
 
 function renderKanbanAudiovisual() {
@@ -3670,11 +3716,11 @@ function editarDemanda(id) {
   refreshClienteSelect();
   const sel = document.getElementById('demanda-cliente-sel');
   if (d.clienteExterno) {
-    sel.value = '0';
+    sel.value = '-1';
     document.getElementById('dem-externo-wrap').style.display = '';
     document.getElementById('dem-cliente-externo').value = d.clienteExterno;
   } else {
-    sel.value = d.cliente;
+    sel.value = String(d.cliente);
     document.getElementById('dem-externo-wrap').style.display = 'none';
     document.getElementById('dem-cliente-externo').value = '';
   }
@@ -3708,9 +3754,10 @@ function filtrarDemandas(q) {
 function salvarDemanda() {
   const titulo = document.getElementById('dem-titulo').value.trim();
   const selVal = document.getElementById('demanda-cliente-sel').value;
-  const clienteId = parseInt(selVal);
-  const clienteExterno = clienteId === 0 ? (document.getElementById('dem-cliente-externo').value.trim() || 'Externo') : '';
-  if (!titulo || (!clienteId && !clienteExterno)) { alert('Preencha título e cliente.'); return; }
+  const isExterno = selVal === '-1';
+  const clienteId = isExterno ? 0 : parseInt(selVal);
+  const clienteExterno = isExterno ? (document.getElementById('dem-cliente-externo').value.trim() || 'Externo') : '';
+  if (!titulo || (isExterno && !clienteExterno) || (!isExterno && !clienteId)) { alert('Preencha título e cliente.'); return; }
   const editId = parseInt(document.getElementById('dem-id').value);
   const _sess = JSON.parse(sessionStorage.getItem('coeso_login')||'{}');
   const _criador = _sess.nome || 'Eduardo';
@@ -7855,38 +7902,41 @@ function renderPortalCliente() {
   const activeTab = sessionStorage.getItem('portal_tab') || 'visaogeral';
 
   const TABS = [
-    { id:'visaogeral',   icon:'🏠', label:'Visão Geral' },
-    { id:'calendario',   icon:'📅', label:'Calendário' },
-    { id:'aprovacao',    icon:'✅', label:'Aprovações' },
-    { id:'biblioteca',   icon:'📁', label:'Biblioteca' },
-    { id:'solicitacoes', icon:'📝', label:'Solicitações' },
-    { id:'instagram',    icon:'📸', label:'Instagram' },
-    { id:'oportunidades',icon:'💡', label:'Oportunidades' },
-    { id:'score',        icon:'⭐', label:'Score' },
-    { id:'relatorio',    icon:'📊', label:'Relatório' },
+    { id:'visaogeral',   label:'Visão Geral' },
+    { id:'calendario',   label:'Calendário' },
+    { id:'aprovacao',    label:'Aprovações' },
+    { id:'biblioteca',   label:'Biblioteca' },
+    { id:'solicitacoes', label:'Solicitações' },
+    { id:'instagram',    label:'Instagram' },
+    { id:'oportunidades',label:'Oportunidades' },
+    { id:'score',        label:'Score' },
+    { id:'relatorio',    label:'Relatório' },
   ];
 
   el.innerHTML = `
-  <div style="max-width:960px;margin:0 auto;padding-bottom:60px">
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#0a1929 0%,#0d2035 100%);border-radius:16px;padding:22px 28px;margin-bottom:20px;border:1px solid #1e3448;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div>
-        <div style="font-size:10px;color:#aee8f5;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Portal do Cliente</div>
-        <div style="font-size:26px;font-weight:800;color:#fff">${clienteNome}</div>
+  <div style="min-height:100vh;background:#0B1220;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:#F1F5F9">
+    <!-- COMPACT HEADER -->
+    <header style="height:60px;background:#0B1220;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 28px;justify-content:space-between;position:sticky;top:0;z-index:50">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:15px;font-weight:800;color:#F1F5F9;letter-spacing:-.5px">Coeso</div>
+        <div style="width:1px;height:16px;background:rgba(255,255,255,0.12)"></div>
+        <div style="font-size:13px;color:#94A3B8;font-weight:500">${clienteNome}</div>
       </div>
-      <button onclick="fazerLogout()" style="background:none;border:1px solid #ff5a7244;color:#ff5a72;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px">🚪 Sair</button>
-    </div>
+      <button onclick="fazerLogout()" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#64748B;border-radius:7px;padding:6px 14px;cursor:pointer;font-size:12px">Sair</button>
+    </header>
 
-    <!-- Tab nav -->
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;background:var(--surface);border-radius:12px;padding:8px;border:1px solid var(--border)">
+    <!-- HORIZONTAL NAV -->
+    <nav style="border-bottom:1px solid rgba(255,255,255,0.06);padding:0 28px;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch">
       ${TABS.map(t => {
         const isAct = activeTab === t.id;
-        return '<button onclick="switchPortalTab(\'' + t.id + '\')" id="ptab-' + t.id + '" style="flex:1;min-width:80px;padding:8px 10px;border-radius:8px;border:none;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;background:' + (isAct?'var(--accent)':'transparent') + ';color:' + (isAct?'#fff':'var(--text2)') + '">' + t.icon + ' ' + t.label + '</button>';
+        return '<button onclick="switchPortalTab(\'' + t.id + '\')" id="ptab-' + t.id + '" style="padding:14px 16px;border:none;border-bottom:2px solid ' + (isAct?'#3B82F6':'transparent') + ';background:none;cursor:pointer;font-size:13px;color:' + (isAct?'#F1F5F9':'#64748B') + ';font-weight:' + (isAct?'600':'400') + ';white-space:nowrap;transition:all .15s">' + t.label + '</button>';
       }).join('')}
-    </div>
+    </nav>
 
-    <!-- Tab content -->
-    <div id="portal-tab-content"></div>
+    <!-- CONTENT -->
+    <main style="padding:32px 28px;max-width:1100px;margin:0 auto">
+      <div id="portal-tab-content"></div>
+    </main>
   </div>`;
 
   renderPortalTab(activeTab, clienteNome);
@@ -7899,8 +7949,9 @@ function switchPortalTab(tabId) {
   // update tab button styles
   document.querySelectorAll('[id^="ptab-"]').forEach(btn => {
     const isActive = btn.id === 'ptab-' + tabId;
-    btn.style.background = isActive ? 'var(--accent)' : 'transparent';
-    btn.style.color = isActive ? '#fff' : 'var(--text2)';
+    btn.style.borderBottom = isActive ? '2px solid #3B82F6' : '2px solid transparent';
+    btn.style.color = isActive ? '#F1F5F9' : '#64748B';
+    btn.style.fontWeight = isActive ? '600' : '400';
   });
   renderPortalTab(tabId, clienteNome);
 }
@@ -7937,10 +7988,10 @@ function _tabVisaoGeral(clienteNome) {
   const metricas = loadData('metricas_cliente_'+clienteNome.toLowerCase().replace(/\s/g,'_'), {
     seguidores_ig:  {valor:'—',meta:'10k',label:'Seguidores IG'},
     alcance_semanal:{valor:'—',meta:'',  label:'Alcance Semanal'},
-    engajamento:    {valor:'—',meta:'5%',label:'Taxa Engajamento'},
+    engajamento:    {valor:'—',meta:'5%',label:'Engajamento'},
     seguidores_fb:  {valor:'—',meta:'', label:'Seguidores FB'},
     visitas_site:   {valor:'—',meta:'', label:'Visitas Site/mês'},
-    leads_mes:      {valor:'—',meta:'', label:'Leads Gerados'},
+    leads_mes:      {valor:'—',meta:'', label:'Leads/mês'},
   });
   const cal = loadData('cal_'+clienteNome, []);
   const agora = new Date();
@@ -7952,80 +8003,140 @@ function _tabVisaoGeral(clienteNome) {
   const aguardAprov = loadData('aprov_'+clienteNome, []).filter(a=>a.status==='Aguardando');
   const sol = loadData('sol_'+clienteNome, []);
   const solPend = sol.filter(s=>s.status!=='Finalizado');
+  const score = _calcScore(clienteNome);
+  const scoreCirc = 2 * Math.PI * 38;
+  const scoreOffset = scoreCirc * (1 - score / 100);
+  const scoreColor = score >= 70 ? '#22C55E' : score >= 40 ? '#F59E0B' : '#EF4444';
+  const scoreLabel = score >= 70 ? 'Excelente' : score >= 50 ? 'Bom' : 'Melhorando';
 
-  const DEM_COR = {'Em andamento':'#3dd68c','Em revisão':'#f7c948','Pendente':'#8b8fa8','Aprovado':'#6c8cff','Aguardando':'#ff9f43'};
+  const DEM_COR = {
+    'Em andamento':'#22C55E','Em revisão':'#F59E0B','Pendente':'#94A3B8',
+    'Aprovado':'#3B82F6','Aguardando':'#F97316','Briefing':'#8B5CF6',
+    'Aguardando aprovação':'#F59E0B','Concluído':'#22C55E'
+  };
+  const TIPO_COR = {Feed:'#3B82F6',Reels:'#F97316',Stories:'#22C55E',Carrossel:'#F59E0B',Campanha:'#EF4444',Aviso:'#94A3B8'};
 
   return `
-  <!-- Métricas rápidas -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:20px">
+  <!-- HERO: PLANO DE AÇÃO -->
+  <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:28px 32px;margin-bottom:18px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:10px;color:#3B82F6;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px">Plano de Ação</div>
+        <div style="font-size:22px;font-weight:700;color:#F1F5F9;letter-spacing:-.3px">${plano.titulo||'Crescimento Orgânico'}</div>
+        ${plano.descricao ? `<div style="font-size:13px;color:#64748B;margin-top:6px;line-height:1.5">${plano.descricao}</div>` : ''}
+      </div>
+      <button onclick="switchPortalTab('plano')" style="background:#3B82F6;border:none;color:#fff;padding:10px 20px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0">Continuar →</button>
+    </div>
+    <div style="background:rgba(255,255,255,0.05);height:5px;border-radius:3px;overflow:hidden;margin-bottom:10px">
+      <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,#3B82F6,#60A5FA);border-radius:3px;transition:width .6s ease"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:#64748B;flex-wrap:wrap">
+      <span><b style="color:#F1F5F9;font-weight:700">${prog}%</b> concluído</span>
+      <span style="color:rgba(255,255,255,0.15)">·</span>
+      <span><b style="color:#F1F5F9;font-weight:700">${feitos}</b> de ${todosItens.length} tarefas</span>
+      ${plano.prazo ? `<span style="color:rgba(255,255,255,0.15)">·</span><span>Prazo: <b style="color:#F59E0B;font-weight:600">${plano.prazo}</b></span>` : ''}
+    </div>
+  </div>
+
+  <!-- METRICS ROW -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px">
     ${Object.entries(metricas).map(([k,m])=>`
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center">
-      <div style="font-size:22px;font-weight:800;color:var(--accent)">${m.valor}</div>
-      <div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.3">${m.label}</div>
-      ${m.meta?`<div style="font-size:10px;color:#3dd68c;margin-top:3px">meta: ${m.meta}</div>`:''}
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px 14px">
+      <div style="font-size:9px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px">${m.label}</div>
+      <div style="font-size:22px;font-weight:800;color:#F1F5F9;letter-spacing:-.5px">${m.valor}</div>
+      ${m.meta ? `<div style="font-size:10px;color:#22C55E;margin-top:5px;font-weight:500">↑ meta ${m.meta}</div>` : '<div style="height:15px"></div>'}
     </div>`).join('')}
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center;cursor:pointer" onclick="abrirEditarMetricas('${clienteNome}')">
-      <div style="font-size:22px">✏️</div>
-      <div style="font-size:10px;color:var(--text2);margin-top:3px">Atualizar<br>métricas</div>
+    <div style="background:#0F1A2E;border:1px dashed rgba(255,255,255,0.1);border-radius:12px;padding:16px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px" onclick="abrirEditarMetricas('${clienteNome}')">
+      <div style="font-size:18px;color:#475569">✏️</div>
+      <div style="font-size:10px;color:#475569;text-align:center;line-height:1.4">Atualizar métricas</div>
     </div>
   </div>
 
-  <!-- Linha: progresso + próx captação -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
-    <div class="card" style="padding:18px 20px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:12px">🚀 ${plano.titulo||'Plano de Ação'}</div>
-      <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:8px">
-        <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,#6c8cff,#3dd68c);border-radius:4px"></div>
+  <!-- CONTEÚDO + SCORE -->
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px">
+    <!-- Conteúdos da semana -->
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:22px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Conteúdo da Semana</div>
+        <button onclick="switchPortalTab('calendario')" style="background:none;border:none;color:#3B82F6;font-size:11px;cursor:pointer;font-weight:600;padding:0">Ver tudo →</button>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)">
-        <span>${feitos}/${todosItens.length} tarefas</span><span style="font-weight:700;color:#6c8cff">${prog}%</span>
+      ${semana.length===0 ? `
+        <div style="text-align:center;padding:36px 20px">
+          <div style="font-size:28px;margin-bottom:12px;opacity:.3">📋</div>
+          <div style="font-size:13px;color:#E2E8F0;font-weight:600;margin-bottom:6px">Nenhum conteúdo agendado</div>
+          <div style="font-size:12px;color:#475569;line-height:1.5">Sua equipe ainda não agendou<br>nada esta semana</div>
+        </div>` :
+        semana.slice(0,5).map(c=>{
+          const cor = TIPO_COR[c.tipo]||'#64748B';
+          const dt = new Date(c.data);
+          return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)">' +
+            '<span style="font-size:10px;font-weight:700;color:' + cor + ';background:' + cor + '18;border-radius:5px;padding:3px 7px;white-space:nowrap">' + (c.tipo||'Post') + '</span>' +
+            '<span style="flex:1;font-size:13px;color:#E2E8F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (c.titulo||'Sem título') + '</span>' +
+            '<span style="font-size:11px;color:#475569;flex-shrink:0">' + dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + '</span>' +
+            '</div>';
+        }).join('')
+      }
+    </div>
+
+    <!-- Score circular -->
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:20px">Score Coeso</div>
+      <div style="position:relative;width:100px;height:100px;margin-bottom:14px">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="${scoreColor}" stroke-width="8"
+            stroke-dasharray="${scoreCirc.toFixed(2)}" stroke-dashoffset="${scoreOffset.toFixed(2)}"
+            stroke-linecap="round" transform="rotate(-90 50 50)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+          <span style="font-size:26px;font-weight:800;color:#F1F5F9;letter-spacing:-1px">${score}</span>
+        </div>
+      </div>
+      <div style="font-size:13px;color:${scoreColor};font-weight:600;margin-bottom:4px">${scoreLabel}</div>
+      <div style="font-size:11px;color:#475569;margin-bottom:16px">de 100 pontos</div>
+      <button onclick="switchPortalTab('score')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#64748B;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:500">Ver detalhes →</button>
+    </div>
+  </div>
+
+  <!-- DEMANDAS + APROVAÇÕES + SOLICITAÇÕES -->
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+    <!-- Demandas: Linear style -->
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:22px 24px">
+      <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:16px">Demandas em Andamento</div>
+      ${demandasCli.length===0 ? `
+        <div style="font-size:13px;color:#475569;padding:24px 0;text-align:center">Nenhuma demanda ativa ✓</div>` :
+        demandasCli.slice(0,7).map(d=>{
+          const cor = DEM_COR[d.status]||'#475569';
+          return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)">' +
+            '<div style="width:6px;height:6px;border-radius:50%;background:' + cor + ';flex-shrink:0"></div>' +
+            '<div style="flex:1;font-size:13px;color:#E2E8F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (d.titulo||d.texto||'Demanda') + '</div>' +
+            '<div style="font-size:10px;font-weight:600;color:' + cor + ';background:' + cor + '18;padding:2px 9px;border-radius:99px;white-space:nowrap;flex-shrink:0">' + d.status + '</div>' +
+            '</div>';
+        }).join('')
+      }
+      ${demandasCli.length>7 ? `<div style="font-size:12px;color:#475569;margin-top:12px;text-align:center">+${demandasCli.length-7} demandas</div>` : ''}
+    </div>
+
+    <!-- Aprovações + Solicitações empilhadas -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px;cursor:pointer" onclick="switchPortalTab('aprovacao')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Aprovações</div>
+          ${aguardAprov.length > 0 ? '<span style="background:#F59E0B1A;color:#F59E0B;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700">' + aguardAprov.length + ' pendente' + (aguardAprov.length>1?'s':'') + '</span>' : '<span style="background:#22C55E1A;color:#22C55E;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600">em dia ✓</span>'}
+        </div>
+        <div style="font-size:32px;font-weight:800;color:${aguardAprov.length>0?'#F59E0B':'#22C55E'};letter-spacing:-1px;margin-bottom:4px">${aguardAprov.length}</div>
+        <div style="font-size:11px;color:#475569">aguardando → ver</div>
+      </div>
+
+      <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Solicitações</div>
+          ${solPend.length > 0 ? '<span style="background:#3B82F61A;color:#3B82F6;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700">' + solPend.length + '</span>' : ''}
+        </div>
+        <div style="font-size:32px;font-weight:800;color:#3B82F6;letter-spacing:-1px;margin-bottom:12px">${solPend.length}</div>
+        <button onclick="switchPortalTab('solicitacoes')" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#64748B;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:11px;width:100%;font-weight:500">+ Nova solicitação</button>
       </div>
     </div>
-    <div class="card" style="padding:18px 20px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:12px">📅 Conteúdos desta semana</div>
-      ${semana.length===0
-        ? `<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px 0">Nenhum conteúdo agendado</div>`
-        : semana.slice(0,4).map(c=>`
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="font-size:10px;background:var(--accent)22;color:var(--accent);border-radius:4px;padding:1px 6px;font-weight:600">${c.tipo||'Post'}</span>
-          <span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titulo}</span>
-          <span style="font-size:10px;color:var(--text2)">${new Date(c.data).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
-        </div>`).join('')}
-    </div>
-  </div>
-
-  <!-- Pendências -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
-    <div class="card" style="padding:16px 18px;cursor:pointer" onclick="switchPortalTab('aprovacao')">
-      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Aguardando aprovação</div>
-      <div style="font-size:28px;font-weight:800;color:#f7c948">${aguardAprov.length}</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:4px">→ Ver aprovações</div>
-    </div>
-    <div class="card" style="padding:16px 18px;cursor:pointer" onclick="switchPortalTab('solicitacoes')">
-      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Solicitações pendentes</div>
-      <div style="font-size:28px;font-weight:800;color:#6c8cff">${solPend.length}</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:4px">→ Ver solicitações</div>
-    </div>
-    <div class="card" style="padding:16px 18px;cursor:pointer" onclick="switchPortalTab('score')">
-      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Score Focus</div>
-      <div style="font-size:28px;font-weight:800;color:#3dd68c">${_calcScore(clienteNome)}</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:4px">→ Ver detalhes</div>
-    </div>
-  </div>
-
-  <!-- Demandas em andamento -->
-  <div class="card" style="padding:18px 20px">
-    <div style="font-size:12px;font-weight:700;margin-bottom:12px">📌 Demandas em Andamento</div>
-    ${demandasCli.length===0
-      ? `<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">✓ Nenhuma demanda pendente</div>`
-      : demandasCli.map(d=>{
-          const cor = DEM_COR[d.status]||'#8b8fa8';
-          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-            <span style="width:8px;height:8px;border-radius:50%;background:${cor};flex-shrink:0"></span>
-            <span style="flex:1;font-size:13px">${d.titulo||d.texto||'Demanda'}</span>
-            <span style="font-size:10px;font-weight:700;color:${cor};background:${cor}22;padding:2px 8px;border-radius:20px">${d.status}</span>
-          </div>`;
-        }).join('')}
   </div>`;
 }
 
