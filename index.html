@@ -7523,9 +7523,10 @@ function renderInicio() {
   if (statsRow) {
     // stats — para Kaian filtra só as dele (audiovisual)
     const jobsAbertos = (jobsExtras||[]).filter(j=>j.status&&j.status!=='Pago'&&j.status!=='Entregue');
-    const demandasPend= isKaian
-      ? (demandas||[]).filter(d=>d.status&&d.status!=='Concluído'&&(d.tipo==='Video'||d.tipo==='Audiovisual'))
-      : (demandas||[]).filter(d=>d.status&&d.status!=='Concluído');
+    const _isKaianD = d => d.subtipo==='Edicao' || d.tipo==='Video' || d.tipo==='Audiovisual';
+    const demandasPend= (demandas||[]).filter(d => d.status && d.status!=='Concluído' && (
+      isKaian ? _isKaianD(d) : !_isKaianD(d)
+    ));
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const em7  = new Date(hoje); em7.setDate(em7.getDate()+7);
     const eventosProx = (eventos||[]).filter(ev=>{
@@ -7582,8 +7583,12 @@ function renderInicio() {
   // ── Demandas card ────────────────────────────────────────
   const demCard = document.getElementById('inicio-demandas-card');
   if (demCard) {
+    // Kaian vê só vídeo/audiovisual; admin/colaborador vê tudo EXCETO demandas do Kaian (edição/gravação)
+    const _isKaianDemanda = d => d.subtipo==='Edicao' || d.tipo==='Video' || d.tipo==='Audiovisual';
     const recentes = (demandas||[])
-      .filter(d=>d.status&&d.status!=='Concluído'&&(!isKaian||(d.tipo==='Video'||d.tipo==='Audiovisual')))
+      .filter(d => d.status && d.status!=='Concluído' && (
+        isKaian ? _isKaianDemanda(d) : !_isKaianDemanda(d)
+      ))
       .slice(-4).reverse();
     const priorCor = { Alta:'#ff5a72', Media:'#f7c948', Normal:'#3dd68c', Baixa:'#8b8fa8' };
     demCard.innerHTML = `
