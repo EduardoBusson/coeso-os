@@ -7385,7 +7385,7 @@ function getUserSlug(sess) {
 function fazerLogout() {
   if (!confirm('Tem certeza que deseja sair?')) return;
   sessionStorage.removeItem('coeso_login');
-  window.location.href = '/';
+  location.reload();
 }
 
 function falarBoasVindas(nome, modo) {
@@ -10419,27 +10419,19 @@ function renderMiniCal() {
   }
   if (loadingEl) loadingEl.style.display = 'none';
 
-  // Verifica sessão de login + roteamento por URL
+  // Verifica sessão de login
   const sessao = sessionStorage.getItem('coeso_login');
-  const _urlPath = window.location.pathname;
   if (sessao) {
-    // Já logado — aplica modo direto
+    // Já logado — aplica modo e atualiza URL (cosmético apenas, sem redirecionamento)
     try {
       const _sess = JSON.parse(sessao);
-      // Atualiza URL para o slug correto se não estiver lá
-      const _correctSlug = getUserSlug(_sess);
-      if (_urlPath !== _correctSlug) navigateTo(_correctSlug);
+      try { navigateTo(getUserSlug(_sess)); } catch(e) {}
       aplicarModo(_sess.modo, false);
-    } catch(e) { _runInit(); }
+    } catch(e) { _runInit(); document.getElementById('login-screen').style.display = 'flex'; }
   } else {
-    // Não logado — mostrar login se rota for /login, senão redireciona pro site
-    _runInit(); // carrega estado do app em background
-    if (_urlPath === '/login' || _urlPath === '/' || _urlPath === '/index.html') {
-      document.getElementById('login-screen').style.display = 'flex';
-    } else {
-      // Alguém tentou acessar uma rota protegida sem estar logado
-      window.location.href = '/login';
-    }
+    // Não logado — sempre mostra o login, independente da URL
+    _runInit();
+    document.getElementById('login-screen').style.display = 'flex';
   }
 })();
 </script>
