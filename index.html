@@ -8522,8 +8522,14 @@ function _getSiteConfig() {
 function renderSiteEditorPage() {
   const el = document.getElementById('page-site-content');
   if (!el) return;
-  el.innerHTML = _buildSiteEditor();
-  _bindSiteEditor();
+  try {
+    el.innerHTML = _buildSiteEditor();
+    _bindSiteEditor();
+  } catch(e) {
+    el.innerHTML = `<div style="color:#ff5a72;padding:20px;background:#1a0a0a;border-radius:10px;font-family:monospace">
+      ❌ Erro no Editor de Site:<br><br>${e.message}<br><br><small>${e.stack||''}</small></div>`;
+    console.error('renderSiteEditorPage error:', e);
+  }
 }
 
 function _tabSiteEditor() { return _buildSiteEditor(); }
@@ -8545,7 +8551,7 @@ function _buildSiteEditor() {
   const seInput = (id, label, value, placeholder='', type='text') =>
     `<div style="margin-bottom:10px">
       ${label?`<label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">${label}</label>`:''}
-      <input id="${id}" type="${type}" value="${(value||'').replace(/"/g,'&quot;')}" placeholder="${placeholder}"
+      <input id="${id}" type="${type}" value="${(String(value??'')).replace(/"/g,'&quot;')}" placeholder="${placeholder}"
         style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
     </div>`;
 
@@ -8553,7 +8559,7 @@ function _buildSiteEditor() {
     `<div style="margin-bottom:10px">
       ${label?`<label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">${label}</label>`:''}
       <textarea id="${id}" rows="${rows}"
-        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none;resize:vertical;font-family:inherit">${(value||'').replace(/</g,'&lt;')}</textarea>
+        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none;resize:vertical;font-family:inherit">${(String(value??'')).replace(/</g,'&lt;')}</textarea>
     </div>`;
 
   return `<div style="max-width:900px">
