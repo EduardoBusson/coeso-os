@@ -466,6 +466,11 @@
     <span class="icon">🤖</span><span>IA Insights</span>
   </div>
 
+  <div class="nav-section nav-admin-only" style="margin-top:8px">Site</div>
+  <div class="nav-item nav-admin-only" onclick="goTo('site')">
+    <span class="icon">✏️</span><span>Editor de Site</span>
+  </div>
+
   <div class="sidebar-bottom">
     <div id="sidebar-user-card" onclick="goTo('inicio')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:6px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--surface2)">
       <div id="sidebar-user-avatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">E</div>
@@ -1220,6 +1225,18 @@
 </div>
 
 <!-- ===== MODALS ===== -->
+
+<!-- PAGE: EDITOR DE SITE (admin only) -->
+<div class="page" id="page-site">
+  <div class="page-header">
+    <div>
+      <div class="page-title">✏️ Editor de Site</div>
+      <div class="page-subtitle">Edite o conteúdo de agenciacoeso.com</div>
+    </div>
+    <a href="/" target="_blank" class="btn btn-ghost btn-sm">Ver site →</a>
+  </div>
+  <div class="page-content" id="page-site-content"></div>
+</div>
 
 <!-- Modal Configurações da Agência -->
 <div class="modal-overlay" id="modal-config-agencia">
@@ -2285,6 +2302,7 @@ function renderPage(page) {
   if (page === 'intel-rent')   renderIntelRent();
   if (page === 'intel-upsell') renderIntelUpsell();
   if (page === 'intel-ia')     renderIntelIA();
+  if (page === 'site')         renderSiteEditorPage();
 }
 
 // ============================================================
@@ -8436,32 +8454,242 @@ function togglePlanoItem(clienteNome, setorIdx, itemIdx) {
   if (el) el.innerHTML = _tabPlano(clienteNome);
 }
 
-// ── TAB: EDITOR DE SITE ────────────────────────────────────
+// ── EDITOR DE SITE ─────────────────────────────────────────
 const _SITE_CONFIG_DEFAULT = {
   logo: { imgUrl: '' },
   hero: {
     eyebrow: 'Agência de Publicidade Premium',
     headline: 'Sua marca<br><span class="gradient-text">merece</span><br>ser vista.',
     subtext: 'Estratégia, audiovisual e tráfego pago para marcas que querem crescer de verdade. Do briefing à entrega.',
-    videoUrl: ''
+    videoUrl: '',
+    btn1: 'Solicitar proposta', btn1Link: '#contato',
+    btn2: 'Ver nossos cases',   btn2Link: '#cases'
   },
-  contadores: [
-    { numero: 200, sufixo: '+', label: 'Projetos entregues' },
-    { numero: 50,  sufixo: '+', label: 'Clientes ativos' },
-    { numero: 98,  sufixo: '%', label: 'Taxa de satisfação' },
-    { numero: 5,   sufixo: ' anos', label: 'De experiência' }
+  agencia: {
+    titulo: 'Criamos marcas que<br><span class="gradient-text">ficam na memória</span>',
+    texto1: 'A Coeso nasceu com um propósito claro: unir estratégia e criatividade para transformar marcas comuns em referências no mercado. Somos uma equipe de especialistas apaixonados por resultados.',
+    texto2: 'Cada projeto é tratado com dedicação total — do briefing inicial à última entrega. Nossa metodologia combina dados, criatividade e execução impecável para gerar resultados concretos e mensuráveis.'
+  },
+  servicos: [
+    { titulo: 'Planejamento de Campanhas', desc: 'Estratégias construídas a partir de dados reais do seu mercado.', icone: '🎯' },
+    { titulo: 'Cobertura Audiovisual',     desc: 'Produção de vídeos e fotos com qualidade cinematográfica.',      icone: '🎬' },
+    { titulo: 'Tráfego Pago',             desc: 'Campanhas no Meta e Google otimizadas para máximo retorno.',     icone: '📊' },
+    { titulo: 'Gravação de Reels',         desc: 'Conteúdo dinâmico e engajador para o Instagram.',               icone: '📱' }
   ],
-  contato: { telefone: '(85) 98170-1747', whatsapp: '5585981701747', cidade: 'Fortaleza, Ceará — Brasil' }
+  cases: [
+    { titulo: '', cliente: '', desc: '', videoUrl: '' },
+    { titulo: '', cliente: '', desc: '', videoUrl: '' },
+    { titulo: '', cliente: '', desc: '', videoUrl: '' }
+  ],
+  clientes: [
+    { nome: '' }, { nome: '' }, { nome: '' }, { nome: '' },
+    { nome: '' }, { nome: '' }, { nome: '' }, { nome: '' }
+  ],
+  contadores: [
+    { numero: 200, sufixo: '+',    label: 'Projetos entregues' },
+    { numero: 50,  sufixo: '+',    label: 'Clientes ativos' },
+    { numero: 98,  sufixo: '%',    label: 'Taxa de satisfação' },
+    { numero: 5,   sufixo: ' anos',label: 'De experiência' }
+  ],
+  depoimentos: [
+    { autor: '', cargo: '', empresa: '', texto: '' },
+    { autor: '', cargo: '', empresa: '', texto: '' },
+    { autor: '', cargo: '', empresa: '', texto: '' }
+  ],
+  cta: {
+    titulo: 'Pronto para crescer com quem<br><em>entende o seu mercado?</em>',
+    subtitulo: 'Fale com a gente e descubra como a Coeso pode transformar a sua marca.'
+  },
+  contato: { telefone: '(85) 98170-1747', whatsapp: '5585981701747', cidade: 'Fortaleza, Ceará — Brasil', email: '' }
 };
 
 function _getSiteConfig() {
-  try { return Object.assign({}, _SITE_CONFIG_DEFAULT, JSON.parse(localStorage.getItem('coeso_site_config')||'{}')); }
-  catch(e) { return Object.assign({}, _SITE_CONFIG_DEFAULT); }
+  try {
+    const saved = JSON.parse(localStorage.getItem('coeso_site_config')||'{}');
+    // Deep merge: top-level objects are merged, arrays replaced
+    const merged = Object.assign({}, _SITE_CONFIG_DEFAULT);
+    Object.keys(saved).forEach(k => {
+      if (saved[k] && typeof saved[k] === 'object' && !Array.isArray(saved[k])) {
+        merged[k] = Object.assign({}, _SITE_CONFIG_DEFAULT[k]||{}, saved[k]);
+      } else {
+        merged[k] = saved[k];
+      }
+    });
+    return merged;
+  } catch(e) { return JSON.parse(JSON.stringify(_SITE_CONFIG_DEFAULT)); }
 }
 
-function _tabSiteEditor() {
+function renderSiteEditorPage() {
+  const el = document.getElementById('page-site-content');
+  if (!el) return;
+  el.innerHTML = _buildSiteEditor();
+  _bindSiteEditor();
+}
+
+function _tabSiteEditor() { return _buildSiteEditor(); }
+
+function _buildSiteEditor() {
   const cfg = _getSiteConfig();
   const cnt = cfg.contadores;
+  const srv = cfg.servicos;
+  const cas = cfg.cases;
+  const dep = cfg.depoimentos;
+  const cli = cfg.clientes;
+
+  const seCard = (titulo, cor, conteudo) =>
+    `<div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:${cor||'#3B82F6'};letter-spacing:.7px;text-transform:uppercase;margin-bottom:16px">${titulo}</div>
+      ${conteudo}
+    </div>`;
+
+  const seInput = (id, label, value, placeholder='', type='text') =>
+    `<div style="margin-bottom:10px">
+      ${label?`<label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">${label}</label>`:''}
+      <input id="${id}" type="${type}" value="${(value||'').replace(/"/g,'&quot;')}" placeholder="${placeholder}"
+        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
+    </div>`;
+
+  const seTextarea = (id, label, value, rows=3) =>
+    `<div style="margin-bottom:10px">
+      ${label?`<label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">${label}</label>`:''}
+      <textarea id="${id}" rows="${rows}"
+        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none;resize:vertical;font-family:inherit">${(value||'').replace(/</g,'&lt;')}</textarea>
+    </div>`;
+
+  return `<div style="max-width:900px">
+    <!-- Barra superior -->
+    <div style="background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(99,102,241,.08));border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:20px">✏️</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:#F1F5F9">Editor de Site — agenciacoeso.com</div>
+        <div style="font-size:12px;color:#64748B">Edite qualquer seção e clique em Salvar. As mudanças aparecem imediatamente no site.</div>
+      </div>
+      <a href="/" target="_blank" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;white-space:nowrap;text-decoration:none">Abrir site →</a>
+    </div>
+
+    ${seCard('🖼️ Logo &amp; Identidade', '#8B5CF6', `
+      <div style="display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start">
+        <div>
+          ${seInput('se-logo-url','URL da imagem (PNG, SVG ou base64)',cfg.logo?.imgUrl,'https://...')}
+          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">Ou fazer upload do arquivo</label>
+          <input id="se-logo-file" type="file" accept="image/*" style="font-size:12px;color:#94A3B8">
+        </div>
+        <div id="se-logo-preview" style="width:80px;height:50px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+          ${cfg.logo?.imgUrl?`<img src="${cfg.logo.imgUrl}" style="max-height:44px;max-width:76px;object-fit:contain">`:
+            '<span style="font-size:10px;color:#475569">pré-visualização</span>'}
+        </div>
+      </div>
+    `)}
+
+    ${seCard('🦸 Hero — Primeira dobra', '#3B82F6', `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${seInput('se-hero-eyebrow','Eyebrow (texto pequeno acima do título)',cfg.hero?.eyebrow)}
+        ${seInput('se-hero-video','URL do vídeo de fundo (.mp4)',cfg.hero?.videoUrl,'https://...')}
+      </div>
+      ${seTextarea('se-hero-headline','Título principal (HTML: &lt;br&gt;, &lt;span class="gradient-text"&gt;...&lt;/span&gt;)',cfg.hero?.headline,3)}
+      ${seTextarea('se-hero-subtext','Subtítulo',cfg.hero?.subtext,2)}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+        ${seInput('se-hero-btn1','Botão 1 — texto',cfg.hero?.btn1)}
+        ${seInput('se-hero-btn1-link','Botão 1 — link',cfg.hero?.btn1Link)}
+        ${seInput('se-hero-btn2','Botão 2 — texto',cfg.hero?.btn2)}
+        ${seInput('se-hero-btn2-link','Botão 2 — link',cfg.hero?.btn2Link)}
+      </div>
+    `)}
+
+    ${seCard('🏢 Seção Agência', '#10B981', `
+      ${seTextarea('se-ag-titulo','Título (HTML permitido)',cfg.agencia?.titulo,2)}
+      ${seTextarea('se-ag-texto1','Parágrafo 1',cfg.agencia?.texto1,3)}
+      ${seTextarea('se-ag-texto2','Parágrafo 2',cfg.agencia?.texto2,3)}
+    `)}
+
+    ${seCard('⚙️ Serviços (4 cards)', '#F59E0B', `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${srv.map((s,i)=>`
+        <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px">
+          <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:8px">Serviço ${i+1}</div>
+          ${seInput(`se-srv-ico-${i}`,'Ícone (emoji)',s.icone)}
+          ${seInput(`se-srv-titulo-${i}`,'Título',s.titulo)}
+          ${seTextarea(`se-srv-desc-${i}`,'Descrição',s.desc,2)}
+        </div>`).join('')}
+      </div>
+    `)}
+
+    ${seCard('🎬 Cases', '#EF4444', `
+      ${cas.map((c,i)=>`
+      <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:10px">
+        <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:8px">Case ${i+1}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${seInput(`se-case-titulo-${i}`,'Título do case',c.titulo)}
+          ${seInput(`se-case-cliente-${i}`,'Cliente',c.cliente)}
+        </div>
+        ${seTextarea(`se-case-desc-${i}`,'Descrição',c.desc,2)}
+        ${seInput(`se-case-video-${i}`,'URL do vídeo (.mp4 ou YouTube embed)',c.videoUrl,'https://...')}
+      </div>`).join('')}
+      <button onclick="_addCaseRow()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#EF4444;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px">+ Adicionar case</button>
+    `)}
+
+    ${seCard('🏷️ Clientes — Carrossel de logos', '#06B6D4', `
+      <div style="font-size:12px;color:#64748B;margin-bottom:10px">Adicione o nome ou URL da logo de cada cliente. Deixe em branco para não exibir.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px" id="se-clientes-grid">
+        ${cli.map((c,i)=>`
+        <div>
+          <label style="font-size:11px;color:#475569;display:block;margin-bottom:4px">Cliente ${i+1}</label>
+          <input data-se-cli="${i}" type="text" value="${(c.nome||'').replace(/"/g,'&quot;')}" placeholder="Nome ou URL logo"
+            style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.08);color:#F1F5F9;border-radius:6px;padding:7px 10px;font-size:12px;outline:none">
+        </div>`).join('')}
+      </div>
+      <button onclick="_addClienteRow()" style="margin-top:10px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);color:#06B6D4;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px">+ Adicionar cliente</button>
+    `)}
+
+    ${seCard('📊 Resultados — Contadores', '#3B82F6', `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${cnt.map((c,i)=>`
+        <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px">
+          <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:8px">Contador ${i+1}</div>
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:6px">
+            ${seInput(`se-cnt-num-${i}`,'Número',c.numero,'','number')}
+            ${seInput(`se-cnt-suf-${i}`,'Sufixo',c.sufixo,'+, %, anos...')}
+          </div>
+          ${seInput(`se-cnt-lbl-${i}`,'Label',c.label)}
+        </div>`).join('')}
+      </div>
+    `)}
+
+    ${seCard('💬 Depoimentos', '#8B5CF6', `
+      ${dep.map((d,i)=>`
+      <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:10px">
+        <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:8px">Depoimento ${i+1}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          ${seInput(`se-dep-autor-${i}`,'Nome',d.autor)}
+          ${seInput(`se-dep-cargo-${i}`,'Cargo',d.cargo)}
+          ${seInput(`se-dep-empresa-${i}`,'Empresa',d.empresa)}
+        </div>
+        ${seTextarea(`se-dep-texto-${i}`,'Texto do depoimento',d.texto,3)}
+      </div>`).join('')}
+    `)}
+
+    ${seCard('🚀 CTA — Chamada para ação', '#10B981', `
+      ${seTextarea('se-cta-titulo','Título (HTML: &lt;br&gt;, &lt;em&gt;...&lt;/em&gt;)',cfg.cta?.titulo,2)}
+      ${seInput('se-cta-sub','Subtítulo',cfg.cta?.subtitulo)}
+    `)}
+
+    ${seCard('📞 Contato', '#F59E0B', `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${seInput('se-tel','Telefone (exibição)',cfg.contato?.telefone,'(85) 98170-1747')}
+        ${seInput('se-wa','WhatsApp (só números com DDI)',cfg.contato?.whatsapp,'5585981701747')}
+        ${seInput('se-email','E-mail',cfg.contato?.email,'contato@...')}
+        ${seInput('se-cidade','Cidade / Localização',cfg.contato?.cidade,'Fortaleza, Ceará — Brasil')}
+      </div>
+    `)}
+
+    <!-- SALVAR -->
+    <div style="display:flex;gap:12px;align-items:center;padding:20px 0">
+      <button onclick="saveSiteConfig()" style="background:#3B82F6;border:none;color:#fff;border-radius:10px;padding:13px 32px;cursor:pointer;font-size:14px;font-weight:700">💾 Salvar todas as alterações</button>
+      <button onclick="resetSiteConfig()" style="background:none;border:1px solid rgba(255,255,255,.1);color:#64748B;border-radius:10px;padding:13px 20px;cursor:pointer;font-size:13px">Restaurar padrão</button>
+      <span id="se-status" style="font-size:12px;color:#10B981;display:none">✓ Salvo com sucesso!</span>
+    </div>
+  </div>`;
+}
   return `
   <div style="max-width:860px">
     <!-- Aviso destaque -->
@@ -8573,8 +8801,8 @@ function _bindSiteEditor() {
     logoInput.addEventListener('input', () => {
       const prev = document.getElementById('se-logo-preview');
       if (prev) prev.innerHTML = logoInput.value
-        ? `<img src="${logoInput.value}" style="max-height:28px;max-width:48px;object-fit:contain">`
-        : '<span style="font-size:10px;color:#475569">pré</span>';
+        ? `<img src="${logoInput.value}" style="max-height:44px;max-width:76px;object-fit:contain">`
+        : '<span style="font-size:10px;color:#475569">pré-visualização</span>';
     });
   }
   // Upload de arquivo → converte para base64
@@ -8594,30 +8822,89 @@ function _bindSiteEditor() {
   }
 }
 
+function _addCaseRow() {
+  const cfg = _getSiteConfig();
+  cfg.cases = cfg.cases || [];
+  cfg.cases.push({ titulo:'', cliente:'', desc:'', videoUrl:'' });
+  localStorage.setItem('coeso_site_config', JSON.stringify(cfg));
+  renderSiteEditorPage();
+}
+
+function _addClienteRow() {
+  const cfg = _getSiteConfig();
+  cfg.clientes = cfg.clientes || [];
+  cfg.clientes.push({ nome:'' });
+  localStorage.setItem('coeso_site_config', JSON.stringify(cfg));
+  renderSiteEditorPage();
+}
+
 function saveSiteConfig() {
   const cfg = _getSiteConfig();
+  const v = id => (document.getElementById(id)?.value||'').trim();
+
   // Logo
-  cfg.logo = { imgUrl: (document.getElementById('se-logo-url')?.value||'').trim() };
+  cfg.logo = { imgUrl: v('se-logo-url') };
   // Hero
   cfg.hero = {
-    eyebrow:  (document.getElementById('se-hero-eyebrow')?.value||'').trim(),
-    headline: (document.getElementById('se-hero-headline')?.value||'').trim(),
-    subtext:  (document.getElementById('se-hero-subtext')?.value||'').trim(),
-    videoUrl: (document.getElementById('se-hero-video')?.value||'').trim()
+    eyebrow:  v('se-hero-eyebrow'),
+    headline: document.getElementById('se-hero-headline')?.value||'',
+    subtext:  document.getElementById('se-hero-subtext')?.value||'',
+    videoUrl: v('se-hero-video'),
+    btn1:     v('se-hero-btn1'),  btn1Link: v('se-hero-btn1-link'),
+    btn2:     v('se-hero-btn2'),  btn2Link: v('se-hero-btn2-link')
   };
-  // Contadores
-  const cnt = Array.from({length:4}, (_,i) => ({
-    numero: parseInt(document.querySelector(`[data-se-cnt="${i}"][data-field="numero"]`)?.value||0),
-    sufixo: document.querySelector(`[data-se-cnt="${i}"][data-field="sufixo"]`)?.value||'',
-    label:  document.querySelector(`[data-se-cnt="${i}"][data-field="label"]`)?.value||''
+  // Agência
+  cfg.agencia = {
+    titulo: document.getElementById('se-ag-titulo')?.value||'',
+    texto1: document.getElementById('se-ag-texto1')?.value||'',
+    texto2: document.getElementById('se-ag-texto2')?.value||''
+  };
+  // Serviços
+  cfg.servicos = Array.from({length:4}, (_,i) => ({
+    icone:  v(`se-srv-ico-${i}`),
+    titulo: v(`se-srv-titulo-${i}`),
+    desc:   document.getElementById(`se-srv-desc-${i}`)?.value||''
   }));
-  cfg.contadores = cnt;
+  // Cases
+  const numCases = document.querySelectorAll('[id^="se-case-titulo-"]').length;
+  cfg.cases = Array.from({length:numCases}, (_,i) => ({
+    titulo:   v(`se-case-titulo-${i}`),
+    cliente:  v(`se-case-cliente-${i}`),
+    desc:     document.getElementById(`se-case-desc-${i}`)?.value||'',
+    videoUrl: v(`se-case-video-${i}`)
+  }));
+  // Clientes
+  const numCli = document.querySelectorAll('[data-se-cli]').length;
+  cfg.clientes = Array.from({length:numCli}, (_,i) => ({
+    nome: document.querySelector(`[data-se-cli="${i}"]`)?.value||''
+  }));
+  // Contadores
+  cfg.contadores = Array.from({length:4}, (_,i) => ({
+    numero: parseInt(v(`se-cnt-num-${i}`)||'0'),
+    sufixo: v(`se-cnt-suf-${i}`),
+    label:  v(`se-cnt-lbl-${i}`)
+  }));
+  // Depoimentos
+  const numDep = document.querySelectorAll('[id^="se-dep-autor-"]').length;
+  cfg.depoimentos = Array.from({length:numDep}, (_,i) => ({
+    autor:   v(`se-dep-autor-${i}`),
+    cargo:   v(`se-dep-cargo-${i}`),
+    empresa: v(`se-dep-empresa-${i}`),
+    texto:   document.getElementById(`se-dep-texto-${i}`)?.value||''
+  }));
+  // CTA
+  cfg.cta = {
+    titulo:    document.getElementById('se-cta-titulo')?.value||'',
+    subtitulo: v('se-cta-sub')
+  };
   // Contato
   cfg.contato = {
-    telefone: (document.getElementById('se-tel')?.value||'').trim(),
-    whatsapp: (document.getElementById('se-wa')?.value||'').trim(),
-    cidade:   (document.getElementById('se-cidade')?.value||'').trim()
+    telefone: v('se-tel'),
+    whatsapp: v('se-wa'),
+    email:    v('se-email'),
+    cidade:   v('se-cidade')
   };
+
   // Salvar no localStorage (compartilhado com o site — mesma origem)
   localStorage.setItem('coeso_site_config', JSON.stringify(cfg));
   // Salvar no Firebase via saveData
@@ -8625,17 +8912,15 @@ function saveSiteConfig() {
   // Feedback
   const st = document.getElementById('se-status');
   if (st) { st.style.display='inline'; setTimeout(()=>st.style.display='none', 2500); }
-  showToast('✅ Site atualizado! As mudanças já aparecem em agenciacoeso.com');
+  showToast('✅ Site atualizado! Abra agenciacoeso.com para ver as mudanças.');
 }
 
 function resetSiteConfig() {
-  if (!confirm('Restaurar configurações padrão do site?')) return;
+  if (!confirm('Restaurar configurações padrão do site? Isso apaga todas as edições.')) return;
   localStorage.removeItem('coeso_site_config');
   saveData('site_config', null);
-  const el = document.getElementById('portal-tab-content');
-  if (el) el.innerHTML = _tabSiteEditor();
-  _bindSiteEditor();
-  showToast('Configurações restauradas.');
+  renderSiteEditorPage();
+  showToast('Configurações restauradas ao padrão.');
 }
 
 // ── TAB 2: CALENDÁRIO ──────────────────────────────────────
@@ -9836,6 +10121,7 @@ function aplicarModo(modo, viaLogin) {
     document.querySelectorAll('.nav-comercial,.nav-leads').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-intel-section').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.nav-negocio-section').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.nav-admin-only').forEach(el => el.style.display = 'none');
     // Kaian (videomaker): esconde tudo menos gravações/edições
     const _sessUser = JSON.parse(sessionStorage.getItem('coeso_login')||'{}').user || '';
     if (_sessUser === 'kaian') {

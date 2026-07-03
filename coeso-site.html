@@ -1090,11 +1090,11 @@
         Estratégia, audiovisual e tráfego pago para marcas que querem crescer de verdade. Do briefing à entrega.
       </p>
       <div class="hero-ctas">
-        <a href="#contato" class="btn btn-primary">
+        <a id="sc-hero-btn1" href="#contato" class="btn btn-primary">
           Solicitar proposta
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M7 1l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <a href="#cases" class="btn btn-ghost">Ver nossos cases</a>
+        <a id="sc-hero-btn2" href="#cases" class="btn btn-ghost">Ver nossos cases</a>
       </div>
     </div>
 
@@ -1115,13 +1115,13 @@
       <!-- Texto -->
       <div class="reveal">
         <div class="tag">Nossa história</div>
-        <h2 style="font-size:clamp(1.8rem,3.5vw,3rem);font-weight:900;letter-spacing:-.04em;line-height:1.1;margin-bottom:20px">
+        <h2 id="sc-ag-titulo" style="font-size:clamp(1.8rem,3.5vw,3rem);font-weight:900;letter-spacing:-.04em;line-height:1.1;margin-bottom:20px">
           Criamos marcas que<br><span class="gradient-text">ficam na memória</span>
         </h2>
-        <p style="font-size:16px;color:var(--txt2);line-height:1.75;margin-bottom:16px">
+        <p id="sc-ag-texto1" style="font-size:16px;color:var(--txt2);line-height:1.75;margin-bottom:16px">
           A Coeso nasceu com um propósito claro: unir estratégia e criatividade para transformar marcas comuns em referências no mercado. Somos uma equipe de especialistas apaixonados por resultados.
         </p>
-        <p style="font-size:14.5px;color:var(--txt3);line-height:1.75;margin-bottom:28px">
+        <p id="sc-ag-texto2" style="font-size:14.5px;color:var(--txt3);line-height:1.75;margin-bottom:28px">
           Cada projeto é tratado com dedicação total — do briefing inicial à última entrega. Nossa metodologia combina dados, criatividade e execução impecável para gerar resultados concretos e mensuráveis.
         </p>
         <a href="#contato" class="btn btn-acc">Falar com a equipe</a>
@@ -1200,7 +1200,7 @@
       </p>
     </div>
 
-    <div class="svcs-grid">
+    <div class="svcs-grid" id="sc-svcs-grid">
 
       <div class="svc reveal">
         <div class="svc-glow"></div>
@@ -1280,7 +1280,7 @@
       </a>
     </div>
 
-    <div class="cases-grid">
+    <div class="cases-grid" id="sc-cases-grid">
       <!-- Case principal grande -->
       <div class="case case-big reveal">
         <div class="case-ph">
@@ -1363,7 +1363,7 @@
     Os dois tracks são idênticos — o CSS faz o loop infinito automaticamente.
   -->
   <div class="marquee-wrap" aria-label="Clientes em carrossel">
-    <div class="mtrack">
+    <div class="mtrack" id="sc-marquee-track">
       <div class="logo-slot"><span>Delta Fundidos</span></div>
       <div class="logo-slot"><span>Focus Clínica</span></div>
       <div class="logo-slot"><span>Grupo Alpha</span></div>
@@ -1502,12 +1502,12 @@
   <div class="container cta-content">
     <div class="reveal">
       <div class="tag" style="margin: 0 auto 22px">Vamos trabalhar juntos</div>
-      <h2 class="cta-h1">
+      <h2 class="cta-h1" id="sc-cta-h2">
         Pronto para levar<br>
         sua marca ao<br>
         <span class="gradient-text">próximo nível?</span>
       </h2>
-      <p class="cta-sub">
+      <p class="cta-sub" id="sc-cta-sub">
         Fale com nossa equipe e receba uma proposta personalizada para o seu negócio, sem compromisso.
       </p>
       <div class="cta-form">
@@ -1686,28 +1686,103 @@
     try {
       const cfg = JSON.parse(localStorage.getItem('coeso_site_config') || 'null');
       if (!cfg) return;
-      // Logo
+
+      // LOGO
       if (cfg.logo?.imgUrl) {
         document.querySelectorAll('.nav-logo,.ft-logo').forEach(el => {
           el.innerHTML = `<img src="${cfg.logo.imgUrl}" style="height:28px;width:auto;border-radius:4px" alt="Logo">`;
         });
       }
-      // Hero headline e subtext
+
+      // HERO
       const h1 = document.getElementById('sc-hero-h1');
       if (h1 && cfg.hero?.headline) h1.innerHTML = cfg.hero.headline;
-      const sub = document.getElementById('sc-hero-sub');
-      if (sub && cfg.hero?.subtext) sub.innerHTML = cfg.hero.subtext;
-      // Hero eyebrow
+      const hsub = document.getElementById('sc-hero-sub');
+      if (hsub && cfg.hero?.subtext) hsub.innerHTML = cfg.hero.subtext;
       if (cfg.hero?.eyebrow) {
         const ey = document.querySelector('.hero-eyebrow');
         if (ey) ey.innerHTML = '<div class="live-dot"></div>' + cfg.hero.eyebrow;
       }
-      // Hero vídeo
       if (cfg.hero?.videoUrl) {
         const vid = document.getElementById('sc-hero-video');
         if (vid) { vid.innerHTML = `<source src="${cfg.hero.videoUrl}" type="video/mp4">`; vid.load(); vid.play().catch(()=>{}); }
       }
-      // Contadores
+      const btn1 = document.getElementById('sc-hero-btn1');
+      if (btn1) {
+        if (cfg.hero?.btn1) btn1.childNodes[0].textContent = cfg.hero.btn1 + ' ';
+        if (cfg.hero?.btn1Link) btn1.href = cfg.hero.btn1Link;
+      }
+      const btn2 = document.getElementById('sc-hero-btn2');
+      if (btn2) {
+        if (cfg.hero?.btn2) btn2.textContent = cfg.hero.btn2;
+        if (cfg.hero?.btn2Link) btn2.href = cfg.hero.btn2Link;
+      }
+
+      // AGÊNCIA
+      const agTit = document.getElementById('sc-ag-titulo');
+      if (agTit && cfg.agencia?.titulo) agTit.innerHTML = cfg.agencia.titulo;
+      const agTxt1 = document.getElementById('sc-ag-texto1');
+      if (agTxt1 && cfg.agencia?.texto1) agTxt1.innerHTML = cfg.agencia.texto1;
+      const agTxt2 = document.getElementById('sc-ag-texto2');
+      if (agTxt2 && cfg.agencia?.texto2) agTxt2.innerHTML = cfg.agencia.texto2;
+
+      // SERVIÇOS
+      if (cfg.servicos?.length) {
+        const grid = document.getElementById('sc-svcs-grid');
+        if (grid) {
+          const cards = grid.querySelectorAll('.svc');
+          cfg.servicos.forEach((s, i) => {
+            if (!cards[i]) return;
+            const ico = cards[i].querySelector('.svc-ico');
+            const h3  = cards[i].querySelector('h3');
+            const p   = cards[i].querySelector('p');
+            if (ico && s.icone) ico.textContent = s.icone;
+            if (h3  && s.titulo) h3.textContent  = s.titulo;
+            if (p   && s.desc)   p.textContent   = s.desc;
+          });
+        }
+      }
+
+      // CASES
+      if (cfg.cases?.some(c => c.titulo)) {
+        const grid = document.getElementById('sc-cases-grid');
+        if (grid) {
+          const cases = cfg.cases.filter(c => c.titulo);
+          grid.innerHTML = cases.map((c, i) => `
+            <div class="case ${i===0?'case-big':''} reveal">
+              <div class="case-ph">
+                ${c.videoUrl ? `<video autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+                  <source src="${c.videoUrl}" type="video/mp4"></video>` : '<span style="font-size:68px;opacity:.1;position:relative;z-index:1">🎬</span>'}
+              </div>
+              <div class="case-over">
+                <div class="case-cat">${c.cliente||''}</div>
+                <div class="case-title">${c.titulo}</div>
+                ${c.desc?`<div class="case-result">${c.desc}</div>`:''}
+              </div>
+            </div>`).join('');
+        }
+      }
+
+      // CLIENTES — carrossel
+      if (cfg.clientes?.some(c => c.nome)) {
+        const track = document.getElementById('sc-marquee-track');
+        if (track) {
+          const items = cfg.clientes.filter(c => c.nome);
+          const slots = items.map(c => {
+            const isUrl = c.nome.startsWith('http');
+            return `<div class="logo-slot">${isUrl
+              ? `<img src="${c.nome}" style="max-height:36px;max-width:100px;object-fit:contain" alt="logo">`
+              : `<span>${c.nome}</span>`}</div>`;
+          }).join('');
+          // Loop duplicado
+          track.innerHTML = slots + slots;
+          // Duplicar no segundo track se existir
+          const tracks = document.querySelectorAll('.mtrack');
+          if (tracks[1]) tracks[1].innerHTML = slots + slots;
+        }
+      }
+
+      // CONTADORES
       if (cfg.contadores?.length) {
         document.querySelectorAll('[data-sc-counter]').forEach(el => {
           const i = parseInt(el.getAttribute('data-sc-counter'));
@@ -1719,17 +1794,25 @@
           if (lblEl && c.label) lblEl.textContent = c.label;
         });
       }
-      // WhatsApp dinâmico
+
+      // CTA
+      const ctaH2 = document.getElementById('sc-cta-h2');
+      if (ctaH2 && cfg.cta?.titulo) ctaH2.innerHTML = cfg.cta.titulo;
+      const ctaSub = document.getElementById('sc-cta-sub');
+      if (ctaSub && cfg.cta?.subtitulo) ctaSub.innerHTML = cfg.cta.subtitulo;
+
+      // CONTATO
       if (cfg.contato?.whatsapp) window._siteWhatsApp = cfg.contato.whatsapp;
-      // Telefone
       if (cfg.contato?.telefone) {
         document.querySelectorAll('[data-sc-phone]').forEach(el => el.textContent = cfg.contato.telefone);
-        document.querySelectorAll('[data-sc-phone-link]').forEach(el => el.href = 'tel:+' + cfg.contato.whatsapp);
+        document.querySelectorAll('[data-sc-phone-link]').forEach(el => {
+          el.href = 'tel:+' + cfg.contato.whatsapp;
+        });
       }
-      // Cidade
       if (cfg.contato?.cidade) {
         document.querySelectorAll('[data-sc-cidade]').forEach(el => el.textContent = cfg.contato.cidade);
       }
+
     } catch(e) { console.warn('SiteConfig:', e); }
   })();
 
