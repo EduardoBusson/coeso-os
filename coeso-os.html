@@ -8522,6 +8522,10 @@ function _getSiteConfig() {
 function renderSiteEditorPage() {
   const el = document.getElementById('page-site-content');
   if (!el) return;
+  // Fix scroll: make this container the scroll root
+  el.style.overflowY = 'auto';
+  el.style.minHeight = '0';
+  el.style.padding = '0';
   try {
     el.innerHTML = _buildSiteEditor();
     _bindSiteEditor();
@@ -8536,166 +8540,185 @@ function _tabSiteEditor() { return _buildSiteEditor(); }
 
 function _buildSiteEditor() {
   const cfg = _getSiteConfig();
-  const cnt = cfg.contadores;
-  const srv = cfg.servicos;
-  const cas = cfg.cases;
-  const dep = cfg.depoimentos;
-  const cli = cfg.clientes;
+  const srv = cfg.servicos || [];
+  const cas = cfg.cases    || [];
+  const cli = cfg.clientes || [];
+  const cnt = cfg.contadores || [];
+  const dep = cfg.depoimentos || [];
 
-  const seCard = (titulo, cor, conteudo) =>
-    `<div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:${cor||'#3B82F6'};letter-spacing:.7px;text-transform:uppercase;margin-bottom:16px">${titulo}</div>
-      ${conteudo}
-    </div>`;
-
-  const seInput = (id, label, value, placeholder='', type='text') =>
-    `<div style="margin-bottom:10px">
-      ${label?`<label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">${label}</label>`:''}
-      <input id="${id}" type="${type}" value="${(String(value??'')).replace(/"/g,'&quot;')}" placeholder="${placeholder}"
-        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
-    </div>`;
-
-  const seTextarea = (id, label, value, rows=3) =>
-    `<div style="margin-bottom:10px">
-      ${label?`<label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">${label}</label>`:''}
-      <textarea id="${id}" rows="${rows}"
-        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none;resize:vertical;font-family:inherit">${(String(value??'')).replace(/</g,'&lt;')}</textarea>
-    </div>`;
-
-  return `<div style="max-width:900px">
-    <!-- Barra superior -->
-    <div style="background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(99,102,241,.08));border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
-      <div style="font-size:20px">✏️</div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:700;color:#F1F5F9">Editor de Site — agenciacoeso.com</div>
-        <div style="font-size:12px;color:#64748B">Edite qualquer seção e clique em Salvar. As mudanças aparecem imediatamente no site.</div>
+  // Helpers
+  const card = (icon, title, color, content) =>
+    `<div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:22px 26px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;padding-bottom:14px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="font-size:16px">${icon}</span>
+        <span style="font-size:11px;font-weight:700;color:${color};letter-spacing:.8px;text-transform:uppercase">${title}</span>
       </div>
-      <a href="/" target="_blank" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;white-space:nowrap;text-decoration:none">Abrir site →</a>
+      ${content}
+    </div>`;
+
+  const inp = (id, label, val, ph='') =>
+    `<div style="margin-bottom:10px">
+      ${label ? `<label style="font-size:11px;color:#64748B;display:block;margin-bottom:4px;font-weight:500">${label}</label>` : ''}
+      <input id="${id}" type="text" value="${String(val??'').replace(/"/g,'&quot;')}" placeholder="${ph}"
+        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 13px;font-size:13px;outline:none"
+        onfocus="this.style.borderColor='#3B82F6'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+    </div>`;
+
+  const num = (id, label, val, ph='') =>
+    `<div style="margin-bottom:10px">
+      ${label ? `<label style="font-size:11px;color:#64748B;display:block;margin-bottom:4px;font-weight:500">${label}</label>` : ''}
+      <input id="${id}" type="number" value="${String(val??'')}" placeholder="${ph}"
+        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 13px;font-size:13px;outline:none"
+        onfocus="this.style.borderColor='#3B82F6'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+    </div>`;
+
+  const ta = (id, label, val, rows=3) =>
+    `<div style="margin-bottom:10px">
+      ${label ? `<label style="font-size:11px;color:#64748B;display:block;margin-bottom:4px;font-weight:500">${label}</label>` : ''}
+      <textarea id="${id}" rows="${rows}"
+        style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 13px;font-size:13px;outline:none;resize:vertical;font-family:inherit"
+        onfocus="this.style.borderColor='#3B82F6'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">${String(val??'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+    </div>`;
+
+  const g2 = c => `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${c}</div>`;
+  const g3 = c => `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">${c}</div>`;
+  const g4 = c => `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">${c}</div>`;
+
+  return `<div style="padding:24px 32px 40px;max-width:none">
+
+    <!-- BARRA SALVAR STICKY -->
+    <div style="position:sticky;top:-1px;z-index:50;background:rgba(10,21,32,.97);backdrop-filter:blur(10px);border-bottom:1px solid #1e3448;padding:10px 0 12px;margin:-24px 0 24px -32px;padding-left:32px;padding-right:32px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:13px;color:#475569">✏️ Editor de Site — <span style="color:#94A3B8">agenciacoeso.com</span></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span id="se-status" style="font-size:12px;color:#10B981;display:none;font-weight:600">✓ Salvo!</span>
+        <button onclick="resetSiteConfig()" style="background:none;border:1px solid rgba(255,255,255,.1);color:#64748B;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px">↺ Restaurar padrão</button>
+        <button onclick="saveSiteConfig()" style="background:#3B82F6;border:none;color:#fff;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:13px;font-weight:700;letter-spacing:.2px">💾 Salvar alterações</button>
+      </div>
     </div>
 
-    ${seCard('🖼️ Logo &amp; Identidade', '#8B5CF6', `
-      <div style="display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start">
+    <!-- LOGO -->
+    ${card('🖼️','Logo & Identidade','#8B5CF6',`
+      ${g2(`
         <div>
-          ${seInput('se-logo-url','URL da imagem (PNG, SVG ou base64)',cfg.logo?.imgUrl,'https://...')}
-          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">Ou fazer upload do arquivo</label>
+          ${inp('se-logo-url','URL da imagem (PNG, SVG ou base64)',cfg.logo?.imgUrl,'https://...')}
+          <label style="font-size:11px;color:#64748B;display:block;margin-bottom:4px;font-weight:500;margin-top:8px">Ou fazer upload direto</label>
           <input id="se-logo-file" type="file" accept="image/*" style="font-size:12px;color:#94A3B8">
         </div>
-        <div id="se-logo-preview" style="width:80px;height:50px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
-          ${cfg.logo?.imgUrl?`<img src="${cfg.logo.imgUrl}" style="max-height:44px;max-width:76px;object-fit:contain">`:
-            '<span style="font-size:10px;color:#475569">pré-visualização</span>'}
+        <div id="se-logo-preview" style="display:flex;align-items:center;justify-content:center;height:90px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.1);border-radius:10px">
+          ${cfg.logo?.imgUrl ? `<img src="${cfg.logo.imgUrl}" style="max-height:70px;max-width:160px;object-fit:contain">` : '<span style="font-size:11px;color:#475569">pré-visualização</span>'}
         </div>
-      </div>
+      `)}
     `)}
 
-    ${seCard('🦸 Hero — Primeira dobra', '#3B82F6', `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        ${seInput('se-hero-eyebrow','Eyebrow (texto pequeno acima do título)',cfg.hero?.eyebrow)}
-        ${seInput('se-hero-video','URL do vídeo de fundo (.mp4)',cfg.hero?.videoUrl,'https://...')}
-      </div>
-      ${seTextarea('se-hero-headline','Título principal (HTML: &lt;br&gt;, &lt;span class="gradient-text"&gt;...&lt;/span&gt;)',cfg.hero?.headline,3)}
-      ${seTextarea('se-hero-subtext','Subtítulo',cfg.hero?.subtext,2)}
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
-        ${seInput('se-hero-btn1','Botão 1 — texto',cfg.hero?.btn1)}
-        ${seInput('se-hero-btn1-link','Botão 1 — link',cfg.hero?.btn1Link)}
-        ${seInput('se-hero-btn2','Botão 2 — texto',cfg.hero?.btn2)}
-        ${seInput('se-hero-btn2-link','Botão 2 — link',cfg.hero?.btn2Link)}
-      </div>
+    <!-- HERO -->
+    ${card('🦸','Hero — Primeira dobra','#3B82F6',`
+      ${g2(`
+        ${inp('se-hero-eyebrow','Texto pequeno acima do título',cfg.hero?.eyebrow,'Agência de Publicidade Premium')}
+        ${inp('se-hero-video','URL vídeo de fundo (.mp4)',cfg.hero?.videoUrl,'https://...')}
+      `)}
+      ${ta('se-hero-headline','Título principal — aceita HTML: &lt;br&gt;, &lt;span class="gradient-text"&gt;texto&lt;/span&gt;',cfg.hero?.headline,3)}
+      ${ta('se-hero-subtext','Subtítulo',cfg.hero?.subtext,2)}
+      ${g4(`
+        ${inp('se-hero-btn1','Botão 1 — texto',cfg.hero?.btn1,'Solicitar proposta')}
+        ${inp('se-hero-btn1-link','Botão 1 — link',cfg.hero?.btn1Link,'#contato')}
+        ${inp('se-hero-btn2','Botão 2 — texto',cfg.hero?.btn2,'Ver nossos cases')}
+        ${inp('se-hero-btn2-link','Botão 2 — link',cfg.hero?.btn2Link,'#cases')}
+      `)}
     `)}
 
-    ${seCard('🏢 Seção Agência', '#10B981', `
-      ${seTextarea('se-ag-titulo','Título (HTML permitido)',cfg.agencia?.titulo,2)}
-      ${seTextarea('se-ag-texto1','Parágrafo 1',cfg.agencia?.texto1,3)}
-      ${seTextarea('se-ag-texto2','Parágrafo 2',cfg.agencia?.texto2,3)}
+    <!-- AGÊNCIA -->
+    ${card('🏢','Seção Agência','#10B981',`
+      ${ta('se-ag-titulo','Título — aceita HTML',cfg.agencia?.titulo,2)}
+      ${g2(`
+        ${ta('se-ag-texto1','Parágrafo 1',cfg.agencia?.texto1,4)}
+        ${ta('se-ag-texto2','Parágrafo 2',cfg.agencia?.texto2,4)}
+      `)}
     `)}
 
-    ${seCard('⚙️ Serviços (4 cards)', '#F59E0B', `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <!-- SERVIÇOS -->
+    ${card('⚙️','Serviços (4 cards)','#F59E0B',`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         ${srv.map((s,i)=>`
         <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px">
-          <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:8px">Serviço ${i+1}</div>
-          ${seInput(`se-srv-ico-${i}`,'Ícone (emoji)',s.icone)}
-          ${seInput(`se-srv-titulo-${i}`,'Título',s.titulo)}
-          ${seTextarea(`se-srv-desc-${i}`,'Descrição',s.desc,2)}
+          <div style="font-size:10px;color:#F59E0B;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">Serviço ${i+1}</div>
+          ${g2(`${inp(`se-srv-ico-${i}`,'Ícone (emoji)',s.icone,'🎯')}${inp(`se-srv-titulo-${i}`,'Título',s.titulo)}`)}
+          ${ta(`se-srv-desc-${i}`,'Descrição curta',s.desc,2)}
         </div>`).join('')}
       </div>
     `)}
 
-    ${seCard('🎬 Cases', '#EF4444', `
-      ${cas.map((c,i)=>`
-      <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:10px">
-        <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:8px">Case ${i+1}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${seInput(`se-case-titulo-${i}`,'Título do case',c.titulo)}
-          ${seInput(`se-case-cliente-${i}`,'Cliente',c.cliente)}
-        </div>
-        ${seTextarea(`se-case-desc-${i}`,'Descrição',c.desc,2)}
-        ${seInput(`se-case-video-${i}`,'URL do vídeo (.mp4 ou YouTube embed)',c.videoUrl,'https://...')}
-      </div>`).join('')}
-      <button onclick="_addCaseRow()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#EF4444;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px">+ Adicionar case</button>
+    <!-- CASES -->
+    ${card('🎬','Cases','#EF4444',`
+      <div id="se-cases-list">
+        ${cas.map((c,i)=>`
+        <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:10px">
+          <div style="font-size:10px;color:#EF4444;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">Case ${i+1}</div>
+          ${g2(`${inp(`se-case-titulo-${i}`,'Título',c.titulo)}${inp(`se-case-cliente-${i}`,'Cliente',c.cliente)}`)}
+          ${ta(`se-case-desc-${i}`,'Descrição',c.desc,2)}
+          ${inp(`se-case-video-${i}`,'URL do vídeo (.mp4 ou YouTube embed)',c.videoUrl,'https://...')}
+        </div>`).join('')}
+      </div>
+      <button onclick="_addCaseRow()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#EF4444;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:12px;font-weight:600">+ Adicionar case</button>
     `)}
 
-    ${seCard('🏷️ Clientes — Carrossel de logos', '#06B6D4', `
-      <div style="font-size:12px;color:#64748B;margin-bottom:10px">Adicione o nome ou URL da logo de cada cliente. Deixe em branco para não exibir.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px" id="se-clientes-grid">
+    <!-- CLIENTES -->
+    ${card('🏷️','Clientes — Carrossel de logos','#06B6D4',`
+      <div style="font-size:12px;color:#64748B;margin-bottom:14px">Nome ou URL da logo de cada cliente. Deixe vazio para não exibir.</div>
+      <div id="se-clientes-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
         ${cli.map((c,i)=>`
         <div>
-          <label style="font-size:11px;color:#475569;display:block;margin-bottom:4px">Cliente ${i+1}</label>
-          <input data-se-cli="${i}" type="text" value="${(c.nome||'').replace(/"/g,'&quot;')}" placeholder="Nome ou URL logo"
+          <label style="font-size:10px;color:#475569;display:block;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Cliente ${i+1}</label>
+          <input data-se-cli="${i}" type="text" value="${String(c.nome||'').replace(/"/g,'&quot;')}" placeholder="Nome ou URL logo"
             style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.08);color:#F1F5F9;border-radius:6px;padding:7px 10px;font-size:12px;outline:none">
         </div>`).join('')}
       </div>
-      <button onclick="_addClienteRow()" style="margin-top:10px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);color:#06B6D4;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px">+ Adicionar cliente</button>
+      <button onclick="_addClienteRow()" style="margin-top:12px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);color:#06B6D4;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:12px;font-weight:600">+ Adicionar cliente</button>
     `)}
 
-    ${seCard('📊 Resultados — Contadores', '#3B82F6', `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <!-- CONTADORES -->
+    ${card('📊','Resultados — Contadores','#3B82F6',`
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
         ${cnt.map((c,i)=>`
         <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px">
-          <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:8px">Contador ${i+1}</div>
-          <div style="display:grid;grid-template-columns:2fr 1fr;gap:6px">
-            ${seInput(`se-cnt-num-${i}`,'Número',c.numero,'','number')}
-            ${seInput(`se-cnt-suf-${i}`,'Sufixo',c.sufixo,'+, %, anos...')}
-          </div>
-          ${seInput(`se-cnt-lbl-${i}`,'Label',c.label)}
+          <div style="font-size:10px;color:#3B82F6;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">Contador ${i+1}</div>
+          ${num(`se-cnt-num-${i}`,'Número',c.numero)}
+          ${inp(`se-cnt-suf-${i}`,'Sufixo',c.sufixo,'+, %, anos...')}
+          ${inp(`se-cnt-lbl-${i}`,'Label',c.label,'Projetos entregues')}
         </div>`).join('')}
       </div>
     `)}
 
-    ${seCard('💬 Depoimentos', '#8B5CF6', `
+    <!-- DEPOIMENTOS -->
+    ${card('💬','Depoimentos','#8B5CF6',`
       ${dep.map((d,i)=>`
       <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;margin-bottom:10px">
-        <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:8px">Depoimento ${i+1}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-          ${seInput(`se-dep-autor-${i}`,'Nome',d.autor)}
-          ${seInput(`se-dep-cargo-${i}`,'Cargo',d.cargo)}
-          ${seInput(`se-dep-empresa-${i}`,'Empresa',d.empresa)}
-        </div>
-        ${seTextarea(`se-dep-texto-${i}`,'Texto do depoimento',d.texto,3)}
+        <div style="font-size:10px;color:#8B5CF6;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px">Depoimento ${i+1}</div>
+        ${g3(`${inp(`se-dep-autor-${i}`,'Nome',d.autor)}${inp(`se-dep-cargo-${i}`,'Cargo',d.cargo)}${inp(`se-dep-empresa-${i}`,'Empresa',d.empresa)}`)}
+        ${ta(`se-dep-texto-${i}`,'Texto do depoimento',d.texto,3)}
       </div>`).join('')}
     `)}
 
-    ${seCard('🚀 CTA — Chamada para ação', '#10B981', `
-      ${seTextarea('se-cta-titulo','Título (HTML: &lt;br&gt;, &lt;em&gt;...&lt;/em&gt;)',cfg.cta?.titulo,2)}
-      ${seInput('se-cta-sub','Subtítulo',cfg.cta?.subtitulo)}
+    <!-- CTA -->
+    ${card('🚀','CTA — Chamada para ação','#10B981',`
+      ${g2(`
+        ${ta('se-cta-titulo','Título — aceita HTML: &lt;br&gt;, &lt;em&gt;...&lt;/em&gt;',cfg.cta?.titulo,3)}
+        ${inp('se-cta-sub','Subtítulo',cfg.cta?.subtitulo)}
+      `)}
     `)}
 
-    ${seCard('📞 Contato', '#F59E0B', `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        ${seInput('se-tel','Telefone (exibição)',cfg.contato?.telefone,'(85) 98170-1747')}
-        ${seInput('se-wa','WhatsApp (só números com DDI)',cfg.contato?.whatsapp,'5585981701747')}
-        ${seInput('se-email','E-mail',cfg.contato?.email,'contato@...')}
-        ${seInput('se-cidade','Cidade / Localização',cfg.contato?.cidade,'Fortaleza, Ceará — Brasil')}
-      </div>
+    <!-- CONTATO -->
+    ${card('📞','Contato','#F59E0B',`
+      ${g4(`
+        ${inp('se-tel','Telefone (exibição)',cfg.contato?.telefone,'(85) 98170-1747')}
+        ${inp('se-wa','WhatsApp (só números + DDI)',cfg.contato?.whatsapp,'5585981701747')}
+        ${inp('se-email','E-mail',cfg.contato?.email,'contato@agenciacoeso.com')}
+        ${inp('se-cidade','Cidade / Localização',cfg.contato?.cidade,'Fortaleza, Ceará')}
+      `)}
     `)}
 
-    <!-- SALVAR -->
-    <div style="display:flex;gap:12px;align-items:center;padding:20px 0">
-      <button onclick="saveSiteConfig()" style="background:#3B82F6;border:none;color:#fff;border-radius:10px;padding:13px 32px;cursor:pointer;font-size:14px;font-weight:700">💾 Salvar todas as alterações</button>
-      <button onclick="resetSiteConfig()" style="background:none;border:1px solid rgba(255,255,255,.1);color:#64748B;border-radius:10px;padding:13px 20px;cursor:pointer;font-size:13px">Restaurar padrão</button>
-      <span id="se-status" style="font-size:12px;color:#10B981;display:none">✓ Salvo com sucesso!</span>
-    </div>
   </div>`;
 }
+
 
 function _bindSiteEditor() {
   // Preview ao vivo do logo por URL
