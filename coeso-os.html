@@ -7333,7 +7333,10 @@ function fazerLogin() {
     document.getElementById('login-senha').focus();
     return;
   }
-  sessionStorage.setItem('coeso_login', JSON.stringify({ user, modo: cfg.modo, nome: cfg.nome, cliente: cfg.cliente||'' }));
+  const _sessData = { user, modo: cfg.modo, nome: cfg.nome, cliente: cfg.cliente||'' };
+  sessionStorage.setItem('coeso_login', JSON.stringify(_sessData));
+  // Atualiza URL com o slug do usuário
+  navigateTo(getUserSlug(_sessData));
   // NÃO esconde login-screen aqui — só esconde quando o splash já está na tela (evita flash da página)
   // Mostra splash imediatamente para cobrir a tela
   const _splashImediato = document.getElementById('splash-boas-vindas');
@@ -7345,10 +7348,26 @@ function fazerLogin() {
   });
 }
 
+// ── URL Routing ──────────────────────────────────────────────
+function navigateTo(path) {
+  try { history.pushState({}, '', path); } catch(e) {}
+}
+
+function getUserSlug(sess) {
+  if (!sess || !sess.modo) return '/login';
+  if (sess.modo === 'admin') return '/aflan-digital';
+  if (sess.modo === 'colaborador') {
+    return '/' + (sess.nome||'equipe').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
+  }
+  return '/' + (sess.cliente||'portal').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
+}
+
 function fazerLogout() {
   if (!confirm('Tem certeza que deseja sair?')) return;
   sessionStorage.removeItem('coeso_login');
-  location.reload();
+  window.location.href = '/';
 }
 
 function falarBoasVindas(nome, modo) {
@@ -7914,6 +7933,7 @@ function renderPortalCliente() {
     { id:'oportunidades',label:'Oportunidades' },
     ...(_isAdminPortal ? [{ id:'score', label:'Score' }] : []),
     { id:'relatorio',    label:'Relatório' },
+    ...(_isAdminPortal ? [{ id:'site', label:'✏️ Site' }] : []),
   ];
 
   el.innerHTML = `
@@ -7972,6 +7992,7 @@ function renderPortalTab(tabId, clienteNome) {
     case 'oportunidades': el.innerHTML = _tabOportunidades(clienteNome); break;
     case 'score':         el.innerHTML = _tabScore(clienteNome); break;
     case 'relatorio':     el.innerHTML = _tabRelatorio(clienteNome); break;
+    case 'site':          el.innerHTML = _tabSiteEditor(); _bindSiteEditor(); break;
   }
 }
 
@@ -8408,6 +8429,208 @@ function togglePlanoItem(clienteNome, setorIdx, itemIdx) {
   // Re-render somente o conteúdo da aba sem rebuildar o header
   const el = document.getElementById('portal-tab-content');
   if (el) el.innerHTML = _tabPlano(clienteNome);
+}
+
+// ── TAB: EDITOR DE SITE ────────────────────────────────────
+const _SITE_CONFIG_DEFAULT = {
+  logo: { imgUrl: '' },
+  hero: {
+    eyebrow: 'Agência de Publicidade Premium',
+    headline: 'Sua marca<br><span class="gradient-text">merece</span><br>ser vista.',
+    subtext: 'Estratégia, audiovisual e tráfego pago para marcas que querem crescer de verdade. Do briefing à entrega.',
+    videoUrl: ''
+  },
+  contadores: [
+    { numero: 200, sufixo: '+', label: 'Projetos entregues' },
+    { numero: 50,  sufixo: '+', label: 'Clientes ativos' },
+    { numero: 98,  sufixo: '%', label: 'Taxa de satisfação' },
+    { numero: 5,   sufixo: ' anos', label: 'De experiência' }
+  ],
+  contato: { telefone: '(85) 98170-1747', whatsapp: '5585981701747', cidade: 'Fortaleza, Ceará — Brasil' }
+};
+
+function _getSiteConfig() {
+  try { return Object.assign({}, _SITE_CONFIG_DEFAULT, JSON.parse(localStorage.getItem('coeso_site_config')||'{}')); }
+  catch(e) { return Object.assign({}, _SITE_CONFIG_DEFAULT); }
+}
+
+function _tabSiteEditor() {
+  const cfg = _getSiteConfig();
+  const cnt = cfg.contadores;
+  return `
+  <div style="max-width:860px">
+    <!-- Aviso destaque -->
+    <div style="background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(99,102,241,.08));border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:22px">✏️</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#F1F5F9;margin-bottom:3px">Editor de Site — agenciacoeso.com</div>
+        <div style="font-size:12px;color:#64748B">Alterações salvas aqui aparecem automaticamente no site institucional. Apenas você vê este editor.</div>
+      </div>
+      <a href="/" target="_blank" style="margin-left:auto;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;white-space:nowrap;text-decoration:none">Ver site →</a>
+    </div>
+
+    <!-- LOGO -->
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:#3B82F6;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px">Identidade — Logo</div>
+      <label style="font-size:12px;color:#64748B;display:block;margin-bottom:6px">URL da imagem do logo (PNG/SVG recomendado)</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input id="se-logo-url" type="text" placeholder="https://..." value="${cfg.logo?.imgUrl||''}"
+          style="flex:1;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
+        <div id="se-logo-preview" style="width:52px;height:32px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+          ${cfg.logo?.imgUrl ? `<img src="${cfg.logo.imgUrl}" style="max-height:28px;max-width:48px;object-fit:contain">` : '<span style="font-size:10px;color:#475569">pré</span>'}
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label style="font-size:12px;color:#64748B;display:block;margin-bottom:6px">Ou upload direto</label>
+        <input id="se-logo-file" type="file" accept="image/*" style="font-size:12px;color:#94A3B8">
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:#3B82F6;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px">Hero — Primeira dobra</div>
+      <div style="display:grid;gap:12px">
+        <div>
+          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">Eyebrow (texto pequeno acima do título)</label>
+          <input id="se-hero-eyebrow" type="text" value="${cfg.hero?.eyebrow||''}"
+            style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">Título principal (HTML permitido: &lt;br&gt;, &lt;span class="gradient-text"&gt;)</label>
+          <textarea id="se-hero-headline" rows="3"
+            style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none;resize:vertical;font-family:monospace">${cfg.hero?.headline||''}</textarea>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">Subtítulo</label>
+          <textarea id="se-hero-subtext" rows="2"
+            style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none;resize:vertical">${cfg.hero?.subtext||''}</textarea>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">Vídeo do hero — URL do arquivo .mp4 (ou deixe em branco)</label>
+          <input id="se-hero-video" type="text" value="${cfg.hero?.videoUrl||''}" placeholder="https://... .mp4"
+            style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTADORES -->
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:#3B82F6;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px">Números — Indicadores animados</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${cnt.map((c,i) => `
+        <div style="background:#0B1220;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px">
+          <div style="font-size:11px;color:#475569;font-weight:600;margin-bottom:10px">Contador ${i+1}</div>
+          <input data-se-cnt="${i}" data-field="numero" type="number" value="${c.numero}" placeholder="Número"
+            style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#F1F5F9;border-radius:6px;padding:7px 10px;font-size:13px;margin-bottom:6px;outline:none">
+          <input data-se-cnt="${i}" data-field="sufixo" type="text" value="${c.sufixo}" placeholder="Sufixo (+, %, anos...)"
+            style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#F1F5F9;border-radius:6px;padding:7px 10px;font-size:13px;margin-bottom:6px;outline:none">
+          <input data-se-cnt="${i}" data-field="label" type="text" value="${c.label}" placeholder="Label"
+            style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#F1F5F9;border-radius:6px;padding:7px 10px;font-size:13px;outline:none">
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- CONTATO -->
+    <div style="background:#0F1A2E;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:20px 24px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:#3B82F6;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px">Contato</div>
+      <div style="display:grid;gap:10px">
+        <div>
+          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">Telefone (exibição)</label>
+          <input id="se-tel" type="text" value="${cfg.contato?.telefone||''}" placeholder="(85) 98170-1747"
+            style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">WhatsApp (só números, com DDI)</label>
+          <input id="se-wa" type="text" value="${cfg.contato?.whatsapp||''}" placeholder="5585981701747"
+            style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#64748B;display:block;margin-bottom:5px">Cidade / Localização</label>
+          <input id="se-cidade" type="text" value="${cfg.contato?.cidade||''}" placeholder="Fortaleza, Ceará — Brasil"
+            style="width:100%;background:#0B1220;border:1px solid rgba(255,255,255,.1);color:#F1F5F9;border-radius:8px;padding:9px 14px;font-size:13px;outline:none">
+        </div>
+      </div>
+    </div>
+
+    <!-- SALVAR -->
+    <div style="display:flex;gap:12px;align-items:center">
+      <button onclick="saveSiteConfig()" style="background:#3B82F6;border:none;color:#fff;border-radius:10px;padding:12px 28px;cursor:pointer;font-size:14px;font-weight:700">💾 Salvar alterações</button>
+      <button onclick="resetSiteConfig()" style="background:none;border:1px solid rgba(255,255,255,.1);color:#64748B;border-radius:10px;padding:12px 20px;cursor:pointer;font-size:13px">Restaurar padrão</button>
+      <span id="se-status" style="font-size:12px;color:#10B981;display:none">✓ Salvo!</span>
+    </div>
+  </div>`;
+}
+
+function _bindSiteEditor() {
+  // Preview ao vivo do logo por URL
+  const logoInput = document.getElementById('se-logo-url');
+  if (logoInput) {
+    logoInput.addEventListener('input', () => {
+      const prev = document.getElementById('se-logo-preview');
+      if (prev) prev.innerHTML = logoInput.value
+        ? `<img src="${logoInput.value}" style="max-height:28px;max-width:48px;object-fit:contain">`
+        : '<span style="font-size:10px;color:#475569">pré</span>';
+    });
+  }
+  // Upload de arquivo → converte para base64
+  const fileInput = document.getElementById('se-logo-file');
+  if (fileInput) {
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const url = ev.target.result;
+        const urlInput = document.getElementById('se-logo-url');
+        if (urlInput) { urlInput.value = url; urlInput.dispatchEvent(new Event('input')); }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+}
+
+function saveSiteConfig() {
+  const cfg = _getSiteConfig();
+  // Logo
+  cfg.logo = { imgUrl: (document.getElementById('se-logo-url')?.value||'').trim() };
+  // Hero
+  cfg.hero = {
+    eyebrow:  (document.getElementById('se-hero-eyebrow')?.value||'').trim(),
+    headline: (document.getElementById('se-hero-headline')?.value||'').trim(),
+    subtext:  (document.getElementById('se-hero-subtext')?.value||'').trim(),
+    videoUrl: (document.getElementById('se-hero-video')?.value||'').trim()
+  };
+  // Contadores
+  const cnt = Array.from({length:4}, (_,i) => ({
+    numero: parseInt(document.querySelector(`[data-se-cnt="${i}"][data-field="numero"]`)?.value||0),
+    sufixo: document.querySelector(`[data-se-cnt="${i}"][data-field="sufixo"]`)?.value||'',
+    label:  document.querySelector(`[data-se-cnt="${i}"][data-field="label"]`)?.value||''
+  }));
+  cfg.contadores = cnt;
+  // Contato
+  cfg.contato = {
+    telefone: (document.getElementById('se-tel')?.value||'').trim(),
+    whatsapp: (document.getElementById('se-wa')?.value||'').trim(),
+    cidade:   (document.getElementById('se-cidade')?.value||'').trim()
+  };
+  // Salvar no localStorage (compartilhado com o site — mesma origem)
+  localStorage.setItem('coeso_site_config', JSON.stringify(cfg));
+  // Salvar no Firebase via saveData
+  saveData('site_config', cfg);
+  // Feedback
+  const st = document.getElementById('se-status');
+  if (st) { st.style.display='inline'; setTimeout(()=>st.style.display='none', 2500); }
+  showToast('✅ Site atualizado! As mudanças já aparecem em agenciacoeso.com');
+}
+
+function resetSiteConfig() {
+  if (!confirm('Restaurar configurações padrão do site?')) return;
+  localStorage.removeItem('coeso_site_config');
+  saveData('site_config', null);
+  const el = document.getElementById('portal-tab-content');
+  if (el) el.innerHTML = _tabSiteEditor();
+  _bindSiteEditor();
+  showToast('Configurações restauradas.');
 }
 
 // ── TAB 2: CALENDÁRIO ──────────────────────────────────────
@@ -9905,18 +10128,27 @@ function renderMiniCal() {
   }
   if (loadingEl) loadingEl.style.display = 'none';
 
-  // Verifica sessão de login
+  // Verifica sessão de login + roteamento por URL
   const sessao = sessionStorage.getItem('coeso_login');
+  const _urlPath = window.location.pathname;
   if (sessao) {
     // Já logado — aplica modo direto
     try {
-      const { modo } = JSON.parse(sessao);
-      aplicarModo(modo, false);
+      const _sess = JSON.parse(sessao);
+      // Atualiza URL para o slug correto se não estiver lá
+      const _correctSlug = getUserSlug(_sess);
+      if (_urlPath !== _correctSlug) navigateTo(_correctSlug);
+      aplicarModo(_sess.modo, false);
     } catch(e) { _runInit(); }
   } else {
-    // Mostra login
+    // Não logado — mostrar login se rota for /login, senão redireciona pro site
     _runInit(); // carrega estado do app em background
-    document.getElementById('login-screen').style.display = 'flex';
+    if (_urlPath === '/login' || _urlPath === '/' || _urlPath === '/index.html') {
+      document.getElementById('login-screen').style.display = 'flex';
+    } else {
+      // Alguém tentou acessar uma rota protegida sem estar logado
+      window.location.href = '/login';
+    }
   }
 })();
 </script>
