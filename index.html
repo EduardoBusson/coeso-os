@@ -471,6 +471,11 @@
     <span class="icon">✏️</span><span>Editor de Site</span>
   </div>
 
+  <div class="nav-section nav-admin-only" style="margin-top:8px">Equipe</div>
+  <div class="nav-item nav-admin-only" onclick="goTo('kanban')">
+    <span class="icon">📋</span><span>Kanban — Keren</span>
+  </div>
+
   <div class="sidebar-bottom">
     <div id="sidebar-user-card" onclick="goTo('inicio')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:6px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--surface2)">
       <div id="sidebar-user-avatar" style="width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">E</div>
@@ -1236,6 +1241,17 @@
     <a href="/" target="_blank" class="btn btn-ghost btn-sm">Ver site →</a>
   </div>
   <div class="page-content" id="page-site-content"></div>
+</div>
+
+<div class="page" id="page-kanban">
+  <div class="page-header">
+    <div>
+      <div class="page-title">📋 Kanban — Keren</div>
+      <div class="page-subtitle">Tarefas da estagiária</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="abrirModalTarefaKanban('todo')">+ Nova tarefa</button>
+  </div>
+  <div class="page-content" id="page-kanban-content" style="overflow-y:auto;min-height:0"></div>
 </div>
 
 <!-- Modal Configurações da Agência -->
@@ -2303,6 +2319,7 @@ function renderPage(page) {
   if (page === 'intel-upsell') renderIntelUpsell();
   if (page === 'intel-ia')     renderIntelIA();
   if (page === 'site')         renderSiteEditorPage();
+  if (page === 'kanban')       renderKanban();
 }
 
 // ============================================================
@@ -7337,6 +7354,7 @@ function _runInit() {
 const COESO_USUARIOS = {
   'eduardo': { senha: 'coeso2026',  modo: 'admin',       nome: 'Eduardo' },
   'kaian':   { senha: 'kaian123',   modo: 'colaborador',  nome: 'Kaian', feminino: false },
+  'keren':   { senha: 'keren2026',  modo: 'estagiaria',   nome: 'Keren', feminino: true  },
   'focus':   { senha: 'focus2026',  modo: 'cliente',      nome: 'Focus',  cliente: 'Focus' },
 };
 
@@ -7373,6 +7391,7 @@ function navigateTo(path) {
 function getUserSlug(sess) {
   if (!sess || !sess.modo) return '/login';
   if (sess.modo === 'admin') return '/aflan-digital';
+  if (sess.modo === 'estagiaria') return '/keren';
   if (sess.modo === 'colaborador') {
     return '/' + (sess.nome||'equipe').toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
@@ -8337,6 +8356,263 @@ function _tabVisaoGeral(clienteNome) {
       <button onclick="switchPortalTab('solicitacoes')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#3B82F6;border-radius:9px;padding:9px 16px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">+ Nova solicitação</button>
     </div>
   </div>`;
+}
+
+// ============================================================
+// KANBAN — KEREN (ESTAGIÁRIA)
+// ============================================================
+const _KANBAN_COLUNAS = [
+  { id: 'todo',  label: 'A fazer',       cor: '#3B82F6', bg: 'rgba(59,130,246,.08)'  },
+  { id: 'doing', label: 'Em andamento',  cor: '#F59E0B', bg: 'rgba(245,158,11,.08)'  },
+  { id: 'done',  label: 'Concluído',     cor: '#10B981', bg: 'rgba(16,185,129,.08)'  },
+];
+
+function _loadKanban() {
+  return loadData('kanban_keren', { todo: [], doing: [], done: [] });
+}
+
+function renderKanban() { renderKanbanKeren(); }
+
+let _kanbanTimer = null;
+
+function _loadPontoKanban() {
+  return loadData('ponto_keren', {});
+}
+
+function registrarPontoKanban() {
+  const entrada = document.getElementById('ponto-entrada')?.value;
+  const saida   = document.getElementById('ponto-saida')?.value;
+  if (!entrada || !saida) { showToast('Informe entrada e saída.'); return; }
+  if (saida <= entrada) { showToast('Saída deve ser depois da entrada.'); return; }
+  const hoje = new Date().toISOString().slice(0,10);
+  const ponto = _loadPontoKanban();
+  ponto[hoje] = { entrada, saida, registrado: new Date().toISOString() };
+  saveData('ponto_keren', ponto);
+  renderKanbanKeren();
+}
+
+function _atualizarTimerKanban() {
+  const el = document.getElementById('ponto-timer-display');
+  if (!el) { if (_kanbanTimer) { clearInterval(_kanbanTimer); _kanbanTimer = null; } return; }
+  const hoje = new Date().toISOString().slice(0,10);
+  const ponto = _loadPontoKanban();
+  const p = ponto[hoje];
+  if (!p) return;
+
+  const now = new Date();
+  const [eh, em] = p.entrada.split(':').map(Number);
+  const [sh, sm] = p.saida.split(':').map(Number);
+  const entradaMs = new Date(hoje + 'T' + p.entrada + ':00').getTime();
+  const saidaMs   = new Date(hoje + 'T' + p.saida   + ':00').getTime();
+  const nowMs     = now.getTime();
+
+  const totalMin  = (saidaMs - entradaMs) / 60000;
+  const elapsedMs = nowMs - entradaMs;
+  const remainMs  = saidaMs - nowMs;
+
+  const fmt = ms => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  };
+
+  let html = '';
+  if (nowMs < entradaMs) {
+    const diff = fmt(entradaMs - nowMs);
+    html = `<span style="color:var(--text2);font-size:13px">⏳ Turno começa às <b>${p.entrada}</b> — faltam ${diff}</span>`;
+  } else if (nowMs >= saidaMs) {
+    html = `<span style="color:var(--green);font-size:13px;font-weight:700">✅ Turno encerrado — ${p.entrada} → ${p.saida} (${totalMin/60|0}h${(totalMin%60).toString().padStart(2,'0')}min)</span>`;
+    if (_kanbanTimer) { clearInterval(_kanbanTimer); _kanbanTimer = null; }
+  } else {
+    const pct = Math.min(100, Math.max(0, (elapsedMs / (saidaMs - entradaMs)) * 100));
+    html = `
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Decorrido</span>
+          <span style="font-size:18px;font-weight:800;color:var(--accent);font-family:monospace;letter-spacing:1px">${fmt(elapsedMs)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Restante</span>
+          <span style="font-size:18px;font-weight:800;color:${remainMs < 1800000 ? 'var(--red)' : 'var(--text2)'};font-family:monospace;letter-spacing:1px">${fmt(remainMs)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3)">${p.entrada} → ${p.saida}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:100px;height:8px;overflow:hidden;flex:1;min-width:200px">
+        <div style="height:100%;width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#3B82F6,var(--accent));border-radius:100px;transition:width .5s ease"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3)">${pct.toFixed(0)}% concluído do turno</div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderKanbanKeren() {
+  if (_kanbanTimer) { clearInterval(_kanbanTimer); _kanbanTimer = null; }
+
+  const el = document.getElementById('page-kanban-content');
+  if (!el) return;
+  const data = _loadKanban();
+  const hoje = new Date().toISOString().slice(0,10);
+  const ponto = _loadPontoKanban();
+  const pontoHoje = ponto[hoje] || null;
+
+  // Format today for display: dd/mm/yyyy
+  const [hy,hm,hd] = hoje.split('-');
+  const hojeLabel = `${hd}/${hm}/${hy}`;
+
+  el.innerHTML = `
+  <!-- ── PONTO DO DIA ─────────────────────────────────── -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">🕐</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Ponto do dia</div>
+          <div style="font-size:11px;color:var(--text3)">${hojeLabel}</div>
+        </div>
+      </div>
+      ${pontoHoje ? `
+        <div id="ponto-timer-display" style="display:flex;flex:1;min-width:0;justify-content:flex-end"></div>
+        <button onclick="(function(){if(!confirm('Apagar ponto de hoje?'))return;var p=_loadPontoKanban();delete p['${hoje}'];saveData('ponto_keren',p);renderKanbanKeren();})()"
+          style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:11px;flex-shrink:0">Apagar</button>
+      ` : `
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:11px;color:var(--text3);white-space:nowrap">Entrada</label>
+            <input type="time" id="ponto-entrada" value="08:00"
+              style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 10px;font-size:13px;outline:none">
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:11px;color:var(--text3);white-space:nowrap">Saída</label>
+            <input type="time" id="ponto-saida" value="14:00"
+              style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 10px;font-size:13px;outline:none">
+          </div>
+          <button onclick="registrarPontoKanban()"
+            style="background:var(--accent);color:var(--navy);border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap">▶ Bater ponto</button>
+        </div>
+      `}
+    </div>
+  </div>
+
+  <!-- ── COLUNAS KANBAN ───────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start">
+    ${_KANBAN_COLUNAS.map(col => {
+      const tasks = data[col.id] || [];
+      return `
+      <div style="background:${col.bg};border:1px solid ${col.cor}22;border-radius:14px;padding:16px;min-height:200px">
+        <!-- Cabeçalho da coluna -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:8px;height:8px;border-radius:50%;background:${col.cor}"></div>
+            <span style="font-size:12px;font-weight:700;color:${col.cor};text-transform:uppercase;letter-spacing:.6px">${col.label}</span>
+            <span style="font-size:11px;color:var(--text3);background:var(--surface2);border-radius:10px;padding:1px 7px">${tasks.length}</span>
+          </div>
+          <button onclick="abrirModalTarefaKanban('${col.id}')" title="Adicionar tarefa"
+            style="background:${col.cor}22;border:1px solid ${col.cor}33;color:${col.cor};border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
+        </div>
+        <!-- Cards -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${tasks.length === 0 ? `<div style="text-align:center;font-size:12px;color:var(--text3);padding:24px 0">Nenhuma tarefa</div>` : ''}
+          ${tasks.map((t, idx) => `
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;position:relative">
+            ${t.prazo ? `<div style="font-size:10px;color:${_prazoColor(t.prazo)};font-weight:600;margin-bottom:5px">⏰ ${_formatDate(t.prazo)}</div>` : ''}
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.3">${t.titulo}</div>
+            ${t.desc ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.4">${t.desc}</div>` : ''}
+            <!-- Ações -->
+            <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+              ${col.id !== 'todo'  ? `<button onclick="moverTarefaKanban('${col.id}',${idx},'prev')" style="font-size:10px;padding:3px 8px;border-radius:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer">← Voltar</button>` : ''}
+              ${col.id !== 'done'  ? `<button onclick="moverTarefaKanban('${col.id}',${idx},'next')" style="font-size:10px;padding:3px 8px;border-radius:5px;background:${col.cor}22;border:1px solid ${col.cor}44;color:${col.cor};cursor:pointer;font-weight:600">${col.id==='todo'?'Iniciar →':'Concluir ✓'}</button>` : ''}
+              <button onclick="excluirTarefaKanban('${col.id}',${idx})" style="font-size:10px;padding:3px 7px;border-radius:5px;background:rgba(255,90,114,.06);border:1px solid rgba(255,90,114,.15);color:var(--red);cursor:pointer;margin-left:auto">✕</button>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <!-- Modal nova tarefa -->
+  <div id="modal-kanban-wrap" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:420px;max-width:95vw">
+      <div style="font-size:16px;font-weight:700;margin-bottom:20px">Nova tarefa</div>
+      <input id="kb-titulo" placeholder="Título da tarefa *" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 13px;font-size:13px;outline:none;margin-bottom:10px">
+      <textarea id="kb-desc" rows="2" placeholder="Descrição (opcional)" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 13px;font-size:13px;outline:none;resize:none;margin-bottom:10px;font-family:inherit"></textarea>
+      <input id="kb-prazo" type="date" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 13px;font-size:13px;outline:none;margin-bottom:18px">
+      <input type="hidden" id="kb-coluna" value="todo">
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="fecharModalKanban()" style="background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:9px 18px;cursor:pointer;font-size:13px">Cancelar</button>
+        <button onclick="salvarTarefaKanban()" style="background:var(--accent);color:var(--navy);border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:13px;font-weight:700">Adicionar</button>
+      </div>
+    </div>
+  </div>`;
+
+  // Start live timer if ponto registered today
+  if (pontoHoje) {
+    _atualizarTimerKanban();
+    _kanbanTimer = setInterval(_atualizarTimerKanban, 1000);
+  }
+}
+
+function _prazoColor(prazo) {
+  if (!prazo) return 'var(--text2)';
+  const diff = (new Date(prazo) - new Date()) / 86400000;
+  if (diff < 0) return 'var(--red)';
+  if (diff < 2) return 'var(--yellow)';
+  return 'var(--green)';
+}
+function _formatDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function abrirModalTarefaKanban(col) {
+  const w = document.getElementById('modal-kanban-wrap');
+  if (!w) return;
+  document.getElementById('kb-titulo').value = '';
+  document.getElementById('kb-desc').value = '';
+  document.getElementById('kb-prazo').value = '';
+  document.getElementById('kb-coluna').value = col;
+  w.style.display = 'flex';
+  setTimeout(() => document.getElementById('kb-titulo').focus(), 50);
+}
+function fecharModalKanban() {
+  const w = document.getElementById('modal-kanban-wrap');
+  if (w) w.style.display = 'none';
+}
+function salvarTarefaKanban() {
+  const titulo = document.getElementById('kb-titulo')?.value.trim();
+  if (!titulo) { showToast('Informe o título da tarefa.'); return; }
+  const col   = document.getElementById('kb-coluna')?.value || 'todo';
+  const desc  = document.getElementById('kb-desc')?.value.trim() || '';
+  const prazo = document.getElementById('kb-prazo')?.value || '';
+  const data  = _loadKanban();
+  if (!data[col]) data[col] = [];
+  data[col].unshift({ id: Date.now(), titulo, desc, prazo, criado: new Date().toISOString().slice(0,10) });
+  saveData('kanban_keren', data);
+  fecharModalKanban();
+  renderKanbanKeren();
+}
+function moverTarefaKanban(fromCol, idx, dir) {
+  const ordem = ['todo','doing','done'];
+  const fi = ordem.indexOf(fromCol);
+  const toCol = dir === 'next' ? ordem[fi+1] : ordem[fi-1];
+  if (!toCol) return;
+  const data = _loadKanban();
+  if (!data[fromCol] || !data[toCol]) return;
+  const [task] = data[fromCol].splice(idx, 1);
+  data[toCol].unshift(task);
+  saveData('kanban_keren', data);
+  renderKanbanKeren();
+}
+function excluirTarefaKanban(col, idx) {
+  if (!confirm('Excluir esta tarefa?')) return;
+  const data = _loadKanban();
+  if (data[col]) data[col].splice(idx, 1);
+  saveData('kanban_keren', data);
+  renderKanbanKeren();
 }
 
 // ── TAB: PLANO DE AÇÃO ─────────────────────────────────────
@@ -10069,6 +10345,20 @@ function aplicarModo(modo, viaLogin) {
     document.querySelectorAll('[onclick*="tab-financeiro-cli"]').forEach(el => el.style.display = 'none');
   }
 
+  if (modo === 'estagiaria') {
+    // Keren: sidebar oculta, só vê o kanban
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    const main = document.querySelector('.main');
+    if (main) { main.style.marginLeft = '0'; main.style.width = '100%'; }
+    window.goTo = function(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const pg = document.getElementById('page-kanban');
+      if (pg) pg.classList.add('active');
+      renderKanbanKeren();
+    };
+  }
+
   if (modo === 'cliente') {
     // Esconde toda a sidebar — cliente só vê o portal
     const sidebar = document.querySelector('.sidebar');
@@ -10105,6 +10395,9 @@ function aplicarModo(modo, viaLogin) {
     } else if (_sessS.user === 'kaian') {
       goTo('kaian');
       setTimeout(() => renderKaian(), 50);
+    } else if (_sessS.modo === 'estagiaria') {
+      goTo('kanban');
+      setTimeout(() => renderKanbanKeren(), 50);
     } else {
       goTo('inicio');
       setTimeout(() => renderInicio(), 50);
@@ -10362,3 +10655,4 @@ function renderMiniCal() {
 </script>
 </body>
 </html>
+
