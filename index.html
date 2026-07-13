@@ -10638,8 +10638,11 @@ function renderMiniCal() {
   if (loadingEl) loadingEl.style.display = 'none';
 
   // Verifica sessão de login
+  // Se a URL é /login, força a tela de login independente da sessão (troca de usuário)
+  const _pathAtual = window.location.pathname;
+  const _forcarLogin = _pathAtual === '/login' || _pathAtual === '/login/';
   const sessao = sessionStorage.getItem('coeso_login');
-  if (sessao) {
+  if (sessao && !_forcarLogin) {
     // Já logado — aplica modo e atualiza URL (cosmético apenas, sem redirecionamento)
     try {
       const _sess = JSON.parse(sessao);
@@ -10647,7 +10650,8 @@ function renderMiniCal() {
       aplicarModo(_sess.modo, false);
     } catch(e) { _runInit(); document.getElementById('login-screen').style.display = 'flex'; }
   } else {
-    // Não logado — sempre mostra o login, independente da URL
+    // Não logado ou /login forçado — mostra a tela de login
+    if (_forcarLogin) sessionStorage.removeItem('coeso_login');
     _runInit();
     document.getElementById('login-screen').style.display = 'flex';
   }
