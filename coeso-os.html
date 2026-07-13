@@ -10350,10 +10350,17 @@ function aplicarModo(modo, viaLogin) {
 
   if (modo === 'estagiaria') {
     // Keren: sidebar oculta, só vê o kanban
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) sidebar.style.display = 'none';
-    const main = document.querySelector('.main');
-    if (main) { main.style.marginLeft = '0'; main.style.width = '100%'; }
+    // Usa CSS injection com !important para garantir layout correto
+    if (!document.getElementById('_style_estagiaria')) {
+      const _sEl = document.createElement('style');
+      _sEl.id = '_style_estagiaria';
+      _sEl.textContent = [
+        'nav.sidebar{display:none!important;width:0!important;min-width:0!important;padding:0!important;overflow:hidden!important;border:none!important;}',
+        'div.main{flex:1!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;}',
+        '#page-kanban{flex:1!important;display:flex!important;flex-direction:column!important;}'
+      ].join('');
+      document.head.appendChild(_sEl);
+    }
     window.goTo = function(page) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       const pg = document.getElementById('page-kanban');
